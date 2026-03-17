@@ -24,19 +24,18 @@ export default function HomePage() {
 
       <Hero />
 
-      {/* Category pills */}
-      <section className="max-w-7xl mx-auto w-full py-6">
+      <section className="max-w-7xl mx-auto w-full px-4 pt-8 pb-4">
         <CategoryPills
           activeCategory={activeCategory}
           onSelect={setActiveCategory}
         />
       </section>
 
-      {/* Main content */}
-      <main
-        id="prodotti"
-        className="flex-1 max-w-7xl mx-auto w-full px-4 pb-16"
-      >
+      <div className="w-full max-w-7xl mx-auto px-4">
+        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+      </div>
+
+      <main id="prodotti" className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
         <div className="flex gap-8">
           <Sidebar
             open={sidebarOpen}

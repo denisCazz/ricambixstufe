@@ -2,37 +2,13 @@
 
 import { categories } from "@/data/categories";
 import {
-  Cog,
-  Wind,
-  Fan,
-  Zap,
-  Monitor,
-  Cpu,
-  Flame,
-  Thermometer,
-  CircleDot,
-  RotateCw,
-  Home,
-  Package,
-  Gauge,
-  Wrench,
+  Cog, Wind, Fan, Zap, Monitor, Cpu, Flame,
+  Thermometer, CircleDot, RotateCw, Home, Package, Gauge, Wrench,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Cog,
-  Wind,
-  Fan,
-  Zap,
-  Monitor,
-  Cpu,
-  Flame,
-  Thermometer,
-  CircleDot,
-  RotateCw,
-  Home,
-  Package,
-  Gauge,
-  Wrench,
+  Cog, Wind, Fan, Zap, Monitor, Cpu, Flame,
+  Thermometer, CircleDot, RotateCw, Home, Package, Gauge, Wrench,
 };
 
 export default function CategoryPills({
@@ -49,8 +25,8 @@ export default function CategoryPills({
           onClick={() => onSelect(null)}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
             activeCategory === null
-              ? "bg-accent text-white shadow-lg shadow-accent/25"
-              : "bg-white/5 border border-white/10 text-muted hover:bg-white/10 hover:text-foreground"
+              ? "bg-accent text-white shadow-md shadow-accent/20"
+              : "bg-white border border-border text-muted hover:bg-surface-hover hover:text-foreground hover:border-border-hover"
           }`}
         >
           Tutti
@@ -60,13 +36,11 @@ export default function CategoryPills({
           return (
             <button
               key={cat.id}
-              onClick={() =>
-                onSelect(activeCategory === cat.slug ? null : cat.slug)
-              }
+              onClick={() => onSelect(activeCategory === cat.slug ? null : cat.slug)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                 activeCategory === cat.slug
-                  ? "bg-accent text-white shadow-lg shadow-accent/25"
-                  : "bg-white/5 border border-white/10 text-muted hover:bg-white/10 hover:text-foreground"
+                  ? "bg-accent text-white shadow-md shadow-accent/20"
+                  : "bg-white border border-border text-muted hover:bg-surface-hover hover:text-foreground hover:border-border-hover"
               }`}
             >
               {Icon && <Icon className="w-3.5 h-3.5" />}

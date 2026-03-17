@@ -6,6 +6,7 @@ export interface Product {
   price: number;
   category: string;
   categorySlug: string;
+  image: string;
 }
 
 export const products: Product[] = [
@@ -18,6 +19,8 @@ export const products: Product[] = [
     price: 158.93,
     category: "Ventilatori Fumi",
     categorySlug: "ventilatori-fumi",
+    image:
+      "https://www.ricambixstufe.it/ricambixstufe/368-home_default/ventilatore-fumi-ebm-senza-encoder.jpg",
   },
   {
     id: 17,
@@ -28,6 +31,8 @@ export const products: Product[] = [
     price: 186.66,
     category: "Ventilatori Aria",
     categorySlug: "ventilatori-aria",
+    image:
+      "https://www.ricambixstufe.it/ricambixstufe/531-home_default/ventilatore-aria-centrifugo-per-stufa-a-pellet.jpg",
   },
   {
     id: 22,
@@ -38,6 +43,8 @@ export const products: Product[] = [
     price: 135.42,
     category: "Ventilatori Aria",
     categorySlug: "ventilatori-aria",
+    image:
+      "https://www.ricambixstufe.it/ricambixstufe/229-home_default/ventilatore-aria-stufe-slim.jpg",
   },
   {
     id: 23,
@@ -48,6 +55,8 @@ export const products: Product[] = [
     price: 42.33,
     category: "Resistenze Accensione",
     categorySlug: "resistenze-accensione",
+    image:
+      "https://www.ricambixstufe.it/ricambixstufe/179-home_default/resistenza-elettrica.jpg",
   },
   {
     id: 10,
@@ -58,6 +67,8 @@ export const products: Product[] = [
     price: 140.0,
     category: "Motoriduttori",
     categorySlug: "motoriduttori",
+    image:
+      "https://www.ricambixstufe.it/ricambixstufe/127-home_default/motoriduttore-mellor-t14-5-rpm.jpg",
   },
   {
     id: 52,
@@ -67,6 +78,8 @@ export const products: Product[] = [
     price: 57.95,
     category: "Schede Elettroniche e Sensori",
     categorySlug: "schede-elettroniche-sensori",
+    image:
+      "https://www.ricambixstufe.it/ricambixstufe/116-home_default/sensore-debimetro-micronova.jpg",
   },
   {
     id: 53,
@@ -77,6 +90,8 @@ export const products: Product[] = [
     price: 110.04,
     category: "Ventilatori Aria",
     categorySlug: "ventilatori-aria",
+    image:
+      "https://www.ricambixstufe.it/ricambixstufe/121-home_default/ventilatore-centrifugo-w925300010.jpg",
   },
   {
     id: 54,
@@ -87,6 +102,8 @@ export const products: Product[] = [
     price: 153.72,
     category: "Ventilatori Aria",
     categorySlug: "ventilatori-aria",
+    image:
+      "https://www.ricambixstufe.it/ricambixstufe/536-home_default/ventilatore-aria-centrifugo.jpg",
   },
   {
     id: 55,
@@ -97,6 +114,8 @@ export const products: Product[] = [
     price: 115.9,
     category: "Ventilatori Fumi",
     categorySlug: "ventilatori-fumi",
+    image:
+      "https://www.ricambixstufe.it/ricambixstufe/578-home_default/ventilatore-fumi-con-encoder-e-chiocciola-.jpg",
   },
   {
     id: 56,
@@ -107,6 +126,8 @@ export const products: Product[] = [
     price: 36.6,
     category: "Bracieri e Camere Combustione",
     categorySlug: "bracieri-camere-combustione",
+    image:
+      "https://www.ricambixstufe.it/ricambixstufe/134-home_default/braciere-susy-perla-catria-evacalor.jpg",
   },
   {
     id: 67,
@@ -117,6 +138,8 @@ export const products: Product[] = [
     price: 1.0,
     category: "Sonde, Depressori, Termostati",
     categorySlug: "sonde-depressori-termostati",
+    image:
+      "https://www.ricambixstufe.it/ricambixstufe/188-home_default/supporto-depressore.jpg",
   },
   {
     id: 68,
@@ -127,6 +150,8 @@ export const products: Product[] = [
     price: 30.5,
     category: "Sonde, Depressori, Termostati",
     categorySlug: "sonde-depressori-termostati",
+    image:
+      "https://www.ricambixstufe.it/ricambixstufe/191-home_default/termostato-di-sicurezza-a-riarmo-manuale-80.jpg",
   },
 ];
 

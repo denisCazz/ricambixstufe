@@ -1,40 +1,17 @@
 "use client";
 
+import { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { categories } from "@/data/categories";
 import { products } from "@/data/products";
 import {
-  Cog,
-  Wind,
-  Fan,
-  Zap,
-  Monitor,
-  Cpu,
-  Flame,
-  Thermometer,
-  CircleDot,
-  RotateCw,
-  Home,
-  Package,
-  Gauge,
-  Wrench,
-  X,
+  Cog, Wind, Fan, Zap, Monitor, Cpu, Flame,
+  Thermometer, CircleDot, RotateCw, Home, Package, Gauge, Wrench, X,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Cog,
-  Wind,
-  Fan,
-  Zap,
-  Monitor,
-  Cpu,
-  Flame,
-  Thermometer,
-  CircleDot,
-  RotateCw,
-  Home,
-  Package,
-  Gauge,
-  Wrench,
+  Cog, Wind, Fan, Zap, Monitor, Cpu, Flame,
+  Thermometer, CircleDot, RotateCw, Home, Package, Gauge, Wrench,
 };
 
 function getCategoryCount(slug: string): number {
@@ -52,105 +29,84 @@ export default function Sidebar({
   activeCategory: string | null;
   onSelect: (slug: string | null) => void;
 }) {
+  useEffect(() => {
+    if (open) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
+
+  const categoryList = (mobile: boolean) =>
+    categories.map((cat) => {
+      const Icon = iconMap[cat.icon];
+      const count = getCategoryCount(cat.slug);
+      const isActive = activeCategory === cat.slug;
+      return (
+        <button
+          key={cat.id}
+          onClick={() => { onSelect(isActive ? null : cat.slug); if (mobile) onClose(); }}
+          className={`w-full flex items-center gap-3 px-3 ${mobile ? "py-3" : "py-2.5"} rounded-xl text-sm transition-all duration-200 group ${
+            isActive
+              ? "bg-orange-50 text-accent font-medium"
+              : "text-muted hover:bg-surface-hover hover:text-foreground"
+          }`}
+        >
+          {Icon && (
+            <Icon className={`w-4 h-4 shrink-0 transition-colors ${
+              isActive ? "text-accent" : "text-muted/50 group-hover:text-foreground"
+            }`} />
+          )}
+          <span className="truncate text-left flex-1">{cat.name}</span>
+          {count > 0 && !mobile && (
+            <span className={`text-[11px] tabular-nums px-1.5 py-0.5 rounded-md ${
+              isActive ? "bg-orange-100 text-accent" : "bg-background text-muted/50"
+            }`}>
+              {count}
+            </span>
+          )}
+        </button>
+      );
+    });
+
   return (
     <>
-      {/* Mobile overlay */}
-      {open && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
-      <aside
-        className={`fixed lg:sticky top-0 lg:top-20 left-0 h-full lg:h-auto w-72 lg:w-64 z-50 lg:z-0 transition-transform duration-300 lg:translate-x-0 lg:shrink-0 ${
-          open ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="h-full lg:h-auto bg-neutral-950 lg:bg-transparent p-5 lg:p-0 overflow-y-auto">
-          {/* Mobile close */}
-          <div className="flex items-center justify-between mb-6 lg:hidden">
-            <h3 className="text-lg font-bold">Categorie</h3>
-            <button
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden"
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed top-0 left-0 h-full w-72 z-50 lg:hidden bg-white border-r border-border shadow-xl"
             >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-2xl p-4 hidden lg:block">
-            <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mb-4 px-2">
-              Categorie
-            </h3>
-            <nav className="space-y-0.5">
-              {categories.map((cat) => {
-                const Icon = iconMap[cat.icon];
-                const count = getCategoryCount(cat.slug);
-                const isActive = activeCategory === cat.slug;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => onSelect(isActive ? null : cat.slug)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group ${
-                      isActive
-                        ? "bg-accent/15 text-accent"
-                        : "text-muted hover:bg-white/5 hover:text-foreground"
-                    }`}
-                  >
-                    {Icon && (
-                      <Icon
-                        className={`w-4 h-4 shrink-0 ${
-                          isActive
-                            ? "text-accent"
-                            : "text-muted group-hover:text-foreground"
-                        }`}
-                      />
-                    )}
-                    <span className="truncate text-left flex-1">
-                      {cat.name}
-                    </span>
-                    {count > 0 && (
-                      <span
-                        className={`text-xs px-1.5 py-0.5 rounded-md ${
-                          isActive
-                            ? "bg-accent/20 text-accent"
-                            : "bg-white/5 text-muted"
-                        }`}
-                      >
-                        {count}
-                      </span>
-                    )}
+              <div className="h-full p-5 overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold text-foreground">Categorie</h3>
+                  <button onClick={onClose} className="p-2 rounded-lg hover:bg-surface-hover transition-colors" aria-label="Chiudi menu">
+                    <X className="w-5 h-5" />
                   </button>
-                );
-              })}
-            </nav>
-          </div>
+                </div>
+                <nav className="space-y-0.5">{categoryList(true)}</nav>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
 
-          {/* Mobile list */}
-          <nav className="space-y-0.5 lg:hidden">
-            {categories.map((cat) => {
-              const Icon = iconMap[cat.icon];
-              const isActive = activeCategory === cat.slug;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    onSelect(isActive ? null : cat.slug);
-                    onClose();
-                  }}
-                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-all duration-200 ${
-                    isActive
-                      ? "bg-accent/15 text-accent"
-                      : "text-muted hover:bg-white/5 hover:text-foreground"
-                  }`}
-                >
-                  {Icon && <Icon className="w-4 h-4 shrink-0" />}
-                  <span className="truncate text-left">{cat.name}</span>
-                </button>
-              );
-            })}
-          </nav>
+      <aside className="hidden lg:block w-64 shrink-0 sticky top-24 self-start">
+        <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-widest mb-4 px-2">
+            Categorie
+          </h3>
+          <nav className="space-y-0.5">{categoryList(false)}</nav>
         </div>
       </aside>
     </>
