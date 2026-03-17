@@ -1,0 +1,80 @@
+"use client";
+
+import { categories } from "@/data/categories";
+import {
+  Cog,
+  Wind,
+  Fan,
+  Zap,
+  Monitor,
+  Cpu,
+  Flame,
+  Thermometer,
+  CircleDot,
+  RotateCw,
+  Home,
+  Package,
+  Gauge,
+  Wrench,
+} from "lucide-react";
+
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  Cog,
+  Wind,
+  Fan,
+  Zap,
+  Monitor,
+  Cpu,
+  Flame,
+  Thermometer,
+  CircleDot,
+  RotateCw,
+  Home,
+  Package,
+  Gauge,
+  Wrench,
+};
+
+export default function CategoryPills({
+  activeCategory,
+  onSelect,
+}: {
+  activeCategory: string | null;
+  onSelect: (slug: string | null) => void;
+}) {
+  return (
+    <div className="w-full overflow-x-auto pb-2 scrollbar-none">
+      <div className="flex gap-2 min-w-max px-4 lg:px-0 lg:flex-wrap">
+        <button
+          onClick={() => onSelect(null)}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+            activeCategory === null
+              ? "bg-accent text-white shadow-lg shadow-accent/25"
+              : "bg-white/5 border border-white/10 text-muted hover:bg-white/10 hover:text-foreground"
+          }`}
+        >
+          Tutti
+        </button>
+        {categories.map((cat) => {
+          const Icon = iconMap[cat.icon];
+          return (
+            <button
+              key={cat.id}
+              onClick={() =>
+                onSelect(activeCategory === cat.slug ? null : cat.slug)
+              }
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                activeCategory === cat.slug
+                  ? "bg-accent text-white shadow-lg shadow-accent/25"
+                  : "bg-white/5 border border-white/10 text-muted hover:bg-white/10 hover:text-foreground"
+              }`}
+            >
+              {Icon && <Icon className="w-3.5 h-3.5" />}
+              {cat.name}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
