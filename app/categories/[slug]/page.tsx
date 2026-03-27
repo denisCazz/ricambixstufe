@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { getProducts } from "@/lib/products";
 import { getCategories, getCategoryBySlug } from "@/lib/categories";
 import { createBuildClient } from "@/lib/supabase/server";
-import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
 import CategoryPageClient from "./CategoryPageClient";
 
@@ -56,7 +55,6 @@ export default async function CategoryPage({
 
   return (
     <div className="min-h-screen flex flex-col">
-      <TopBar />
       <CategoryPageClient
         category={{ ...category, icon: category.icon || "Package" }}
         products={products}

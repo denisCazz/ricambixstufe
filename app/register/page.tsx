@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { register } from "../(auth)/actions";
-import { Eye, EyeOff, UserPlus, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, UserPlus, AlertCircle, ArrowLeft } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
 
 export default function RegisterPage() {
@@ -46,9 +47,14 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <h1 className="text-2xl font-bold text-[var(--color-foreground)]">
-              Ricambi<span className="text-[var(--color-accent)]">X</span>Stufe
-            </h1>
+            <Image
+              src="/logo_senza_scritte.png"
+              alt="RicambiXStufe"
+              width={400}
+              height={100}
+              className="h-16 sm:h-24 w-auto object-contain mx-auto"
+              priority
+            />
           </Link>
         </div>
 
@@ -179,6 +185,13 @@ export default function RegisterPage() {
               {t("login.dealer_link")}
             </Link>
           </div>
+        </div>
+
+        <div className="mt-6 text-center">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            Torna alla Home
+          </Link>
         </div>
       </div>
     </div>

@@ -35,7 +35,7 @@ export default function CookieBanner() {
         >
           <div className="max-w-2xl mx-auto bg-white border border-border rounded-2xl p-5 shadow-xl">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0 mt-0.5">
+              <div className="hidden sm:flex w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 items-center justify-center shrink-0 mt-0.5">
                 <Cookie className="w-5 h-5 text-accent" />
               </div>
               <div className="flex-1 min-w-0">
@@ -57,7 +57,7 @@ export default function CookieBanner() {
                 <X className="w-4 h-4 text-muted hover:text-foreground transition-colors" />
               </button>
             </div>
-            <div className="flex gap-3 mt-4 sm:ml-14">
+              <div className="flex gap-3 mt-4 sm:ml-14 flex-wrap">
               <button
                 onClick={accept}
                 className="px-5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200"

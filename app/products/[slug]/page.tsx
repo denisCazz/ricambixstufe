@@ -3,7 +3,6 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelatedProducts } from "@/lib/products";
 import { createBuildClient } from "@/lib/supabase/server";
-import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
 import ProductDetailClient from "./ProductDetailClient";
 import AddToCartButton from "@/components/AddToCartButton";
@@ -39,7 +38,6 @@ export default async function ProductDetailPage({
 
   return (
     <div className="min-h-screen flex flex-col">
-      <TopBar />
       <ProductDetailClient>
         <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
           {/* Breadcrumb */}

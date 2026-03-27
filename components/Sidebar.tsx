@@ -90,7 +90,7 @@ export default function Sidebar({
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 left-0 h-full w-72 z-50 lg:hidden bg-white border-r border-border shadow-xl"
+              className="fixed top-0 left-0 h-full w-[85vw] max-w-sm z-50 lg:hidden bg-white border-r border-border shadow-xl"
             >
               <div className="h-full p-5 overflow-y-auto">
                 <div className="flex items-center justify-between mb-6">

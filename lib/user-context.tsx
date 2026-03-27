@@ -5,36 +5,45 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
   type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 
 interface UserContextType {
   dealerDiscount: number | null;
   isDealer: boolean;
   loading: boolean;
+  refresh: () => void;
 }
 
 const UserContext = createContext<UserContextType>({
   dealerDiscount: null,
   isDealer: false,
   loading: true,
+  refresh: () => {},
 });
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [dealerDiscount, setDealerDiscount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
-  useEffect(() => {
+  const fetchUser = useCallback(() => {
+    setLoading(true);
     fetch("/api/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data?.dealerDiscount != null) {
-          setDealerDiscount(data.dealerDiscount);
-        }
+        setDealerDiscount(data?.dealerDiscount ?? null);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  // Refetch on route change (e.g. after login redirect)
+  useEffect(() => {
+    fetchUser();
+  }, [pathname, fetchUser]);
 
   return (
     <UserContext.Provider
@@ -42,6 +51,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         dealerDiscount,
         isDealer: dealerDiscount !== null,
         loading,
+        refresh: fetchUser,
       }}
     >
       {children}

@@ -119,6 +119,17 @@ export default function ProductCard({
           <span className="hidden sm:inline">{t("product.add")}</span>
         </button>
       </div>
+
+      {/* Mobile: view details button */}
+      <div className="px-4 pb-4 md:hidden">
+        <Link
+          href={`/products/${product.slug}`}
+          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-accent/30 text-accent text-xs font-semibold hover:bg-accent/5 transition-colors duration-200"
+        >
+          <Eye className="w-3.5 h-3.5" />
+          {t("product.details")}
+        </Link>
+      </div>
     </motion.div>
   );
 }

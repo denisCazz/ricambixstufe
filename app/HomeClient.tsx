@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import TopBar from "@/components/TopBar";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import CategoryPills from "@/components/CategoryPills";
@@ -27,7 +26,6 @@ export default function HomeClient({
 
   return (
     <div className="min-h-screen flex flex-col">
-      <TopBar />
       <Header
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         sidebarOpen={sidebarOpen}

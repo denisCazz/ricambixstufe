@@ -5,18 +5,68 @@ import { CartProvider } from "@/lib/cart-context";
 import { LocaleProvider } from "@/lib/locale-context";
 import { UserProvider } from "@/lib/user-context";
 import CartDrawer from "@/components/CartDrawer";
+import ScrollToTop from "@/components/ScrollToTop";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
 });
 
+const siteUrl = "https://www.ricambixstufe.it";
+
 export const metadata: Metadata = {
-  title: "Ricambi X Stufe | Ricambi per Stufe a Pellet",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "RicambiXStufe | Ricambi per Stufe a Pellet",
+    template: "%s | RicambiXStufe",
+  },
   description:
     "Ricambi per stufe a pellet: motoriduttori, ventilatori, resistenze, schede elettroniche e molto altro. Spedizione in tutta Europa.",
   keywords:
-    "ricambi stufe pellet, motoriduttori, ventilatori fumi, resistenze accensione, bracieri, schede elettroniche",
+    "ricambi stufe pellet, motoriduttori, ventilatori fumi, resistenze accensione, bracieri, schede elettroniche, stufe a pellet, pezzi di ricambio",
+  authors: [{ name: "RicambiXStufe - Elettroservice snc" }],
+  creator: "Bitora.it",
+  icons: {
+    icon: "/favicon.ico",
+  },
+  openGraph: {
+    type: "website",
+    locale: "it_IT",
+    url: siteUrl,
+    siteName: "RicambiXStufe",
+    title: "RicambiXStufe | Ricambi per Stufe a Pellet",
+    description:
+      "Ricambi per stufe a pellet: motoriduttori, ventilatori, resistenze, schede elettroniche e molto altro. Spedizione in tutta Europa.",
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "RicambiXStufe - Ricambi per Stufe a Pellet",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "RicambiXStufe | Ricambi per Stufe a Pellet",
+    description:
+      "Ricambi per stufe a pellet: motoriduttori, ventilatori, resistenze, schede elettroniche e molto altro.",
+    images: ["/opengraph-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: siteUrl,
+  },
 };
 
 export default function RootLayout({
@@ -32,6 +82,7 @@ export default function RootLayout({
             <CartProvider>
               {children}
               <CartDrawer />
+              <ScrollToTop />
             </CartProvider>
           </UserProvider>
         </LocaleProvider>
