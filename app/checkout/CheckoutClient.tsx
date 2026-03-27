@@ -26,15 +26,15 @@ export default function CheckoutClient() {
         <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-6">
           <Shield className="w-10 h-10 text-green-600" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">Ordine confermato!</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{t("checkout.confirmed")}</h1>
         <p className="text-muted mb-8 max-w-md">
-          Riceverai un&apos;email con i dettagli del tuo ordine e le istruzioni per il pagamento.
+          {t("checkout.confirmed_msg")}
         </p>
         <Link
           href="/"
           className="px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all"
         >
-          Torna allo shop
+          {t("checkout.back_shop")}
         </Link>
       </div>
     );
@@ -199,7 +199,7 @@ export default function CheckoutClient() {
           </button>
 
           <p className="text-xs text-muted text-center">
-            Procedendo confermi di accettare i Termini e Condizioni di vendita.
+            {t("checkout.terms")}
           </p>
         </form>
 

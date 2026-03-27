@@ -5,8 +5,10 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { login } from "@/app/(auth)/actions";
 import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle } from "lucide-react";
+import { useLocale } from "@/lib/locale-context";
 
 function LoginForm() {
+  const { t } = useLocale();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
   const registered = searchParams.get("registered");
@@ -45,20 +47,20 @@ function LoginForm() {
 
         <div className="bg-white rounded-2xl shadow-lg shadow-black/5 border border-[var(--color-muted)]/30 p-8">
           <h2 className="text-xl font-bold text-[var(--color-foreground)] mb-6 text-center">
-            Accedi al tuo account
+            {t("login.title")}
           </h2>
 
           {/* Success messages */}
           {registered && (
             <div className="mb-4 flex items-start gap-2 bg-green-50 text-green-800 p-3 rounded-lg text-sm">
               <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" />
-              <span>Registrazione completata! Controlla la tua email per confermare l&apos;account.</span>
+              <span>{t("login.registered_success")}</span>
             </div>
           )}
           {dealerRegistered && (
             <div className="mb-4 flex items-start gap-2 bg-blue-50 text-blue-800 p-3 rounded-lg text-sm">
               <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" />
-              <span>Richiesta dealer inviata! Riceverai un&apos;email dopo l&apos;approvazione dell&apos;amministratore.</span>
+              <span>{t("login.dealer_registered_success")}</span>
             </div>
           )}
 
@@ -82,7 +84,7 @@ function LoginForm() {
                 required
                 autoComplete="email"
                 className="w-full px-4 py-2.5 rounded-lg border border-[var(--color-muted)]/40 bg-[var(--color-background)] text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)] transition"
-                placeholder="il.tuo@email.com"
+                placeholder={t("login.email_placeholder")}
               />
             </div>
 
@@ -120,23 +122,23 @@ function LoginForm() {
               ) : (
                 <>
                   <LogIn className="w-4 h-4" />
-                  Accedi
+                  {t("login.submit")}
                 </>
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-[var(--color-foreground)]/60">
-            Non hai un account?{" "}
+            {t("login.no_account")}{" "}
             <Link href="/register" className="text-[var(--color-accent)] hover:underline font-medium">
-              Registrati
+              {t("login.register_link")}
             </Link>
           </div>
 
           <div className="mt-3 text-center text-sm text-[var(--color-foreground)]/60">
-            Sei un rivenditore?{" "}
+            {t("login.dealer_question")}{" "}
             <Link href="/register/dealer" className="text-[var(--color-accent)] hover:underline font-medium">
-              Registrazione Dealer
+              {t("login.dealer_link")}
             </Link>
           </div>
         </div>

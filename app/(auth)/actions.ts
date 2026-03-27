@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export async function login(formData: FormData) {
@@ -30,7 +30,7 @@ export async function register(formData: FormData) {
   const firstName = formData.get("firstName") as string;
   const lastName = formData.get("lastName") as string;
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -43,6 +43,12 @@ export async function register(formData: FormData) {
 
   if (error) {
     return { error: error.message };
+  }
+
+  // Supabase returns a fake user with no identities when the email
+  // is already registered (to avoid leaking existing accounts).
+  if (data.user && data.user.identities?.length === 0) {
+    return { error: "Questa email è già registrata. Prova ad accedere o usa un'altra email." };
   }
 
   redirect("/login?registered=true");
@@ -85,23 +91,70 @@ export async function registerDealer(formData: FormData) {
     return { error: "Errore nella registrazione" };
   }
 
-  // Update profile with company info
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({
-      company: companyName,
-      vat_number: vatNumber,
-      phone,
-      role: "dealer",
-    })
-    .eq("id", authData.user.id);
+  // Supabase returns a fake user with no identities when the email
+  // is already registered (to avoid leaking existing accounts).
+  if (authData.user.identities?.length === 0) {
+    return { error: "Questa email è già registrata. Prova ad accedere o usa un'altra email." };
+  }
 
-  if (profileError) {
-    return { error: profileError.message };
+  // Use service client for post-signup operations — the user session
+  // may not be established yet (e.g. email confirmation pending),
+  // so auth.uid() would be NULL and RLS would block the inserts.
+  const service = await createServiceClient();
+
+  // Wait for the trigger-created profile row to exist before updating.
+  // The handle_new_user trigger fires on auth.users INSERT and creates
+  // the profiles row, but there can be a brief delay.
+  let profileExists = false;
+  for (let i = 0; i < 10; i++) {
+    const { data } = await service
+      .from("profiles")
+      .select("id")
+      .eq("id", authData.user.id)
+      .single();
+    if (data) {
+      profileExists = true;
+      break;
+    }
+    await new Promise((r) => setTimeout(r, 300));
+  }
+
+  if (!profileExists) {
+    // Trigger didn't fire — create the profile directly
+    const { error: insertError } = await service
+      .from("profiles")
+      .insert({
+        id: authData.user.id,
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        company: companyName,
+        vat_number: vatNumber,
+        phone,
+        role: "dealer",
+      });
+    if (insertError) {
+      return { error: insertError.message };
+    }
+  } else {
+    // Update the trigger-created profile with dealer info
+    const { error: profileError } = await service
+      .from("profiles")
+      .update({
+        company: companyName,
+        vat_number: vatNumber,
+        phone,
+        role: "dealer",
+      })
+      .eq("id", authData.user.id);
+
+    if (profileError) {
+      return { error: profileError.message };
+    }
   }
 
   // Create dealer profile (pending approval)
-  const { error: dealerError } = await supabase
+  const { error: dealerError } = await service
     .from("dealer_profiles")
     .insert({
       id: authData.user.id,

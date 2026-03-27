@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Cookie, X } from "lucide-react";
+import { useLocale } from "@/lib/locale-context";
 
 export default function CookieBanner() {
+  const { t } = useLocale();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -38,20 +40,19 @@ export default function CookieBanner() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-foreground leading-relaxed mb-1">
-                  Utilizziamo i cookie per personalizzare contenuti e annunci,
-                  fornire le funzioni dei social media e analizzare il traffico.
+                  {t("cookie.message")}
                 </p>
                 <p className="text-xs text-muted leading-relaxed">
-                  Proseguendo la navigazione accetti l&apos;utilizzo dei cookie.{" "}
+                  {t("cookie.details")}{" "}
                   <a href="#" className="text-accent hover:underline underline-offset-2">
-                    Maggiori informazioni
+                    {t("cookie.more_info")}
                   </a>
                 </p>
               </div>
               <button
                 onClick={accept}
                 className="shrink-0 p-1.5 rounded-lg hover:bg-surface-hover transition-colors hidden sm:block"
-                aria-label="Chiudi"
+                aria-label={t("sidebar.close")}
               >
                 <X className="w-4 h-4 text-muted hover:text-foreground transition-colors" />
               </button>
@@ -61,13 +62,13 @@ export default function CookieBanner() {
                 onClick={accept}
                 className="px-5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200"
               >
-                Accetto
+                {t("cookie.accept")}
               </button>
               <a
                 href="#"
                 className="px-5 py-2 rounded-xl border border-border text-sm font-medium text-muted hover:bg-surface-hover hover:text-foreground transition-all duration-200"
               >
-                Pi&ugrave; info
+                {t("cookie.settings")}
               </a>
             </div>
           </div>

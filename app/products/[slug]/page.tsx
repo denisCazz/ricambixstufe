@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import ProductDetailClient from "./ProductDetailClient";
 import AddToCartButton from "@/components/AddToCartButton";
 import PriceDisplay from "@/components/PriceDisplay";
+import TranslatedText from "@/components/TranslatedText";
 
 export async function generateStaticParams() {
   const supabase = createBuildClient();
@@ -43,7 +44,7 @@ export default async function ProductDetailPage({
         <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm text-muted mb-8">
-            <Link href="/" className="hover:text-accent transition-colors">Home</Link>
+            <Link href="/" className="hover:text-accent transition-colors"><TranslatedText k="breadcrumb.home" /></Link>
             <span>/</span>
             <Link href={`/categories/${product.categorySlug}`} className="hover:text-accent transition-colors">
               {product.category}
@@ -87,7 +88,7 @@ export default async function ProductDetailPage({
                 <div className="text-3xl font-bold text-accent mb-1">
                   <PriceDisplay price={product.price} />
                 </div>
-                <p className="text-xs text-muted">IVA inclusa</p>
+                <p className="text-xs text-muted"><TranslatedText k="product.vat" /></p>
               </div>
 
               <div className="flex gap-3">
@@ -105,11 +106,11 @@ export default async function ProductDetailPage({
               <div className="mt-8 space-y-3">
                 <div className="flex items-center gap-3 text-sm text-muted">
                   <span className="w-2 h-2 rounded-full bg-green-500" />
-                  Disponibile — spedizione in 24/48h
+                  <TranslatedText k="product.available" />
                 </div>
                 <div className="flex items-center gap-3 text-sm text-muted">
                   <span className="w-2 h-2 rounded-full bg-accent" />
-                  Garanzia 2 anni
+                  <TranslatedText k="product.warranty" />
                 </div>
               </div>
             </div>
@@ -118,7 +119,7 @@ export default async function ProductDetailPage({
           {/* Related Products */}
           {related.length > 0 && (
             <section className="mt-16">
-              <h2 className="text-xl font-bold text-foreground mb-6">Prodotti Correlati</h2>
+              <TranslatedText k="product.related" as="h2" className="text-xl font-bold text-foreground mb-6" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {related.map((rp) => (
                   <Link

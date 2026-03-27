@@ -8,6 +8,7 @@ import {
   Cog, Wind, Fan, Zap, Monitor, Cpu, Flame,
   Thermometer, CircleDot, RotateCw, Home, Package, Gauge, Wrench, X,
 } from "lucide-react";
+import { useLocale } from "@/lib/locale-context";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Cog, Wind, Fan, Zap, Monitor, Cpu, Flame,
@@ -29,6 +30,7 @@ export default function Sidebar({
   categories: Category[];
   products: Product[];
 }) {
+  const { t } = useLocale();
   function getCategoryCount(slug: string): number {
     return products.filter((p) => p.categorySlug === slug).length;
   }
@@ -92,8 +94,8 @@ export default function Sidebar({
             >
               <div className="h-full p-5 overflow-y-auto">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-bold text-foreground">Categorie</h3>
-                  <button onClick={onClose} className="p-2 rounded-lg hover:bg-surface-hover transition-colors" aria-label="Chiudi menu">
+                  <h3 className="text-lg font-bold text-foreground">{t("sidebar.categories")}</h3>
+                  <button onClick={onClose} className="p-2 rounded-lg hover:bg-surface-hover transition-colors" aria-label={t("sidebar.close")}>
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -107,7 +109,7 @@ export default function Sidebar({
       <aside className="hidden lg:block w-64 shrink-0 sticky top-24 self-start">
         <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
           <h3 className="text-xs font-semibold text-muted uppercase tracking-widest mb-4 px-2">
-            Categorie
+            {t("sidebar.categories")}
           </h3>
           <nav className="space-y-0.5">{categoryList(false)}</nav>
         </div>

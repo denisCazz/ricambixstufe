@@ -5,6 +5,7 @@ import {
   Cog, Wind, Fan, Zap, Monitor, Cpu, Flame,
   Thermometer, CircleDot, RotateCw, Home, Package, Gauge, Wrench,
 } from "lucide-react";
+import { useLocale } from "@/lib/locale-context";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Cog, Wind, Fan, Zap, Monitor, Cpu, Flame,
@@ -20,6 +21,7 @@ export default function CategoryPills({
   onSelect: (slug: string | null) => void;
   categories: Category[];
 }) {
+  const { t } = useLocale();
   return (
     <div className="w-full overflow-x-auto pb-2 scrollbar-none">
       <div className="flex gap-2 min-w-max px-4 lg:px-0 lg:flex-wrap">
@@ -31,7 +33,7 @@ export default function CategoryPills({
               : "bg-white border border-border text-muted hover:bg-surface-hover hover:text-foreground hover:border-border-hover"
           }`}
         >
-          Tutti
+          {t("categories.all")}
         </button>
         {categories.map((cat) => {
           const Icon = iconMap[cat.icon];

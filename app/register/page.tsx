@@ -4,8 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { register } from "../(auth)/actions";
 import { Eye, EyeOff, UserPlus, AlertCircle } from "lucide-react";
+import { useLocale } from "@/lib/locale-context";
 
 export default function RegisterPage() {
+  const { t } = useLocale();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -20,13 +22,13 @@ export default function RegisterPage() {
     const confirmPassword = formData.get("confirmPassword") as string;
 
     if (password !== confirmPassword) {
-      setError("Le password non corrispondono");
+      setError(t("register.passwords_mismatch"));
       setLoading(false);
       return;
     }
 
     if (password.length < 8) {
-      setError("La password deve contenere almeno 8 caratteri");
+      setError(t("register.password_min_length"));
       setLoading(false);
       return;
     }
@@ -52,7 +54,7 @@ export default function RegisterPage() {
 
         <div className="bg-white rounded-2xl shadow-lg shadow-black/5 border border-[var(--color-muted)]/30 p-8">
           <h2 className="text-xl font-bold text-[var(--color-foreground)] mb-6 text-center">
-            Crea il tuo account
+            {t("register.title")}
           </h2>
 
           {error && (
@@ -66,7 +68,7 @@ export default function RegisterPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">
-                  Nome
+                  {t("register.first_name")}
                 </label>
                 <input
                   id="firstName"
@@ -79,7 +81,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label htmlFor="lastName" className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">
-                  Cognome
+                  {t("register.last_name")}
                 </label>
                 <input
                   id="lastName"
@@ -103,7 +105,7 @@ export default function RegisterPage() {
                 required
                 autoComplete="email"
                 className="w-full px-4 py-2.5 rounded-lg border border-[var(--color-muted)]/40 bg-[var(--color-background)] text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)] transition"
-                placeholder="il.tuo@email.com"
+                placeholder={t("login.email_placeholder")}
               />
             </div>
 
@@ -120,7 +122,7 @@ export default function RegisterPage() {
                   minLength={8}
                   autoComplete="new-password"
                   className="w-full px-4 py-2.5 pr-10 rounded-lg border border-[var(--color-muted)]/40 bg-[var(--color-background)] text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)] transition"
-                  placeholder="Minimo 8 caratteri"
+                  placeholder={t("register.password_placeholder")}
                 />
                 <button
                   type="button"
@@ -134,7 +136,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">
-                Conferma Password
+                {t("register.confirm_password")}
               </label>
               <input
                 id="confirmPassword"
@@ -144,7 +146,7 @@ export default function RegisterPage() {
                 minLength={8}
                 autoComplete="new-password"
                 className="w-full px-4 py-2.5 rounded-lg border border-[var(--color-muted)]/40 bg-[var(--color-background)] text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)] transition"
-                placeholder="Ripeti la password"
+                placeholder={t("register.confirm_placeholder")}
               />
             </div>
 
@@ -158,23 +160,23 @@ export default function RegisterPage() {
               ) : (
                 <>
                   <UserPlus className="w-4 h-4" />
-                  Registrati
+                  {t("register.submit")}
                 </>
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-[var(--color-foreground)]/60">
-            Hai già un account?{" "}
+            {t("register.has_account")}{" "}
             <Link href="/login" className="text-[var(--color-accent)] hover:underline font-medium">
-              Accedi
+              {t("login.submit")}
             </Link>
           </div>
 
           <div className="mt-3 text-center text-sm text-[var(--color-foreground)]/60">
-            Sei un rivenditore?{" "}
+            {t("login.dealer_question")}{" "}
             <Link href="/register/dealer" className="text-[var(--color-accent)] hover:underline font-medium">
-              Registrazione Dealer
+              {t("login.dealer_link")}
             </Link>
           </div>
         </div>

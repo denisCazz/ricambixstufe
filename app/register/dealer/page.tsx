@@ -4,8 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { registerDealer } from "../../(auth)/actions";
 import { Eye, EyeOff, Building2, AlertCircle } from "lucide-react";
+import { useLocale } from "@/lib/locale-context";
 
 export default function DealerRegisterPage() {
+  const { t } = useLocale();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -20,13 +22,13 @@ export default function DealerRegisterPage() {
     const confirmPassword = formData.get("confirmPassword") as string;
 
     if (password !== confirmPassword) {
-      setError("Le password non corrispondono");
+      setError(t("register.passwords_mismatch"));
       setLoading(false);
       return;
     }
 
     if (password.length < 8) {
-      setError("La password deve contenere almeno 8 caratteri");
+      setError(t("register.password_min_length"));
       setLoading(false);
       return;
     }
@@ -56,10 +58,10 @@ export default function DealerRegisterPage() {
               <Building2 className="w-6 h-6 text-[var(--color-accent)]" />
             </div>
             <h2 className="text-xl font-bold text-[var(--color-foreground)]">
-              Registrazione Dealer
+              {t("dealer.title")}
             </h2>
             <p className="text-sm text-[var(--color-foreground)]/60 mt-1">
-              Accedi ai prezzi riservati per rivenditori
+              {t("dealer.subtitle")}
             </p>
           </div>
 
@@ -74,7 +76,7 @@ export default function DealerRegisterPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">
-                  Nome
+                  {t("register.first_name")}
                 </label>
                 <input
                   id="firstName"
@@ -87,7 +89,7 @@ export default function DealerRegisterPage() {
               </div>
               <div>
                 <label htmlFor="lastName" className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">
-                  Cognome
+                  {t("register.last_name")}
                 </label>
                 <input
                   id="lastName"
@@ -102,7 +104,7 @@ export default function DealerRegisterPage() {
 
             <div>
               <label htmlFor="companyName" className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">
-                Ragione Sociale
+                {t("dealer.company_name")}
               </label>
               <input
                 id="companyName"
@@ -115,7 +117,7 @@ export default function DealerRegisterPage() {
 
             <div>
               <label htmlFor="vatNumber" className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">
-                Partita IVA
+                {t("dealer.vat_number")}
               </label>
               <input
                 id="vatNumber"
@@ -123,7 +125,7 @@ export default function DealerRegisterPage() {
                 type="text"
                 required
                 pattern="[A-Z]{0,2}[0-9]{11}"
-                title="Inserisci una Partita IVA valida (11 cifre)"
+                title={t("dealer.vat_hint")}
                 className="w-full px-4 py-2.5 rounded-lg border border-[var(--color-muted)]/40 bg-[var(--color-background)] text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)] transition"
                 placeholder="IT12345678901"
               />
@@ -131,7 +133,7 @@ export default function DealerRegisterPage() {
 
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">
-                Telefono
+                {t("checkout.phone")}
               </label>
               <input
                 id="phone"
@@ -170,7 +172,7 @@ export default function DealerRegisterPage() {
                   minLength={8}
                   autoComplete="new-password"
                   className="w-full px-4 py-2.5 pr-10 rounded-lg border border-[var(--color-muted)]/40 bg-[var(--color-background)] text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)] transition"
-                  placeholder="Minimo 8 caratteri"
+                  placeholder={t("register.password_placeholder")}
                 />
                 <button
                   type="button"
@@ -184,7 +186,7 @@ export default function DealerRegisterPage() {
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">
-                Conferma Password
+                {t("register.confirm_password")}
               </label>
               <input
                 id="confirmPassword"
@@ -207,23 +209,23 @@ export default function DealerRegisterPage() {
               ) : (
                 <>
                   <Building2 className="w-4 h-4" />
-                  Invia Richiesta Dealer
+                  {t("dealer.submit")}
                 </>
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-[var(--color-foreground)]/60">
-            Hai già un account?{" "}
+            {t("register.has_account")}{" "}
             <Link href="/login" className="text-[var(--color-accent)] hover:underline font-medium">
-              Accedi
+              {t("login.submit")}
             </Link>
           </div>
 
           <div className="mt-3 text-center text-sm text-[var(--color-foreground)]/60">
-            Non sei un rivenditore?{" "}
+            {t("dealer.not_dealer")}{" "}
             <Link href="/register" className="text-[var(--color-accent)] hover:underline font-medium">
-              Registrazione Normale
+              {t("dealer.normal_register")}
             </Link>
           </div>
         </div>

@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import {
-  Search,
   ArrowRight,
   Truck,
   ShieldCheck,
@@ -13,22 +12,25 @@ import {
   Cpu,
   Flame,
 } from "lucide-react";
+import { useLocale } from "@/lib/locale-context";
 
-const features = [
-  { icon: Truck, label: "Spedizione in tutta Europa" },
-  { icon: ShieldCheck, label: "Garanzia su ogni prodotto" },
-  { icon: Headphones, label: "Assistenza dedicata" },
+const featureKeys = [
+  { icon: Truck, key: "hero.feat_shipping" },
+  { icon: ShieldCheck, key: "hero.feat_warranty" },
+  { icon: Headphones, key: "hero.feat_support" },
 ];
 
-const categories = [
-  { icon: Cog, label: "Motoriduttori" },
-  { icon: Fan, label: "Ventilatori" },
-  { icon: Zap, label: "Resistenze" },
-  { icon: Cpu, label: "Schede" },
-  { icon: Flame, label: "Bracieri" },
+const categoryKeys = [
+  { icon: Cog, key: "hero.cat_motoriduttori" },
+  { icon: Fan, key: "hero.cat_ventilatori" },
+  { icon: Zap, key: "hero.cat_resistenze" },
+  { icon: Cpu, key: "hero.cat_schede" },
+  { icon: Flame, key: "hero.cat_bracieri" },
 ];
 
 export default function Hero() {
+  const { t } = useLocale();
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900">
       {/* Background decorations */}
@@ -40,7 +42,7 @@ export default function Hero() {
 
       <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-20 lg:py-24">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          {/* Left column — text + search */}
+          {/* Left column — text + CTA */}
           <div>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -49,7 +51,7 @@ export default function Hero() {
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/15 border border-orange-500/25 text-orange-400 text-sm font-medium mb-6"
             >
               <Flame className="w-4 h-4" />
-              Qualità professionale dal 2015
+              {t("hero.badge")}
             </motion.div>
 
             <motion.h2
@@ -58,9 +60,9 @@ export default function Hero() {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-bold tracking-tight leading-[1.1] mb-5 text-white"
             >
-              Ricambi per{" "}
+              {t("hero.title_1")}{" "}
               <span className="bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">
-                Stufe a Pellet
+                {t("hero.title_2")}
               </span>
             </motion.h2>
 
@@ -70,47 +72,28 @@ export default function Hero() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="text-base md:text-lg text-stone-400 leading-relaxed mb-8 max-w-lg"
             >
-              Motoriduttori, ventilatori, resistenze, schede elettroniche e
-              molto altro. Oltre 160 ricambi disponibili con spedizione rapida
-              in tutta Europa.
+              {t("hero.description")}
             </motion.p>
-
-            {/* Search bar */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="mb-8"
-            >
-              <div className="relative max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Cerca ricambi, codici, modelli..."
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white/10 border border-white/15 text-white text-sm placeholder:text-stone-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/25 focus:bg-white/15 transition-all duration-300 backdrop-blur-sm"
-                />
-              </div>
-            </motion.div>
 
             {/* CTA buttons */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
               className="flex flex-wrap gap-3"
             >
               <a
                 href="#prodotti"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold hover:shadow-lg hover:shadow-orange-500/30 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0"
               >
-                Esplora il Catalogo
+                {t("hero.cta_catalog")}
                 <ArrowRight className="w-4 h-4" />
               </a>
               <a
                 href="#contatti"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/20 text-white font-semibold hover:bg-white/10 hover:border-white/30 transition-all duration-300"
               >
-                Contattaci
+                {t("hero.cta_contact")}
               </a>
             </motion.div>
           </div>
@@ -123,9 +106,9 @@ export default function Hero() {
             className="hidden md:block"
           >
             <div className="grid grid-cols-2 gap-3 lg:gap-4">
-              {categories.map((cat, i) => (
+              {categoryKeys.map((cat, i) => (
                 <motion.div
-                  key={cat.label}
+                  key={cat.key}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.4 + i * 0.08 }}
@@ -137,7 +120,7 @@ export default function Hero() {
                     <cat.icon className="w-5 h-5 text-orange-400" />
                   </div>
                   <h3 className="text-white font-semibold text-sm lg:text-base">
-                    {cat.label}
+                    {t(cat.key)}
                   </h3>
                   <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <ArrowRight className="w-4 h-4 text-orange-400" />
@@ -156,12 +139,12 @@ export default function Hero() {
           className="mt-12 md:mt-16 pt-8 border-t border-white/10"
         >
           <div className="flex flex-wrap justify-center md:justify-start gap-6 md:gap-10">
-            {features.map((f) => (
-              <div key={f.label} className="flex items-center gap-2.5">
+            {featureKeys.map((f) => (
+              <div key={f.key} className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center">
                   <f.icon className="w-4 h-4 text-orange-400" />
                 </div>
-                <span className="text-sm text-stone-400">{f.label}</span>
+                <span className="text-sm text-stone-400">{t(f.key)}</span>
               </div>
             ))}
           </div>
