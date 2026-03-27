@@ -1,12 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import DealerActions from "./DealerActions";
 
 export default async function AdminDealersPage() {
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
 
-  const { data: dealers } = await supabase
+  const { data: dealers, error } = await supabase
     .from("dealer_profiles")
-    .select("id, company_name, vat_number, status, discount_percent, rejection_reason, created_at, approved_at, profiles(email, first_name, last_name, phone)")
+    .select("id, company_name, vat_number, status, discount_percent, rejection_reason, created_at, approved_at, profiles!dealer_profiles_id_fkey(email, first_name, last_name, phone)")
     .order("created_at", { ascending: false });
 
   const pending = (dealers || []).filter((d) => d.status === "pending");
@@ -72,7 +72,16 @@ export default async function AdminDealersPage() {
                         </div>
                       </div>
                     </div>
-                    <DealerActions dealerId={dealer.id} status={dealer.status} />
+                    <DealerActions
+                      dealer={{
+                        id: dealer.id,
+                        company_name: dealer.company_name,
+                        vat_number: dealer.vat_number,
+                        status: dealer.status,
+                        discount_percent: dealer.discount_percent,
+                        profiles: profile,
+                      }}
+                    />
                   </div>
                 </div>
               );
@@ -93,13 +102,14 @@ export default async function AdminDealersPage() {
                 <th className="text-left py-3 px-4 font-medium text-muted">Stato</th>
                 <th className="text-left py-3 px-4 font-medium text-muted hidden lg:table-cell">Sconto</th>
                 <th className="text-left py-3 px-4 font-medium text-muted hidden lg:table-cell">Data</th>
+                <th className="text-left py-3 px-4 font-medium text-muted">Azioni</th>
               </tr>
             </thead>
             <tbody>
               {[...pending, ...approved, ...rejected].map((dealer) => {
                 const profile =
                   dealer.profiles && typeof dealer.profiles === "object" && !Array.isArray(dealer.profiles)
-                    ? (dealer.profiles as { email: string })
+                    ? (dealer.profiles as { email: string; first_name: string | null; last_name: string | null; phone: string | null })
                     : null;
 
                 return (
@@ -130,6 +140,18 @@ export default async function AdminDealersPage() {
                     </td>
                     <td className="py-3 px-4 text-muted tabular-nums hidden lg:table-cell">
                       {new Date(dealer.created_at).toLocaleDateString("it-IT")}
+                    </td>
+                    <td className="py-3 px-4">
+                      <DealerActions
+                        dealer={{
+                          id: dealer.id,
+                          company_name: dealer.company_name,
+                          vat_number: dealer.vat_number,
+                          status: dealer.status,
+                          discount_percent: dealer.discount_percent,
+                          profiles: profile,
+                        }}
+                      />
                     </td>
                   </tr>
                 );

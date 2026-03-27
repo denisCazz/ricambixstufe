@@ -8,6 +8,7 @@ import { ShoppingCart, Eye } from "lucide-react";
 import { type Product } from "@/data/products";
 import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
+import { useUser } from "@/lib/user-context";
 
 export default function ProductCard({
   product,
@@ -19,6 +20,11 @@ export default function ProductCard({
   const [imgError, setImgError] = useState(false);
   const { addItem } = useCart();
   const { formatPrice, t } = useLocale();
+  const { dealerDiscount } = useUser();
+
+  const discountedPrice = dealerDiscount
+    ? product.price * (1 - dealerDiscount / 100)
+    : product.price;
 
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
@@ -27,7 +33,7 @@ export default function ProductCard({
       id: product.id,
       name: product.name,
       slug: product.slug,
-      price: product.price,
+      price: discountedPrice,
       image: product.image,
     });
   }
@@ -89,9 +95,22 @@ export default function ProductCard({
       </Link>
 
       <div className="px-4 pb-4 flex items-center justify-between gap-2">
-        <span className="text-lg font-bold text-accent tabular-nums">
-          {formatPrice(product.price)}
-        </span>
+        <div className="flex flex-col">
+          {dealerDiscount ? (
+            <>
+              <span className="text-xs text-muted line-through">
+                {formatPrice(product.price)}
+              </span>
+              <span className="text-lg font-bold text-green-600 tabular-nums">
+                {formatPrice(discountedPrice)}
+              </span>
+            </>
+          ) : (
+            <span className="text-lg font-bold text-accent tabular-nums">
+              {formatPrice(product.price)}
+            </span>
+          )}
+        </div>
         <button
           onClick={handleAddToCart}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white text-xs font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 shrink-0"

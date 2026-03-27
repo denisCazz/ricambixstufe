@@ -4,6 +4,7 @@ import { ShoppingCart, Check } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
+import { useUser } from "@/lib/user-context";
 
 export default function AddToCartButton({
   product,
@@ -18,10 +19,15 @@ export default function AddToCartButton({
 }) {
   const { addItem } = useCart();
   const { t } = useLocale();
+  const { dealerDiscount } = useUser();
   const [added, setAdded] = useState(false);
 
+  const finalPrice = dealerDiscount
+    ? product.price * (1 - dealerDiscount / 100)
+    : product.price;
+
   function handleClick() {
-    addItem(product);
+    addItem({ ...product, price: finalPrice });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }

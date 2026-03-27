@@ -2,6 +2,7 @@
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { sendDealerRegistrationNotification } from "@/lib/email";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -165,6 +166,15 @@ export async function registerDealer(formData: FormData) {
   if (dealerError) {
     return { error: dealerError.message };
   }
+
+  // Send email notification to admin
+  sendDealerRegistrationNotification({
+    companyName,
+    vatNumber,
+    dealerName: `${firstName} ${lastName}`,
+    dealerEmail: email,
+    phone,
+  });
 
   redirect("/login?dealer_registered=true");
 }
