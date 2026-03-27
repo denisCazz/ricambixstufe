@@ -11,13 +11,16 @@ import Footer from "@/components/Footer";
 import CookieBanner from "@/components/CookieBanner";
 import type { Product } from "@/data/products";
 import type { Category } from "@/data/categories";
+import type { AuthUser } from "@/lib/auth";
 
 export default function HomeClient({
   products,
   categories,
+  user,
 }: {
   products: Product[];
   categories: Category[];
+  user: AuthUser | null;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -28,6 +31,7 @@ export default function HomeClient({
       <Header
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         sidebarOpen={sidebarOpen}
+        user={user}
       />
 
       <Hero />

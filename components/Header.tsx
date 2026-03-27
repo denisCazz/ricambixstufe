@@ -1,24 +1,42 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Search, User, ShoppingCart, Menu, X, Flame } from "lucide-react";
+import { Search, User, ShoppingCart, Menu, X, Flame, LogOut, Settings, Shield } from "lucide-react";
+import type { AuthUser } from "@/lib/auth";
+import { logout } from "@/app/(auth)/actions";
+import { useCart } from "@/lib/cart-context";
 
 export default function Header({
   onToggleSidebar,
   sidebarOpen,
+  user,
 }: {
   onToggleSidebar: () => void;
   sidebarOpen: boolean;
+  user?: AuthUser | null;
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [mobileSearch, setMobileSearch] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const { totalItems, openCart } = useCart();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   return (
@@ -78,14 +96,80 @@ export default function Header({
           >
             {mobileSearch ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
           </button>
-          <Link href="/login" className="p-2.5 rounded-xl hover:bg-surface-hover transition-colors" aria-label="Account">
-            <User className="w-5 h-5 text-foreground" />
-          </Link>
-          <button className="relative p-2.5 rounded-xl hover:bg-surface-hover transition-colors" aria-label="Carrello">
+
+          {/* User menu / Login */}
+          {user ? (
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-surface-hover transition-colors"
+                aria-label="Menu utente"
+              >
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                  <span className="text-[11px] font-bold text-white leading-none">
+                    {(user.firstName?.[0] || user.email[0]).toUpperCase()}
+                  </span>
+                </div>
+                <span className="hidden sm:block text-sm font-medium text-foreground max-w-[120px] truncate">
+                  {user.firstName || user.email.split("@")[0]}
+                </span>
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-border rounded-xl shadow-xl overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-border bg-stone-50/50">
+                    <div className="text-sm font-medium text-foreground truncate">
+                      {[user.firstName, user.lastName].filter(Boolean).join(" ") || user.email}
+                    </div>
+                    <div className="text-xs text-muted truncate">{user.email}</div>
+                  </div>
+                  {user.role === "admin" && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-surface-hover transition-colors"
+                    >
+                      <Shield className="w-4 h-4 text-accent" />
+                      Pannello Admin
+                    </Link>
+                  )}
+                  <Link
+                    href="/account"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-surface-hover transition-colors"
+                  >
+                    <Settings className="w-4 h-4 text-muted" />
+                    Il mio account
+                  </Link>
+                  <form action={logout}>
+                    <button
+                      type="submit"
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Esci
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link href="/login" className="p-2.5 rounded-xl hover:bg-surface-hover transition-colors" aria-label="Account">
+              <User className="w-5 h-5 text-foreground" />
+            </Link>
+          )}
+
+          <button
+            onClick={openCart}
+            className="relative p-2.5 rounded-xl hover:bg-surface-hover transition-colors"
+            aria-label="Carrello"
+          >
             <ShoppingCart className="w-5 h-5 text-foreground" />
-            <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-accent rounded-full text-[10px] font-bold text-white flex items-center justify-center leading-none">
-              0
-            </span>
+            {totalItems > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-accent rounded-full text-[10px] font-bold text-white flex items-center justify-center leading-none px-1">
+                {totalItems > 99 ? "99+" : totalItems}
+              </span>
+            )}
           </button>
         </div>
       </div>

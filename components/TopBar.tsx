@@ -37,9 +37,9 @@ export default function TopBar() {
   return (
     <div className="bg-gradient-to-r from-orange-600 to-orange-500 text-white text-sm relative z-50">
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-10">
-        <div className="flex items-center gap-2">
-          <Truck className="w-4 h-4 hidden sm:block" />
-          <span className="font-medium text-xs sm:text-sm tracking-wide">
+        <div className="flex items-center gap-2 min-w-0">
+          <Truck className="w-4 h-4 hidden sm:block shrink-0" />
+          <span className="font-medium text-xs sm:text-sm tracking-wide truncate">
             SPEDIAMO IN TUTTA EUROPA &mdash; CHIEDETECI UN PREVENTIVO
           </span>
         </div>

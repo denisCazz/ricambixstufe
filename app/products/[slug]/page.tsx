@@ -6,6 +6,7 @@ import { createBuildClient } from "@/lib/supabase/server";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
 import ProductDetailClient from "./ProductDetailClient";
+import AddToCartButton from "@/components/AddToCartButton";
 
 export async function generateStaticParams() {
   const supabase = createBuildClient();
@@ -50,7 +51,7 @@ export default async function ProductDetailPage({
             <span className="text-foreground font-medium truncate">{product.name}</span>
           </nav>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
             {/* Image */}
             <div className="relative aspect-square bg-gradient-to-br from-stone-50 to-orange-50/30 rounded-2xl border border-border overflow-hidden">
               {product.image ? (
@@ -89,9 +90,15 @@ export default async function ProductDetailPage({
               </div>
 
               <div className="flex gap-3">
-                <button className="flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
-                  Aggiungi al Carrello
-                </button>
+                <AddToCartButton
+                  product={{
+                    id: product.id,
+                    name: product.name,
+                    slug: product.slug,
+                    price: product.price,
+                    image: product.image,
+                  }}
+                />
               </div>
 
               <div className="mt-8 space-y-3">

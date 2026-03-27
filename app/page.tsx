@@ -1,13 +1,15 @@
 import HomeClient from "./HomeClient";
 import { getProducts } from "@/lib/products";
 import { getCategories } from "@/lib/categories";
+import { getUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [{ products: dbProducts }, dbCategories] = await Promise.all([
+  const [{ products: dbProducts }, dbCategories, user] = await Promise.all([
     getProducts(),
     getCategories(),
+    getUser(),
   ]);
 
   // Map to the shape components expect
@@ -29,5 +31,5 @@ export default async function HomePage() {
     icon: c.icon || "Package",
   }));
 
-  return <HomeClient products={products} categories={categories} />;
+  return <HomeClient products={products} categories={categories} user={user} />;
 }
