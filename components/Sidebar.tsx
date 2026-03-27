@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { categories } from "@/data/categories";
-import { products } from "@/data/products";
+import type { Category } from "@/data/categories";
+import type { Product } from "@/data/products";
 import {
   Cog, Wind, Fan, Zap, Monitor, Cpu, Flame,
   Thermometer, CircleDot, RotateCw, Home, Package, Gauge, Wrench, X,
@@ -14,21 +14,24 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Thermometer, CircleDot, RotateCw, Home, Package, Gauge, Wrench,
 };
 
-function getCategoryCount(slug: string): number {
-  return products.filter((p) => p.categorySlug === slug).length;
-}
-
 export default function Sidebar({
   open,
   onClose,
   activeCategory,
   onSelect,
+  categories,
+  products,
 }: {
   open: boolean;
   onClose: () => void;
   activeCategory: string | null;
   onSelect: (slug: string | null) => void;
+  categories: Category[];
+  products: Product[];
 }) {
+  function getCategoryCount(slug: string): number {
+    return products.filter((p) => p.categorySlug === slug).length;
+  }
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";

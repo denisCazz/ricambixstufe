@@ -1,6 +1,6 @@
 "use client";
 
-import { categories } from "@/data/categories";
+import type { Category } from "@/data/categories";
 import {
   Cog, Wind, Fan, Zap, Monitor, Cpu, Flame,
   Thermometer, CircleDot, RotateCw, Home, Package, Gauge, Wrench,
@@ -14,9 +14,11 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 export default function CategoryPills({
   activeCategory,
   onSelect,
+  categories,
 }: {
   activeCategory: string | null;
   onSelect: (slug: string | null) => void;
+  categories: Category[];
 }) {
   return (
     <div className="w-full overflow-x-auto pb-2 scrollbar-none">

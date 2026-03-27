@@ -1,54 +1,33 @@
-"use client";
+import HomeClient from "./HomeClient";
+import { getProducts } from "@/lib/products";
+import { getCategories } from "@/lib/categories";
 
-import { useState } from "react";
-import TopBar from "@/components/TopBar";
-import Header from "@/components/Header";
-import Hero from "@/components/Hero";
-import CategoryPills from "@/components/CategoryPills";
-import Sidebar from "@/components/Sidebar";
-import ProductGrid from "@/components/ProductGrid";
-import Footer from "@/components/Footer";
-import CookieBanner from "@/components/CookieBanner";
+export const dynamic = "force-dynamic";
 
-export default function HomePage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+export default async function HomePage() {
+  const [{ products: dbProducts }, dbCategories] = await Promise.all([
+    getProducts(),
+    getCategories(),
+  ]);
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <TopBar />
-      <Header
-        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-        sidebarOpen={sidebarOpen}
-      />
+  // Map to the shape components expect
+  const products = dbProducts.map((p) => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    description: p.descriptionShort || p.description,
+    price: p.price,
+    category: p.category,
+    categorySlug: p.categorySlug,
+    image: p.image,
+  }));
 
-      <Hero />
+  const categories = dbCategories.map((c) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    icon: c.icon || "Package",
+  }));
 
-      <section className="max-w-7xl mx-auto w-full px-4 pt-8 pb-4">
-        <CategoryPills
-          activeCategory={activeCategory}
-          onSelect={setActiveCategory}
-        />
-      </section>
-
-      <div className="w-full max-w-7xl mx-auto px-4">
-        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-      </div>
-
-      <main id="prodotti" className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
-        <div className="flex gap-8">
-          <Sidebar
-            open={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-            activeCategory={activeCategory}
-            onSelect={setActiveCategory}
-          />
-          <ProductGrid activeCategory={activeCategory} />
-        </div>
-      </main>
-
-      <Footer />
-      <CookieBanner />
-    </div>
-  );
+  return <HomeClient products={products} categories={categories} />;
 }

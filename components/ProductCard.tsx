@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { ShoppingCart, Eye } from "lucide-react";
 import { type Product, formatPrice } from "@/data/products";
@@ -25,7 +26,7 @@ export default function ProductCard({
       className="group relative bg-white border border-border rounded-2xl overflow-hidden transition-all duration-300 hover:border-accent/30 hover:shadow-lg hover:shadow-orange-500/10"
     >
       <div className="relative aspect-[4/3] bg-gradient-to-br from-stone-50 to-orange-50/30 overflow-hidden">
-        {!imgError ? (
+        {product.image && !imgError ? (
           <Image
             src={product.image}
             alt={product.name}
@@ -52,10 +53,13 @@ export default function ProductCard({
         </span>
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-5 z-10">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 backdrop-blur-md text-sm font-medium text-foreground hover:bg-white transition-colors border border-white/50 shadow-sm">
+          <Link
+            href={`/products/${product.slug}`}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 backdrop-blur-md text-sm font-medium text-foreground hover:bg-white transition-colors border border-white/50 shadow-sm"
+          >
             <Eye className="w-4 h-4" />
             Dettagli
-          </button>
+          </Link>
         </div>
       </div>
 

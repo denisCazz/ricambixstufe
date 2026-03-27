@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Search, User, ShoppingCart, Menu, X, Flame } from "lucide-react";
 
 export default function Header({
@@ -77,9 +78,9 @@ export default function Header({
           >
             {mobileSearch ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
           </button>
-          <button className="p-2.5 rounded-xl hover:bg-surface-hover transition-colors" aria-label="Account">
+          <Link href="/login" className="p-2.5 rounded-xl hover:bg-surface-hover transition-colors" aria-label="Account">
             <User className="w-5 h-5 text-foreground" />
-          </button>
+          </Link>
           <button className="relative p-2.5 rounded-xl hover:bg-surface-hover transition-colors" aria-label="Carrello">
             <ShoppingCart className="w-5 h-5 text-foreground" />
             <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-accent rounded-full text-[10px] font-bold text-white flex items-center justify-center leading-none">

@@ -6,7 +6,7 @@ export interface Product {
   price: number;
   category: string;
   categorySlug: string;
-  image: string;
+  image: string | null;
 }
 
 export const products: Product[] = [

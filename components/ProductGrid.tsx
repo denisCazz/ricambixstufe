@@ -2,13 +2,15 @@
 
 import { AnimatePresence, LayoutGroup } from "framer-motion";
 import ProductCard from "./ProductCard";
-import { products } from "@/data/products";
+import type { Product } from "@/data/products";
 import { PackageOpen } from "lucide-react";
 
 export default function ProductGrid({
   activeCategory,
+  products,
 }: {
   activeCategory: string | null;
+  products: Product[];
 }) {
   const filtered = activeCategory
     ? products.filter((p) => p.categorySlug === activeCategory)
