@@ -1,12 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { getProductBySlug, getRelatedProducts, formatPrice } from "@/lib/products";
+import { getProductBySlug, getRelatedProducts } from "@/lib/products";
 import { createBuildClient } from "@/lib/supabase/server";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
 import ProductDetailClient from "./ProductDetailClient";
 import AddToCartButton from "@/components/AddToCartButton";
+import PriceDisplay from "@/components/PriceDisplay";
 
 export async function generateStaticParams() {
   const supabase = createBuildClient();
@@ -84,7 +85,7 @@ export default async function ProductDetailPage({
 
               <div className="border-t border-border pt-6 mb-6">
                 <div className="text-3xl font-bold text-accent mb-1">
-                  {formatPrice(product.price)}
+                  <PriceDisplay price={product.price} />
                 </div>
                 <p className="text-xs text-muted">IVA inclusa</p>
               </div>
@@ -144,9 +145,7 @@ export default async function ProductDetailPage({
                       <h3 className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-accent transition-colors">
                         {rp.name}
                       </h3>
-                      <span className="text-accent font-bold text-sm mt-1 block">
-                        {formatPrice(rp.price)}
-                      </span>
+                      <PriceDisplay price={rp.price} className="text-accent font-bold text-sm mt-1 block" />
                     </div>
                   </Link>
                 ))}

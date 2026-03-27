@@ -3,6 +3,7 @@
 import { ShoppingCart, Check } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/lib/cart-context";
+import { useLocale } from "@/lib/locale-context";
 
 export default function AddToCartButton({
   product,
@@ -16,6 +17,7 @@ export default function AddToCartButton({
   };
 }) {
   const { addItem } = useCart();
+  const { t } = useLocale();
   const [added, setAdded] = useState(false);
 
   function handleClick() {
@@ -32,12 +34,12 @@ export default function AddToCartButton({
       {added ? (
         <>
           <Check className="w-5 h-5" />
-          Aggiunto!
+          {t("product.added")}
         </>
       ) : (
         <>
           <ShoppingCart className="w-5 h-5" />
-          Aggiungi al Carrello
+          {t("product.add_to_cart")}
         </>
       )}
     </button>

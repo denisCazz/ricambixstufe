@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Search, User, ShoppingCart, Menu, X, Flame, LogOut, Settings, Shield } from "lucide-react";
+import Image from "next/image";
+import { Search, User, ShoppingCart, Menu, X, Flame, LogOut, Settings, Shield, Loader2 } from "lucide-react";
 import type { AuthUser } from "@/lib/auth";
 import { logout } from "@/app/(auth)/actions";
 import { useCart } from "@/lib/cart-context";
+import { useLocale } from "@/lib/locale-context";
+import { searchProducts, type SearchResult } from "@/app/actions/search";
 
 export default function Header({
   onToggleSidebar,
@@ -17,11 +20,20 @@ export default function Header({
   user?: AuthUser | null;
 }) {
   const [scrolled, setScrolled] = useState(false);
-  const [searchFocused, setSearchFocused] = useState(false);
   const [mobileSearch, setMobileSearch] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { totalItems, openCart } = useCart();
+  const { t, formatPrice } = useLocale();
+
+  // Search state
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
@@ -34,10 +46,84 @@ export default function Header({
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
       }
+      if (
+        searchRef.current && !searchRef.current.contains(e.target as Node) &&
+        mobileSearchRef.current && !mobileSearchRef.current.contains(e.target as Node)
+      ) {
+        setShowResults(false);
+      }
+      if (
+        !searchRef.current &&
+        mobileSearchRef.current && !mobileSearchRef.current.contains(e.target as Node)
+      ) {
+        setShowResults(false);
+      }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  const doSearch = useCallback((value: string) => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim().length < 2) {
+      setResults([]);
+      setShowResults(false);
+      return;
+    }
+    setSearching(true);
+    setShowResults(true);
+    debounceRef.current = setTimeout(async () => {
+      const res = await searchProducts(value);
+      setResults(res);
+      setSearching(false);
+    }, 300);
+  }, []);
+
+  function handleResultClick() {
+    setShowResults(false);
+    setQuery("");
+    setMobileSearch(false);
+  }
+
+  const searchDropdown = (
+    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-border rounded-xl shadow-2xl overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+      {searching ? (
+        <div className="flex items-center justify-center gap-2 py-8 text-muted">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span className="text-sm">Ricerca...</span>
+        </div>
+      ) : results.length === 0 ? (
+        <div className="py-8 text-center">
+          <p className="text-sm text-muted">{t("search.no_results")} &ldquo;{query}&rdquo;</p>
+        </div>
+      ) : (
+        results.map((r) => (
+          <Link
+            key={r.id}
+            href={`/products/${r.slug}`}
+            onClick={handleResultClick}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-surface-hover transition-colors border-b border-border/30 last:border-0"
+          >
+            <div className="relative w-12 h-12 rounded-lg bg-stone-50 border border-border overflow-hidden shrink-0">
+              {r.image ? (
+                <Image src={r.image} alt={r.name} fill sizes="48px" className="object-contain p-1" />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xs font-bold text-muted/30">{r.name.charAt(0)}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{r.name}</p>
+              <p className="text-xs text-muted">{r.category}</p>
+            </div>
+            <span className="text-sm font-bold text-accent shrink-0">{formatPrice(r.price)}</span>
+          </Link>
+        ))
+      )}
+    </div>
+  );
 
   return (
     <header
@@ -71,20 +157,20 @@ export default function Header({
           </a>
         </div>
 
-        <div className="flex-1 max-w-xl hidden md:block">
-          <div className={`relative transition-all duration-300 ${searchFocused ? "scale-[1.02]" : ""}`}>
+        {/* Desktop search */}
+        <div className="flex-1 max-w-xl hidden md:block" ref={searchRef}>
+          <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+            {searching && <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted animate-spin" />}
             <input
               type="text"
-              placeholder="Cerca ricambi, codici, modelli..."
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-background border text-sm text-foreground placeholder:text-muted focus:outline-none transition-all duration-300 ${
-                searchFocused
-                  ? "border-accent/50 shadow-lg shadow-accent/10 ring-1 ring-accent/20"
-                  : "border-border hover:border-border-hover"
-              }`}
+              value={query}
+              onChange={(e) => doSearch(e.target.value)}
+              onFocus={() => { if (results.length > 0 || query.length >= 2) setShowResults(true); }}
+              placeholder={t("search.placeholder")}
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-background border text-sm text-foreground placeholder:text-muted focus:outline-none transition-all duration-300 border-border hover:border-border-hover focus:border-accent/50 focus:shadow-lg focus:shadow-accent/10 focus:ring-1 focus:ring-accent/20"
             />
+            {showResults && query.length >= 2 && searchDropdown}
           </div>
         </div>
 
@@ -130,7 +216,7 @@ export default function Header({
                       className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-surface-hover transition-colors"
                     >
                       <Shield className="w-4 h-4 text-accent" />
-                      Pannello Admin
+                      {t("auth.admin")}
                     </Link>
                   )}
                   <Link
@@ -139,7 +225,7 @@ export default function Header({
                     className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-surface-hover transition-colors"
                   >
                     <Settings className="w-4 h-4 text-muted" />
-                    Il mio account
+                    {t("auth.account")}
                   </Link>
                   <form action={logout}>
                     <button
@@ -147,7 +233,7 @@ export default function Header({
                       className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
                       <LogOut className="w-4 h-4" />
-                      Esci
+                      {t("auth.logout")}
                     </button>
                   </form>
                 </div>
@@ -174,16 +260,21 @@ export default function Header({
         </div>
       </div>
 
+      {/* Mobile search */}
       {mobileSearch && (
-        <div className="md:hidden px-4 pb-3 border-t border-border/50">
+        <div className="md:hidden px-4 pb-3 border-t border-border/50" ref={mobileSearchRef}>
           <div className="relative mt-3">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+            {searching && <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted animate-spin" />}
             <input
               type="text"
-              placeholder="Cerca ricambi..."
+              value={query}
+              onChange={(e) => doSearch(e.target.value)}
+              placeholder={t("search.placeholder.short")}
               autoFocus
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background border border-border text-sm placeholder:text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all"
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-background border border-border text-sm placeholder:text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all"
             />
+            {showResults && query.length >= 2 && searchDropdown}
           </div>
         </div>
       )}

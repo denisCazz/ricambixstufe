@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart-context";
+import { LocaleProvider } from "@/lib/locale-context";
 import CartDrawer from "@/components/CartDrawer";
 
 const inter = Inter({
@@ -25,10 +26,12 @@ export default function RootLayout({
   return (
     <html lang="it">
       <body className={`${inter.variable} antialiased`}>
-        <CartProvider>
-          {children}
-          <CartDrawer />
-        </CartProvider>
+        <LocaleProvider>
+          <CartProvider>
+            {children}
+            <CartDrawer />
+          </CartProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

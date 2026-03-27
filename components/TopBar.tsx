@@ -2,22 +2,18 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Truck } from "lucide-react";
+import { useLocale } from "@/lib/locale-context";
+import { locales, type Locale } from "@/lib/i18n";
 
-const languages = [
-  { code: "it", label: "Italiano" },
-  { code: "en", label: "English" },
-  { code: "fr", label: "Français" },
-  { code: "es", label: "Español" },
-];
-
-const currencies = [
-  { code: "EUR", symbol: "€" },
-  { code: "GBP", symbol: "£" },
-];
+const languageLabels: Record<Locale, string> = {
+  it: "Italiano",
+  en: "English",
+  fr: "Français",
+  es: "Español",
+};
 
 export default function TopBar() {
-  const [lang, setLang] = useState("it");
-  const [currency, setCurrency] = useState("EUR");
+  const { locale, setLocale, currency, setCurrencyCode, currencies, t } = useLocale();
   const [langOpen, setLangOpen] = useState(false);
   const [currOpen, setCurrOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
@@ -36,56 +32,60 @@ export default function TopBar() {
 
   return (
     <div className="bg-gradient-to-r from-orange-600 to-orange-500 text-white text-sm relative z-50">
-      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-10">
-        <div className="flex items-center gap-2 min-w-0">
-          <Truck className="w-4 h-4 hidden sm:block shrink-0" />
-          <span className="font-medium text-xs sm:text-sm tracking-wide truncate">
-            SPEDIAMO IN TUTTA EUROPA &mdash; CHIEDETECI UN PREVENTIVO
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center justify-between h-9 sm:h-10 gap-2">
+        {/* Shipping message */}
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+          <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="font-medium text-[10px] sm:text-xs tracking-wide truncate">
+            {t("topbar.shipping")}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Language + Currency selectors */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Language */}
           <div className="relative" ref={langRef}>
             <button
               onClick={() => { setLangOpen(!langOpen); setCurrOpen(false); }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/20 hover:bg-white/30 transition-colors text-xs font-semibold uppercase tracking-wide"
+              className="flex items-center gap-0.5 sm:gap-1 px-2 py-0.5 sm:py-1 rounded-md bg-white/20 hover:bg-white/30 transition-colors text-[10px] sm:text-xs font-semibold uppercase tracking-wide"
             >
-              {lang}
-              <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${langOpen ? "rotate-180" : ""}`} />
+              {locale}
+              <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 transition-transform duration-200 ${langOpen ? "rotate-180" : ""}`} />
             </button>
             {langOpen && (
-              <div className="absolute right-0 top-full mt-1.5 bg-white border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[150px]">
-                {languages.map((l) => (
+              <div className="absolute right-0 top-full mt-1.5 bg-white border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[140px]">
+                {locales.map((l) => (
                   <button
-                    key={l.code}
-                    onClick={() => { setLang(l.code); setLangOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-xs hover:bg-surface-hover transition-colors ${
-                      lang === l.code ? "text-accent font-semibold bg-orange-50" : "text-foreground"
+                    key={l}
+                    onClick={() => { setLocale(l); setLangOpen(false); }}
+                    className={`w-full text-left px-3.5 py-2.5 text-xs hover:bg-surface-hover transition-colors ${
+                      locale === l ? "text-accent font-semibold bg-orange-50" : "text-foreground"
                     }`}
                   >
-                    {l.label}
+                    {languageLabels[l]}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
+          {/* Currency */}
           <div className="relative" ref={currRef}>
             <button
               onClick={() => { setCurrOpen(!currOpen); setLangOpen(false); }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/20 hover:bg-white/30 transition-colors text-xs font-semibold"
+              className="flex items-center gap-0.5 sm:gap-1 px-2 py-0.5 sm:py-1 rounded-md bg-white/20 hover:bg-white/30 transition-colors text-[10px] sm:text-xs font-semibold"
             >
-              {currencies.find((c) => c.code === currency)?.symbol} {currency}
-              <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${currOpen ? "rotate-180" : ""}`} />
+              {currency.symbol}
+              <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 transition-transform duration-200 ${currOpen ? "rotate-180" : ""}`} />
             </button>
             {currOpen && (
-              <div className="absolute right-0 top-full mt-1.5 bg-white border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[110px]">
+              <div className="absolute right-0 top-full mt-1.5 bg-white border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[100px]">
                 {currencies.map((c) => (
                   <button
                     key={c.code}
-                    onClick={() => { setCurrency(c.code); setCurrOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-xs hover:bg-surface-hover transition-colors ${
-                      currency === c.code ? "text-accent font-semibold bg-orange-50" : "text-foreground"
+                    onClick={() => { setCurrencyCode(c.code); setCurrOpen(false); }}
+                    className={`w-full text-left px-3.5 py-2.5 text-xs hover:bg-surface-hover transition-colors ${
+                      currency.code === c.code ? "text-accent font-semibold bg-orange-50" : "text-foreground"
                     }`}
                   >
                     {c.symbol} {c.code}

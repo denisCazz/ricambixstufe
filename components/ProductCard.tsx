@@ -5,8 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ShoppingCart, Eye } from "lucide-react";
-import { type Product, formatPrice } from "@/data/products";
+import { type Product } from "@/data/products";
 import { useCart } from "@/lib/cart-context";
+import { useLocale } from "@/lib/locale-context";
 
 export default function ProductCard({
   product,
@@ -17,6 +18,7 @@ export default function ProductCard({
 }) {
   const [imgError, setImgError] = useState(false);
   const { addItem } = useCart();
+  const { formatPrice, t } = useLocale();
 
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
@@ -58,7 +60,7 @@ export default function ProductCard({
                     {product.name.charAt(0)}
                   </span>
                 </div>
-                <p className="text-[11px] text-muted/50">Immagine non disponibile</p>
+                <p className="text-[11px] text-muted/50">{t("product.image_na")}</p>
               </div>
             </div>
           )}
@@ -71,7 +73,7 @@ export default function ProductCard({
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:flex items-end justify-center pb-5 z-10">
             <span className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 backdrop-blur-md text-sm font-medium text-foreground border border-white/50 shadow-sm">
               <Eye className="w-4 h-4" />
-              Dettagli
+              {t("product.details")}
             </span>
           </div>
         </div>
@@ -95,7 +97,7 @@ export default function ProductCard({
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white text-xs font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 shrink-0"
         >
           <ShoppingCart className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Aggiungi</span>
+          <span className="hidden sm:inline">{t("product.add")}</span>
         </button>
       </div>
     </motion.div>

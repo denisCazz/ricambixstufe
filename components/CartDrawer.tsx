@@ -5,10 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
-import { formatPrice } from "@/data/products";
+import { useLocale } from "@/lib/locale-context";
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, totalItems, totalPrice } = useCart();
+  const { t, formatPrice } = useLocale();
 
   // Lock body scroll when open
   useEffect(() => {
@@ -39,10 +40,10 @@ export default function CartDrawer() {
           <div className="flex items-center gap-2.5">
             <ShoppingBag className="w-5 h-5 text-accent" />
             <h2 className="text-lg font-bold text-foreground">
-              Carrello{" "}
+              {t("cart.title")}{" "}
               {totalItems > 0 && (
                 <span className="text-sm font-normal text-muted">
-                  ({totalItems} {totalItems === 1 ? "articolo" : "articoli"})
+                  ({totalItems} {totalItems === 1 ? t("cart.item") : t("cart.items")})
                 </span>
               )}
             </h2>
@@ -62,13 +63,13 @@ export default function CartDrawer() {
             <div className="w-20 h-20 rounded-full bg-stone-100 flex items-center justify-center mb-4">
               <ShoppingBag className="w-9 h-9 text-muted/40" />
             </div>
-            <p className="text-foreground font-semibold mb-1">Il tuo carrello è vuoto</p>
-            <p className="text-sm text-muted mb-6">Aggiungi prodotti per iniziare</p>
+            <p className="text-foreground font-semibold mb-1">{t("cart.empty")}</p>
+            <p className="text-sm text-muted mb-6">{t("cart.empty.cta")}</p>
             <button
               onClick={closeCart}
               className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all"
             >
-              Continua lo shopping
+              {t("cart.continue")}
             </button>
           </div>
         ) : (
@@ -159,18 +160,22 @@ export default function CartDrawer() {
             {/* Footer */}
             <div className="border-t border-border px-5 py-4 space-y-3 bg-white">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted">Subtotale</span>
+                <span className="text-sm text-muted">{t("cart.subtotal")}</span>
                 <span className="text-lg font-bold text-foreground">{formatPrice(totalPrice)}</span>
               </div>
-              <p className="text-xs text-muted">Spedizione calcolata al checkout</p>
-              <button className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
-                Procedi al Checkout
-              </button>
+              <p className="text-xs text-muted">{t("cart.shipping_note")}</p>
+              <Link
+                href="/checkout"
+                onClick={closeCart}
+                className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 block text-center"
+              >
+                {t("cart.checkout")}
+              </Link>
               <button
                 onClick={closeCart}
                 className="w-full py-2.5 px-6 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-surface-hover transition-colors"
               >
-                Continua lo shopping
+                {t("cart.continue")}
               </button>
             </div>
           </>
