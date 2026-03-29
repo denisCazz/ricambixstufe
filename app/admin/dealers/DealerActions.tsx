@@ -102,14 +102,14 @@ export default function DealerActions({ dealer }: { dealer: DealerData }) {
         )}
         <button
           onClick={() => setMode("edit")}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-stone-50 transition-colors"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
         >
           <Pencil className="w-3.5 h-3.5" />
           Modifica
         </button>
         <button
           onClick={() => setMode("delete")}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 transition-colors"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-red-600 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -138,7 +138,7 @@ export default function DealerActions({ dealer }: { dealer: DealerData }) {
         </button>
         <button
           onClick={() => setMode("idle")}
-          className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-stone-50 transition-colors"
+          className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
         >
           Annulla
         </button>
@@ -165,7 +165,7 @@ export default function DealerActions({ dealer }: { dealer: DealerData }) {
         </button>
         <button
           onClick={() => setMode("idle")}
-          className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-stone-50 transition-colors"
+          className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
         >
           Annulla
         </button>
@@ -186,7 +186,7 @@ export default function DealerActions({ dealer }: { dealer: DealerData }) {
         </button>
         <button
           onClick={() => setMode("idle")}
-          className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-stone-50 transition-colors"
+          className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
         >
           Annulla
         </button>
@@ -265,7 +265,7 @@ export default function DealerActions({ dealer }: { dealer: DealerData }) {
         </button>
         <button
           onClick={() => setMode("idle")}
-          className="px-4 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-stone-50 transition-colors"
+          className="px-4 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
         >
           Annulla
         </button>

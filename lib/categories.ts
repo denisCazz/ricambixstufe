@@ -6,6 +6,10 @@ export interface CategoryWithCount {
   slug: string;
   icon: string | null;
   productCount?: number;
+  name_it?: string;
+  name_en?: string;
+  name_fr?: string;
+  name_es?: string;
 }
 
 export async function getCategories(): Promise<CategoryWithCount[]> {
@@ -13,7 +17,7 @@ export async function getCategories(): Promise<CategoryWithCount[]> {
 
   const { data, error } = await supabase
     .from("categories")
-    .select("id, name_it, slug, icon, sort_order")
+    .select("id, name_it, name_en, name_fr, name_es, slug, icon, sort_order")
     .eq("active", true)
     .order("sort_order", { ascending: true });
 
@@ -24,6 +28,10 @@ export async function getCategories(): Promise<CategoryWithCount[]> {
     name: cat.name_it,
     slug: cat.slug,
     icon: cat.icon,
+    name_it: cat.name_it ?? undefined,
+    name_en: cat.name_en ?? undefined,
+    name_fr: cat.name_fr ?? undefined,
+    name_es: cat.name_es ?? undefined,
   }));
 }
 
@@ -34,7 +42,7 @@ export async function getCategoryBySlug(
 
   const { data, error } = await supabase
     .from("categories")
-    .select("id, name_it, slug, icon")
+    .select("id, name_it, name_en, name_fr, name_es, slug, icon")
     .eq("slug", slug)
     .eq("active", true)
     .single();
@@ -46,6 +54,10 @@ export async function getCategoryBySlug(
     name: data.name_it,
     slug: data.slug,
     icon: data.icon,
+    name_it: data.name_it ?? undefined,
+    name_en: data.name_en ?? undefined,
+    name_fr: data.name_fr ?? undefined,
+    name_es: data.name_es ?? undefined,
   };
 }
 
@@ -54,7 +66,7 @@ export async function getCategoriesWithCounts(): Promise<CategoryWithCount[]> {
 
   const { data: categories, error: catError } = await supabase
     .from("categories")
-    .select("id, name_it, slug, icon, sort_order")
+    .select("id, name_it, name_en, name_fr, name_es, slug, icon, sort_order")
     .eq("active", true)
     .order("sort_order", { ascending: true });
 
@@ -78,5 +90,9 @@ export async function getCategoriesWithCounts(): Promise<CategoryWithCount[]> {
     slug: cat.slug,
     icon: cat.icon,
     productCount: countMap.get(cat.id) || 0,
+    name_it: cat.name_it ?? undefined,
+    name_en: cat.name_en ?? undefined,
+    name_fr: cat.name_fr ?? undefined,
+    name_es: cat.name_es ?? undefined,
   }));
 }

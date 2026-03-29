@@ -19,6 +19,18 @@ export interface ProductWithCategory {
   stockQuantity: number;
   metaTitle: string | null;
   metaDescription: string | null;
+  name_it?: string;
+  name_en?: string;
+  name_fr?: string;
+  name_es?: string;
+  description_it?: string;
+  description_en?: string;
+  description_fr?: string;
+  description_es?: string;
+  descriptionShort_it?: string;
+  descriptionShort_en?: string;
+  descriptionShort_fr?: string;
+  descriptionShort_es?: string;
 }
 
 function mapProduct(
@@ -45,6 +57,18 @@ function mapProduct(
     stockQuantity: p.stock_quantity as number,
     metaTitle: p.meta_title as string | null,
     metaDescription: p.meta_description as string | null,
+    name_it: (p.name_it as string) || undefined,
+    name_en: (p.name_en as string) || undefined,
+    name_fr: (p.name_fr as string) || undefined,
+    name_es: (p.name_es as string) || undefined,
+    description_it: (p.description_it as string) || undefined,
+    description_en: (p.description_en as string) || undefined,
+    description_fr: (p.description_fr as string) || undefined,
+    description_es: (p.description_es as string) || undefined,
+    descriptionShort_it: (p.description_short_it as string) || undefined,
+    descriptionShort_en: (p.description_short_en as string) || undefined,
+    descriptionShort_fr: (p.description_short_fr as string) || undefined,
+    descriptionShort_es: (p.description_short_es as string) || undefined,
   };
 }
 

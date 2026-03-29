@@ -7,6 +7,12 @@ import ProductGrid from "@/components/ProductGrid";
 import Sidebar from "@/components/Sidebar";
 import type { Product } from "@/data/products";
 import type { Category } from "@/data/categories";
+import { useLocale } from "@/lib/locale-context";
+
+function getCategoryName(cat: Category, locale: string): string {
+  const key = `name_${locale}` as keyof Category;
+  return (cat[key] as string) || cat.name_it || cat.name;
+}
 
 export default function CategoryPageClient({
   category,
@@ -18,6 +24,8 @@ export default function CategoryPageClient({
   categories: Category[];
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { locale } = useLocale();
+  const categoryName = getCategoryName(category, locale);
 
   return (
     <>
@@ -31,10 +39,10 @@ export default function CategoryPageClient({
         <nav className="flex items-center gap-2 text-sm text-muted mb-6">
           <Link href="/" className="hover:text-accent transition-colors">Home</Link>
           <span>/</span>
-          <span className="text-foreground font-medium">{category.name}</span>
+          <span className="text-foreground font-medium">{categoryName}</span>
         </nav>
 
-        <h1 className="text-2xl font-bold text-foreground mb-2">{category.name}</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{categoryName}</h1>
         <p className="text-muted text-sm mb-8">
           {products.length} prodott{products.length === 1 ? "o" : "i"} disponibil{products.length === 1 ? "e" : "i"}
         </p>

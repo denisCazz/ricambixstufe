@@ -18,8 +18,8 @@ export default function RegistrazioneEffettuataPage() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg shadow-black/5 border border-[var(--color-muted)]/30 p-8">
-          <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5">
+        <div className="bg-surface rounded-2xl shadow-lg shadow-black/5 border border-[var(--color-muted)]/30 p-8">
+          <div className="w-16 h-16 bg-green-50 dark:bg-green-950/40 rounded-full flex items-center justify-center mx-auto mb-5">
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
 

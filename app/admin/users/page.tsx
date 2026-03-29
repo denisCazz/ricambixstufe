@@ -44,7 +44,7 @@ export default async function AdminUsersPage({
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-border rounded-2xl p-4 mb-4">
+      <div className="bg-surface border border-border rounded-2xl p-4 mb-4">
         <form className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
@@ -76,11 +76,11 @@ export default async function AdminUsersPage({
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-border rounded-2xl overflow-hidden">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-stone-50/50">
+              <tr className="border-b border-border bg-stone-50/50 dark:bg-stone-800/30">
                 <th className="text-left py-3 px-4 font-medium text-muted">Email</th>
                 <th className="text-left py-3 px-4 font-medium text-muted hidden sm:table-cell">Nome</th>
                 <th className="text-left py-3 px-4 font-medium text-muted hidden md:table-cell">Azienda</th>

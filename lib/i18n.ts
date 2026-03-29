@@ -132,6 +132,10 @@ const translations: Record<Locale, Record<string, string>> = {
     "login.register_link": "Registrati",
     "login.dealer_question": "Sei un rivenditore?",
     "login.dealer_link": "Registrazione Dealer",
+    "dealer_box.title": "Sei un Centro Assistenza?",
+    "dealer_box.description": "I centri di assistenza e i rivenditori autorizzati hanno accesso a prezzi riservati e un'area dedicata.",
+    "dealer_box.login_cta": "Accedi come Centro Assistenza",
+    "dealer_box.register_cta": "Registrati come Centro Assistenza",
     // Register
     "register.title": "Crea il tuo account",
     "register.first_name": "Nome",
@@ -326,6 +330,10 @@ const translations: Record<Locale, Record<string, string>> = {
     "login.register_link": "Register",
     "login.dealer_question": "Are you a dealer?",
     "login.dealer_link": "Dealer Registration",
+    "dealer_box.title": "Are you a Service Center?",
+    "dealer_box.description": "Authorized service centers and dealers have access to reserved prices and a dedicated area.",
+    "dealer_box.login_cta": "Sign in as Service Center",
+    "dealer_box.register_cta": "Register as Service Center",
     // Register
     "register.title": "Create your account",
     "register.first_name": "First name",
@@ -520,6 +528,10 @@ const translations: Record<Locale, Record<string, string>> = {
     "login.register_link": "S'inscrire",
     "login.dealer_question": "Vous êtes revendeur ?",
     "login.dealer_link": "Inscription Revendeur",
+    "dealer_box.title": "Vous êtes un Centre de Service ?",
+    "dealer_box.description": "Les centres de service agréés et les revendeurs ont accès à des prix réservés et à un espace dédié.",
+    "dealer_box.login_cta": "Se connecter en tant que Centre",
+    "dealer_box.register_cta": "S'inscrire en tant que Centre",
     // Register
     "register.title": "Créez votre compte",
     "register.first_name": "Prénom",
@@ -714,6 +726,10 @@ const translations: Record<Locale, Record<string, string>> = {
     "login.register_link": "Regístrate",
     "login.dealer_question": "¿Eres distribuidor?",
     "login.dealer_link": "Registro Distribuidor",
+    "dealer_box.title": "¿Eres un Centro de Asistencia?",
+    "dealer_box.description": "Los centros de asistencia y distribuidores autorizados tienen acceso a precios reservados y un área dedicada.",
+    "dealer_box.login_cta": "Acceder como Centro de Asistencia",
+    "dealer_box.register_cta": "Registrarse como Centro",
     // Register
     "register.title": "Crea tu cuenta",
     "register.first_name": "Nombre",

@@ -14,9 +14,9 @@ export default async function AdminDealersPage() {
   const rejected = (dealers || []).filter((d) => d.status === "rejected");
 
   const statusColors = {
-    pending: "bg-yellow-50 text-yellow-700",
-    approved: "bg-green-50 text-green-700",
-    rejected: "bg-red-50 text-red-700",
+    pending: "bg-yellow-50 dark:bg-yellow-950/40 text-yellow-700",
+    approved: "bg-green-50 dark:bg-green-950/40 text-green-700",
+    rejected: "bg-red-50 dark:bg-red-950/40 text-red-700",
   };
 
   const statusLabels = {
@@ -51,7 +51,7 @@ export default async function AdminDealersPage() {
               return (
                 <div
                   key={dealer.id}
-                  className="bg-white border-2 border-yellow-200 rounded-2xl p-5"
+                  className="bg-surface border-2 border-yellow-200 dark:border-yellow-800 rounded-2xl p-5"
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                     <div className="flex-1 min-w-0">
@@ -91,11 +91,11 @@ export default async function AdminDealersPage() {
       )}
 
       {/* All dealers table */}
-      <div className="bg-white border border-border rounded-2xl overflow-hidden">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-stone-50/50">
+              <tr className="border-b border-border bg-stone-50/50 dark:bg-stone-800/30">
                 <th className="text-left py-3 px-4 font-medium text-muted">Azienda</th>
                 <th className="text-left py-3 px-4 font-medium text-muted hidden md:table-cell">P.IVA</th>
                 <th className="text-left py-3 px-4 font-medium text-muted hidden sm:table-cell">Email</th>

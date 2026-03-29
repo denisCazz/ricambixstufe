@@ -10,6 +10,7 @@ import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { searchProducts, type SearchResult } from "@/app/actions/search";
 import { locales, type Locale } from "@/lib/i18n";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const languageLabels: Record<Locale, string> = {
   it: "IT",
@@ -108,7 +109,7 @@ export default function Header({
   }
 
   const searchDropdown = (
-    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-border rounded-xl shadow-2xl overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+    <div className="absolute left-0 right-0 top-full mt-1.5 bg-surface border border-border rounded-xl shadow-2xl overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
       {searching ? (
         <div className="flex items-center justify-center gap-2 py-8 text-muted">
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -126,7 +127,7 @@ export default function Header({
             onClick={handleResultClick}
             className="flex items-center gap-3 px-4 py-3 hover:bg-surface-hover active:bg-surface-hover transition-colors border-b border-border/30 last:border-0"
           >
-            <div className="relative w-12 h-12 rounded-lg bg-stone-50 border border-border overflow-hidden shrink-0">
+            <div className="relative w-12 h-12 rounded-lg bg-stone-50 dark:bg-stone-800/50 border border-border overflow-hidden shrink-0">
               {r.image ? (
                 <Image src={r.image} alt={r.name} fill sizes="48px" className="object-contain p-1" />
               ) : (
@@ -149,7 +150,7 @@ export default function Header({
   return (
     <header
       className={`sticky top-0 z-40 transition-all duration-300 ${
-        scrolled ? "bg-white/80 backdrop-blur-xl shadow-sm" : "bg-white"
+        scrolled ? "bg-surface/80 backdrop-blur-xl shadow-sm" : "bg-surface"
       }`}
     >
       {/* Main navbar */}
@@ -223,8 +224,8 @@ export default function Header({
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-border rounded-xl shadow-xl overflow-hidden z-50">
-                    <div className="px-4 py-3 border-b border-border bg-stone-50/50">
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50">
+                    <div className="px-4 py-3 border-b border-border bg-stone-50/50 dark:bg-stone-800/30">
                       <div className="text-sm font-medium text-foreground truncate">
                         {[user.firstName, user.lastName].filter(Boolean).join(" ") || user.email}
                       </div>
@@ -251,7 +252,7 @@ export default function Header({
                     <form action={logout}>
                       <button
                         type="submit"
-                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 active:bg-red-50 transition-colors"
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 active:bg-red-50 transition-colors"
                       >
                         <LogOut className="w-4 h-4" />
                         {t("auth.logout")}
@@ -280,6 +281,9 @@ export default function Header({
               )}
             </button>
 
+            {/* Theme toggle */}
+            <ThemeToggle />
+
             {/* Separator */}
             <div className="hidden sm:block w-px h-5 bg-border/60 mx-0.5" />
 
@@ -295,7 +299,7 @@ export default function Header({
                 <ChevronDown className={`w-3 h-3 text-muted transition-transform duration-200 ${langOpen ? "rotate-180" : ""}`} />
               </button>
               {langOpen && (
-                <div className="absolute right-0 top-full mt-1.5 bg-white border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[120px]">
+                <div className="absolute right-0 top-full mt-1.5 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[120px]">
                   {locales.map((l) => (
                     <button
                       key={l}
@@ -322,7 +326,7 @@ export default function Header({
                 <ChevronDown className={`w-3 h-3 text-muted transition-transform duration-200 ${currOpen ? "rotate-180" : ""}`} />
               </button>
               {currOpen && (
-                <div className="absolute right-0 top-full mt-1.5 bg-white border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[90px]">
+                <div className="absolute right-0 top-full mt-1.5 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[90px]">
                   {currencies.map((c) => (
                     <button
                       key={c.code}
@@ -343,7 +347,7 @@ export default function Header({
 
       {/* Mobile search expanded */}
       {mobileSearch && (
-        <div className="md:hidden px-4 pb-3 border-b border-border/50 bg-white" ref={mobileSearchRef}>
+        <div className="md:hidden px-4 pb-3 border-b border-border/50bg-surface" ref={mobileSearchRef}>
           <div className="relative mt-3">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
             {searching && <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted animate-spin" />}

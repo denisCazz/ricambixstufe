@@ -17,7 +17,7 @@ export default function Footer() {
   const { t } = useLocale();
 
   return (
-    <footer id="contatti" className="border-t border-border bg-white">
+    <footer id="contatti" className="border-t border-border bg-surface">
       <div className="max-w-7xl mx-auto px-4 py-14 lg:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-8">
           {/* Company info */}
@@ -96,7 +96,7 @@ export default function Footer() {
               {["Stripe", "Visa", "Mastercard", "Amex", "Apple Pay", "Google Pay"].map((m) => (
                 <span
                   key={m}
-                  className="px-2.5 py-1 rounded-md bg-stone-50 border border-border text-[10px] font-medium text-muted"
+                  className="px-2.5 py-1 rounded-md bg-stone-50 dark:bg-stone-800/50 border border-border text-[10px] font-medium text-muted"
                 >
                   {m}
                 </span>

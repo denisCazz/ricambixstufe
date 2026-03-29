@@ -31,21 +31,21 @@ export default async function AdminDashboard() {
       value: stats.totalProducts,
       icon: Package,
       href: "/admin/products",
-      color: "bg-blue-50 text-blue-600",
+      color: "bg-blue-50 dark:bg-blue-950/40 text-blue-600",
     },
     {
       label: "Utenti",
       value: stats.totalUsers,
       icon: Users,
       href: "/admin/users",
-      color: "bg-green-50 text-green-600",
+      color: "bg-green-50 dark:bg-green-950/40 text-green-600",
     },
     {
       label: "Dealer in attesa",
       value: stats.pendingDealers,
       icon: Briefcase,
       href: "/admin/dealers",
-      color: "bg-orange-50 text-orange-600",
+      color: "bg-orange-50 dark:bg-orange-950/40 text-orange-600",
     },
     {
       label: "Ordini",
@@ -65,7 +65,7 @@ export default async function AdminDashboard() {
           <a
             key={card.label}
             href={card.href}
-            className="bg-white border border-border rounded-2xl p-5 hover:border-accent/30 hover:shadow-md transition-all duration-200 group"
+            className="bg-surface border border-border rounded-2xl p-5 hover:border-accent/30 hover:shadow-md transition-all duration-200 group"
           >
             <div className="flex items-center justify-between mb-3">
               <div

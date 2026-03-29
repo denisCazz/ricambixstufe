@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronLeft,
 } from "lucide-react";
+import { logout } from "@/app/(auth)/actions";
 import type { AuthUser } from "@/lib/auth";
 
 const navItems = [
@@ -48,7 +49,7 @@ export default function AdminShell({
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-border z-50 transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto ${
+        className={`fixed top-0 left-0 h-full w-64 bg-surface border-r border-border z-50 transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -82,7 +83,7 @@ export default function AdminShell({
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                     active
-                      ? "bg-orange-50 text-accent"
+                      ? "bg-orange-50 dark:bg-orange-950/40 text-accent"
                       : "text-muted hover:bg-surface-hover hover:text-foreground"
                   }`}
                 >
@@ -104,7 +105,7 @@ export default function AdminShell({
               <ChevronLeft className="w-4 h-4" />
               Torna al sito
             </Link>
-            <form action="/api/auth/logout" method="POST">
+            <form action={logout}>
               <button
                 type="submit"
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-muted hover:bg-surface-hover hover:text-foreground transition-colors"
@@ -120,7 +121,7 @@ export default function AdminShell({
       {/* Main content */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top bar */}
-        <header className="h-16 bg-white border-b border-border flex items-center px-4 lg:px-6 gap-4 sticky top-0 z-30">
+        <header className="h-16 bg-surface border-b border-border flex items-center px-4 lg:px-6 gap-4 sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 rounded-lg hover:bg-surface-hover transition-colors"
@@ -130,7 +131,7 @@ export default function AdminShell({
           <div className="flex-1" />
           <div className="text-sm text-muted">
             <span className="hidden sm:inline">{user.email} · </span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-orange-50 text-accent text-xs font-medium">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/40 text-accent text-xs font-medium">
               Admin
             </span>
           </div>

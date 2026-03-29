@@ -73,7 +73,7 @@ export default async function AdminProductsPage({
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-border rounded-2xl p-4 mb-4">
+      <div className="bg-surface border border-border rounded-2xl p-4 mb-4">
         <form className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
@@ -107,11 +107,11 @@ export default async function AdminProductsPage({
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-border rounded-2xl overflow-hidden">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-stone-50/50">
+              <tr className="border-b border-border bg-stone-50/50 dark:bg-stone-800/30">
                 <th className="text-left py-3 px-4 font-medium text-muted">Immagine</th>
                 <th className="text-left py-3 px-4 font-medium text-muted">Nome</th>
                 <th className="text-left py-3 px-4 font-medium text-muted hidden md:table-cell">Categoria</th>
@@ -136,7 +136,7 @@ export default async function AdminProductsPage({
                     className="border-b border-border last:border-0 hover:bg-stone-50/50 transition-colors"
                   >
                     <td className="py-3 px-4">
-                      <div className="w-10 h-10 rounded-lg bg-stone-100 border border-border overflow-hidden relative">
+                      <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-stone-800 border border-border overflow-hidden relative">
                         {product.image_url ? (
                           <Image
                             src={product.image_url}
@@ -184,8 +184,8 @@ export default async function AdminProductsPage({
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
                           product.active
-                            ? "bg-green-50 text-green-700"
-                            : "bg-stone-100 text-muted"
+                            ? "bg-green-50 dark:bg-green-950/40 text-green-700"
+                            : "bg-stone-100 dark:bg-stone-800 text-muted"
                         }`}
                       >
                         {product.active ? "Attivo" : "Disattivo"}

@@ -24,7 +24,7 @@ export default function ComeAcquistarePage() {
 
         <div className="space-y-8">
           {/* Metodi di pagamento */}
-          <section className="bg-white rounded-2xl border border-[var(--color-muted)]/30 p-6">
+          <section className="bg-surface rounded-2xl border border-[var(--color-muted)]/30 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center">
                 <CreditCard className="w-5 h-5 text-[var(--color-accent)]" />
@@ -45,7 +45,7 @@ export default function ComeAcquistarePage() {
           </section>
 
           {/* Spese di spedizione */}
-          <section className="bg-white rounded-2xl border border-[var(--color-muted)]/30 p-6">
+          <section className="bg-surface rounded-2xl border border-[var(--color-muted)]/30 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center">
                 <Truck className="w-5 h-5 text-[var(--color-accent)]" />
@@ -65,7 +65,7 @@ export default function ComeAcquistarePage() {
           </section>
 
           {/* Ritiro in sede */}
-          <section className="bg-white rounded-2xl border border-[var(--color-muted)]/30 p-6">
+          <section className="bg-surface rounded-2xl border border-[var(--color-muted)]/30 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center">
                 <Package className="w-5 h-5 text-[var(--color-accent)]" />
@@ -83,7 +83,7 @@ export default function ComeAcquistarePage() {
           </section>
 
           {/* Tempi di consegna */}
-          <section className="bg-white rounded-2xl border border-[var(--color-muted)]/30 p-6">
+          <section className="bg-surface rounded-2xl border border-[var(--color-muted)]/30 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center">
                 <Clock className="w-5 h-5 text-[var(--color-accent)]" />
@@ -98,7 +98,7 @@ export default function ComeAcquistarePage() {
           </section>
 
           {/* Garanzia */}
-          <section className="bg-white rounded-2xl border border-[var(--color-muted)]/30 p-6">
+          <section className="bg-surface rounded-2xl border border-[var(--color-muted)]/30 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center">
                 <Shield className="w-5 h-5 text-[var(--color-accent)]" />
@@ -113,7 +113,7 @@ export default function ComeAcquistarePage() {
           </section>
 
           {/* Assistenza clienti */}
-          <section className="bg-white rounded-2xl border border-[var(--color-muted)]/30 p-6">
+          <section className="bg-surface rounded-2xl border border-[var(--color-muted)]/30 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center">
                 <Headphones className="w-5 h-5 text-[var(--color-accent)]" />

@@ -7,6 +7,14 @@ export interface Product {
   category: string;
   categorySlug: string;
   image: string | null;
+  name_it?: string;
+  name_en?: string;
+  name_fr?: string;
+  name_es?: string;
+  description_it?: string;
+  description_en?: string;
+  description_fr?: string;
+  description_es?: string;
 }
 
 export const products: Product[] = [

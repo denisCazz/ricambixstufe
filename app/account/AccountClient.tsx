@@ -109,10 +109,10 @@ export default function AccountClient({
           <div
             className={`mb-6 rounded-xl border p-4 ${
               dealerInfo.status === "approved"
-                ? "bg-green-50 border-green-200"
+                ? "bg-green-50 border-green-200 dark:border-green-800"
                 : dealerInfo.status === "pending"
-                ? "bg-yellow-50 border-yellow-200"
-                : "bg-red-50 border-red-200"
+                ? "bg-yellow-50 border-yellow-200 dark:border-yellow-800"
+                : "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800"
             }`}
           >
             <div className="flex items-center gap-3">
@@ -153,13 +153,13 @@ export default function AccountClient({
 
         {/* Success / Error messages */}
         {success && (
-          <div className="mb-6 flex items-center gap-2 bg-green-50 text-green-800 p-3 rounded-lg text-sm">
+          <div className="mb-6 flex items-center gap-2 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-300 p-3 rounded-lg text-sm">
             <CheckCircle className="w-5 h-5 shrink-0" />
             <span>{t("account.saved")}</span>
           </div>
         )}
         {error && (
-          <div className="mb-6 flex items-center gap-2 bg-red-50 text-red-800 p-3 rounded-lg text-sm">
+          <div className="mb-6 flex items-center gap-2 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 p-3 rounded-lg text-sm">
             <AlertCircle className="w-5 h-5 shrink-0" />
             <span>{error}</span>
           </div>
@@ -167,7 +167,7 @@ export default function AccountClient({
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Personal info */}
-          <div className="bg-white rounded-2xl border border-[var(--color-muted)]/30 p-6">
+          <div className="bg-surface rounded-2xl border border-[var(--color-muted)]/30 p-6">
             <div className="flex items-center gap-2 mb-4">
               <User className="w-4 h-4 text-[var(--color-accent)]" />
               <h2 className="text-sm font-semibold text-[var(--color-foreground)] uppercase tracking-wide">
@@ -205,7 +205,7 @@ export default function AccountClient({
               <label className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">
                 Email
               </label>
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--color-muted)]/40 bg-stone-50 text-sm text-[var(--color-foreground)]/50">
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--color-muted)]/40 bg-stone-50 dark:bg-stone-800/50 text-sm text-[var(--color-foreground)]/50">
                 <Mail className="w-4 h-4" />
                 {email}
               </div>
@@ -229,7 +229,7 @@ export default function AccountClient({
           </div>
 
           {/* Address */}
-          <div className="bg-white rounded-2xl border border-[var(--color-muted)]/30 p-6">
+          <div className="bg-surface rounded-2xl border border-[var(--color-muted)]/30 p-6">
             <div className="flex items-center gap-2 mb-4">
               <MapPin className="w-4 h-4 text-[var(--color-accent)]" />
               <h2 className="text-sm font-semibold text-[var(--color-foreground)] uppercase tracking-wide">
@@ -313,7 +313,7 @@ export default function AccountClient({
 
           {/* Dealer company info (read-only) */}
           {dealerInfo && (
-            <div className="bg-white rounded-2xl border border-[var(--color-muted)]/30 p-6">
+            <div className="bg-surface rounded-2xl border border-[var(--color-muted)]/30 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Building2 className="w-4 h-4 text-[var(--color-accent)]" />
                 <h2 className="text-sm font-semibold text-[var(--color-foreground)] uppercase tracking-wide">
@@ -325,7 +325,7 @@ export default function AccountClient({
                   <label className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">
                     {t("dealer.company_name")}
                   </label>
-                  <div className="px-4 py-2.5 rounded-lg border border-[var(--color-muted)]/40 bg-stone-50 text-sm text-[var(--color-foreground)]/50">
+                  <div className="px-4 py-2.5 rounded-lg border border-[var(--color-muted)]/40 bg-stone-50 dark:bg-stone-800/50 text-sm text-[var(--color-foreground)]/50">
                     {dealerInfo.company_name}
                   </div>
                 </div>
@@ -333,7 +333,7 @@ export default function AccountClient({
                   <label className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">
                     {t("dealer.vat_number")}
                   </label>
-                  <div className="px-4 py-2.5 rounded-lg border border-[var(--color-muted)]/40 bg-stone-50 text-sm text-[var(--color-foreground)]/50">
+                  <div className="px-4 py-2.5 rounded-lg border border-[var(--color-muted)]/40 bg-stone-50 dark:bg-stone-800/50 text-sm text-[var(--color-foreground)]/50">
                     {dealerInfo.vat_number}
                   </div>
                 </div>

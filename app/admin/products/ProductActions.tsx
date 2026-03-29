@@ -53,7 +53,7 @@ export default function ProductActions({
       </button>
       <button
         onClick={handleDelete}
-        className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+        className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
         title="Elimina"
       >
         <Trash2 className="w-4 h-4 text-red-500" />

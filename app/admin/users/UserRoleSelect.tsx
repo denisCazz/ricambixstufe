@@ -5,9 +5,9 @@ import { updateUserRole } from "../actions/users";
 import type { UserRole } from "@/lib/supabase/types";
 
 const roleColors: Record<UserRole, string> = {
-  customer: "bg-stone-100 text-muted border-border",
-  dealer: "bg-blue-50 text-blue-700 border-blue-200",
-  admin: "bg-orange-50 text-accent border-orange-200",
+  customer: "bg-stone-100 dark:bg-stone-800 text-muted border-border",
+  dealer: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 border-blue-200 dark:border-blue-800",
+  admin: "bg-orange-50 dark:bg-orange-950/40 text-accent border-orange-200 dark:border-orange-800",
 };
 
 export default function UserRoleSelect({

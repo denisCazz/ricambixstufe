@@ -15,6 +15,11 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Thermometer, CircleDot, RotateCw, Home, Package, Gauge, Wrench,
 };
 
+function getCategoryName(cat: Category, locale: string): string {
+  const key = `name_${locale}` as keyof Category;
+  return (cat[key] as string) || cat.name_it || cat.name;
+}
+
 export default function Sidebar({
   open,
   onClose,
@@ -30,7 +35,7 @@ export default function Sidebar({
   categories: Category[];
   products: Product[];
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   function getCategoryCount(slug: string): number {
     return products.filter((p) => p.categorySlug === slug).length;
   }
@@ -51,7 +56,7 @@ export default function Sidebar({
           onClick={() => { onSelect(isActive ? null : cat.slug); if (mobile) onClose(); }}
           className={`w-full flex items-center gap-3 px-3 ${mobile ? "py-3" : "py-2.5"} rounded-xl text-sm transition-all duration-200 group ${
             isActive
-              ? "bg-orange-50 text-accent font-medium"
+              ? "bg-orange-50 dark:bg-orange-950/40 text-accent font-medium"
               : "text-muted hover:bg-surface-hover hover:text-foreground"
           }`}
         >
@@ -60,7 +65,7 @@ export default function Sidebar({
               isActive ? "text-accent" : "text-muted/50 group-hover:text-foreground"
             }`} />
           )}
-          <span className="truncate text-left flex-1">{cat.name}</span>
+          <span className="truncate text-left flex-1">{getCategoryName(cat, locale)}</span>
           {count > 0 && !mobile && (
             <span className={`text-[11px] tabular-nums px-1.5 py-0.5 rounded-md ${
               isActive ? "bg-orange-100 text-accent" : "bg-background text-muted/50"
@@ -90,7 +95,7 @@ export default function Sidebar({
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 left-0 h-full w-[85vw] max-w-sm z-50 lg:hidden bg-white border-r border-border shadow-xl"
+              className="fixed top-0 left-0 h-full w-[85vw] max-w-sm z-50 lg:hidden bg-surface border-r border-border shadow-xl"
             >
               <div className="h-full p-5 overflow-y-auto">
                 <div className="flex items-center justify-between mb-6">
@@ -107,7 +112,7 @@ export default function Sidebar({
       </AnimatePresence>
 
       <aside className="hidden lg:block w-64 shrink-0 sticky top-24 self-start">
-        <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
+        <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
           <h3 className="text-xs font-semibold text-muted uppercase tracking-widest mb-4 px-2">
             {t("sidebar.categories")}
           </h3>

@@ -8,6 +8,7 @@ import ProductDetailClient from "./ProductDetailClient";
 import AddToCartButton from "@/components/AddToCartButton";
 import PriceDisplay from "@/components/PriceDisplay";
 import TranslatedText from "@/components/TranslatedText";
+import LocalizedText from "@/components/LocalizedText";
 
 export async function generateStaticParams() {
   const supabase = createBuildClient();
@@ -45,10 +46,24 @@ export default async function ProductDetailPage({
             <Link href="/" className="hover:text-accent transition-colors"><TranslatedText k="breadcrumb.home" /></Link>
             <span>/</span>
             <Link href={`/categories/${product.categorySlug}`} className="hover:text-accent transition-colors">
-              {product.category}
+              <LocalizedText
+                it={product.category}
+                en={product.name_en ? product.category : undefined}
+                fr={product.name_fr ? product.category : undefined}
+                es={product.name_es ? product.category : undefined}
+                fallback={product.category}
+              />
             </Link>
             <span>/</span>
-            <span className="text-foreground font-medium truncate">{product.name}</span>
+            <span className="text-foreground font-medium truncate">
+              <LocalizedText
+                it={product.name_it}
+                en={product.name_en}
+                fr={product.name_fr}
+                es={product.name_es}
+                fallback={product.name}
+              />
+            </span>
           </nav>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
@@ -72,14 +87,26 @@ export default async function ProductDetailPage({
 
             {/* Info */}
             <div>
-              <span className="inline-block px-3 py-1 rounded-lg bg-orange-50 text-accent text-xs font-medium mb-3">
+              <span className="inline-block px-3 py-1 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-accent text-xs font-medium mb-3">
                 {product.category}
               </span>
               <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-4">
-                {product.name}
+                <LocalizedText
+                  it={product.name_it}
+                  en={product.name_en}
+                  fr={product.name_fr}
+                  es={product.name_es}
+                  fallback={product.name}
+                />
               </h1>
               <p className="text-muted leading-relaxed mb-6 whitespace-pre-line">
-                {product.description || product.descriptionShort}
+                <LocalizedText
+                  it={product.description_it || product.descriptionShort_it}
+                  en={product.description_en || product.descriptionShort_en}
+                  fr={product.description_fr || product.descriptionShort_fr}
+                  es={product.description_es || product.descriptionShort_es}
+                  fallback={product.description || product.descriptionShort}
+                />
               </p>
 
               <div className="border-t border-border pt-6 mb-6">
@@ -123,7 +150,7 @@ export default async function ProductDetailPage({
                   <Link
                     key={rp.id}
                     href={`/products/${rp.slug}`}
-                    className="group bg-white border border-border rounded-2xl overflow-hidden hover:border-accent/30 hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-300"
+                    className="group bg-surface border border-border rounded-2xl overflow-hidden hover:border-accent/30 hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-300"
                   >
                     <div className="relative aspect-[4/3] bg-gradient-to-br from-stone-50 to-orange-50/30">
                       {rp.image ? (
@@ -142,7 +169,13 @@ export default async function ProductDetailPage({
                     </div>
                     <div className="p-3">
                       <h3 className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-accent transition-colors">
-                        {rp.name}
+                        <LocalizedText
+                          it={rp.name_it}
+                          en={rp.name_en}
+                          fr={rp.name_fr}
+                          es={rp.name_es}
+                          fallback={rp.name}
+                        />
                       </h3>
                       <PriceDisplay price={rp.price} className="text-accent font-bold text-sm mt-1 block" />
                     </div>

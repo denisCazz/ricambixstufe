@@ -135,13 +135,13 @@ export default function ProductForm({
   return (
     <form action={formAction} className="space-y-8">
       {state?.error && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+        <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 text-sm">
           {state.error}
         </div>
       )}
 
       {/* Names */}
-      <section className="bg-white border border-border rounded-2xl p-5">
+      <section className="bg-surface border border-border rounded-2xl p-5">
         <h2 className="text-lg font-semibold text-foreground mb-4">Nome prodotto</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -164,7 +164,7 @@ export default function ProductForm({
       </section>
 
       {/* Category, Price, Stock */}
-      <section className="bg-white border border-border rounded-2xl p-5">
+      <section className="bg-surface border border-border rounded-2xl p-5">
         <h2 className="text-lg font-semibold text-foreground mb-4">Dettagli</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
@@ -209,7 +209,7 @@ export default function ProductForm({
       </section>
 
       {/* Dimensions */}
-      <section className="bg-white border border-border rounded-2xl p-5">
+      <section className="bg-surface border border-border rounded-2xl p-5">
         <h2 className="text-lg font-semibold text-foreground mb-4">Dimensioni e peso</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
@@ -232,7 +232,7 @@ export default function ProductForm({
       </section>
 
       {/* Descriptions */}
-      <section className="bg-white border border-border rounded-2xl p-5">
+      <section className="bg-surface border border-border rounded-2xl p-5">
         <h2 className="text-lg font-semibold text-foreground mb-4">Descrizioni</h2>
         <div className="space-y-4">
           <div>
@@ -255,7 +255,7 @@ export default function ProductForm({
       </section>
 
       {/* Image & Meta */}
-      <section className="bg-white border border-border rounded-2xl p-5">
+      <section className="bg-surface border border-border rounded-2xl p-5">
         <h2 className="text-lg font-semibold text-foreground mb-4">Immagine e SEO</h2>
         <div className="space-y-4">
           <div>
@@ -276,7 +276,7 @@ export default function ProductForm({
       </section>
 
       {/* Active toggle + Submit */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white border border-border rounded-2xl p-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface border border-border rounded-2xl p-5">
         <label className="flex items-center gap-3 cursor-pointer">
           <input
             type="checkbox"

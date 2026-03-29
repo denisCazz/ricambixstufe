@@ -27,7 +27,7 @@ export default function PrivacyPage() {
           </h1>
         </div>
 
-        <div className="bg-white rounded-2xl border border-[var(--color-muted)]/30 p-6 sm:p-8">
+        <div className="bg-surface rounded-2xl border border-[var(--color-muted)]/30 p-6 sm:p-8">
           <div className="prose prose-sm prose-stone max-w-none text-[var(--color-foreground)]/70 leading-relaxed space-y-6">
             <section>
               <h2 className="text-lg font-semibold text-[var(--color-foreground)] mb-2">{t("privacy.controller_title")}</h2>

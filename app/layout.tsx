@@ -4,6 +4,7 @@ import "./globals.css";
 import { CartProvider } from "@/lib/cart-context";
 import { LocaleProvider } from "@/lib/locale-context";
 import { UserProvider } from "@/lib/user-context";
+import { ThemeProvider } from "@/lib/theme-context";
 import CartDrawer from "@/components/CartDrawer";
 import ScrollToTop from "@/components/ScrollToTop";
 
@@ -75,17 +76,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="it">
+    <html lang="it" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('ricambixstufe_theme');var d=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark')}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} antialiased`}>
-        <LocaleProvider>
-          <UserProvider>
-            <CartProvider>
-              {children}
-              <CartDrawer />
-              <ScrollToTop />
-            </CartProvider>
-          </UserProvider>
-        </LocaleProvider>
+        <ThemeProvider>
+          <LocaleProvider>
+            <UserProvider>
+              <CartProvider>
+                {children}
+                <CartDrawer />
+                <ScrollToTop />
+              </CartProvider>
+            </UserProvider>
+          </LocaleProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

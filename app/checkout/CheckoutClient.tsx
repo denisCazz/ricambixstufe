@@ -70,7 +70,7 @@ export default function CheckoutClient() {
   if (items.length === 0) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
-        <div className="w-20 h-20 rounded-full bg-stone-100 flex items-center justify-center mb-4">
+        <div className="w-20 h-20 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center mb-4">
           <ShoppingBag className="w-9 h-9 text-muted/40" />
         </div>
         <p className="text-foreground font-semibold mb-1">{t("checkout.empty")}</p>
@@ -168,14 +168,14 @@ export default function CheckoutClient() {
 
       {/* Logged-in indicator */}
       {profile && (
-        <div className="mb-6 flex items-center gap-2 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700">
+        <div className="mb-6 flex items-center gap-2 px-4 py-3 rounded-xl bg-green-50 border border-green-200 dark:border-green-800 text-sm text-green-700">
           <User className="w-4 h-4" />
           Dati precompilati dal tuo profilo. Puoi modificarli se necessario.
         </div>
       )}
 
       {error && (
-        <div className="mb-6 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+        <div className="mb-6 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-sm text-red-700">
           {error}
         </div>
       )}
@@ -184,7 +184,7 @@ export default function CheckoutClient() {
         {/* Form - takes 3 cols */}
         <form onSubmit={handleSubmit} className="lg:col-span-3 space-y-6">
           {/* Shipping info */}
-          <div className="bg-white rounded-2xl border border-border p-5 sm:p-6">
+          <div className="bg-surface rounded-2xl border border-border p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-5">
               <Truck className="w-5 h-5 text-accent" />
               <h2 className="text-lg font-bold text-foreground">{t("checkout.shipping_info")}</h2>
@@ -317,7 +317,7 @@ export default function CheckoutClient() {
           </div>
 
           {/* Payment info */}
-          <div className="bg-white rounded-2xl border border-border p-5 sm:p-6">
+          <div className="bg-surface rounded-2xl border border-border p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-3">
               <CreditCard className="w-5 h-5 text-accent" />
               <h2 className="text-lg font-bold text-foreground">{t("checkout.payment")}</h2>
@@ -329,7 +329,7 @@ export default function CheckoutClient() {
               {["Visa", "Mastercard", "Amex", "Apple Pay", "Google Pay"].map((m) => (
                 <span
                   key={m}
-                  className="px-2.5 py-1 rounded-md bg-stone-50 border border-border text-[10px] font-medium text-muted"
+                  className="px-2.5 py-1 rounded-md bg-stone-50 dark:bg-stone-800/50 border border-border text-[10px] font-medium text-muted"
                 >
                   {m}
                 </span>
@@ -363,7 +363,7 @@ export default function CheckoutClient() {
 
         {/* Order summary - takes 2 cols */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl border border-border p-5 sm:p-6 sticky top-24">
+          <div className="bg-surface rounded-2xl border border-border p-5 sm:p-6 sticky top-24">
             <div className="flex items-center gap-2 mb-5">
               <ShoppingBag className="w-5 h-5 text-accent" />
               <h2 className="text-lg font-bold text-foreground">
@@ -375,11 +375,11 @@ export default function CheckoutClient() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex gap-3 p-3 rounded-xl bg-stone-50/60 border border-border/50"
+                  className="flex gap-3 p-3 rounded-xl bg-stone-50/60 dark:bg-stone-800/40 border border-border/50"
                 >
                   <Link
                     href={`/products/${item.slug}`}
-                    className="relative w-16 h-16 rounded-lg bg-white border border-border overflow-hidden shrink-0"
+                    className="relative w-16 h-16 rounded-lg bg-surface border border-border overflow-hidden shrink-0"
                   >
                     {item.image ? (
                       <Image
@@ -406,17 +406,17 @@ export default function CheckoutClient() {
                             if (item.quantity <= 1) removeItem(item.id);
                             else updateQuantity(item.id, item.quantity - 1);
                           }}
-                          className="w-7 h-7 flex items-center justify-center hover:bg-stone-100 transition-colors"
+                          className="w-7 h-7 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
-                        <span className="w-7 h-7 flex items-center justify-center text-xs font-medium border-x border-border bg-white">
+                        <span className="w-7 h-7 flex items-center justify-center text-xs font-medium border-x border-border bg-surface">
                           {item.quantity}
                         </span>
                         <button
                           type="button"
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="w-7 h-7 flex items-center justify-center hover:bg-stone-100 transition-colors"
+                          className="w-7 h-7 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -424,7 +424,7 @@ export default function CheckoutClient() {
                       <button
                         type="button"
                         onClick={() => removeItem(item.id)}
-                        className="p-1 rounded text-muted hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="p-1 rounded text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

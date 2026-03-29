@@ -34,7 +34,7 @@ export default function CartDrawer() {
       />
 
       {/* Drawer */}
-      <div className="absolute right-0 top-0 h-full w-full sm:max-w-md bg-white shadow-2xl flex flex-col animate-slide-in-right">
+      <div className="absolute right-0 top-0 h-full w-full sm:max-w-md bg-surface shadow-2xl flex flex-col animate-slide-in-right">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2.5">
@@ -60,7 +60,7 @@ export default function CartDrawer() {
         {/* Items */}
         {items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center px-5 text-center">
-            <div className="w-20 h-20 rounded-full bg-stone-100 flex items-center justify-center mb-4">
+            <div className="w-20 h-20 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center mb-4">
               <ShoppingBag className="w-9 h-9 text-muted/40" />
             </div>
             <p className="text-foreground font-semibold mb-1">{t("cart.empty")}</p>
@@ -78,13 +78,13 @@ export default function CartDrawer() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex gap-3 bg-stone-50/60 rounded-xl p-3 border border-border/50"
+                  className="flex gap-3 bg-stone-50/60 dark:bg-stone-800/40 rounded-xl p-3 border border-border/50"
                 >
                   {/* Thumbnail */}
                   <Link
                     href={`/products/${item.slug}`}
                     onClick={closeCart}
-                    className="relative w-20 h-20 rounded-lg bg-white border border-border overflow-hidden shrink-0"
+                    className="relative w-20 h-20 rounded-lg bg-surface border border-border overflow-hidden shrink-0"
                   >
                     {item.image ? (
                       <Image
@@ -127,17 +127,17 @@ export default function CartDrawer() {
                               updateQuantity(item.id, item.quantity - 1);
                             }
                           }}
-                          className="w-8 h-8 flex items-center justify-center hover:bg-stone-100 transition-colors"
+                          className="w-8 h-8 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                           aria-label="Diminuisci quantità"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
-                        <span className="w-8 h-8 flex items-center justify-center text-sm font-medium border-x border-border bg-white">
+                        <span className="w-8 h-8 flex items-center justify-center text-sm font-medium border-x border-border bg-surface">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="w-8 h-8 flex items-center justify-center hover:bg-stone-100 transition-colors"
+                          className="w-8 h-8 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                           aria-label="Aumenta quantità"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -146,7 +146,7 @@ export default function CartDrawer() {
 
                       <button
                         onClick={() => removeItem(item.id)}
-                        className="p-1.5 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                         aria-label="Rimuovi prodotto"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -158,7 +158,7 @@ export default function CartDrawer() {
             </div>
 
             {/* Footer */}
-            <div className="border-t border-border px-5 py-4 space-y-3 bg-white">
+            <div className="border-t border-border px-5 py-4 space-y-3 bg-surface">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted">{t("cart.subtotal")}</span>
                 <span className="text-lg font-bold text-foreground">{formatPrice(totalPrice)}</span>
