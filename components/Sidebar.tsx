@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Category } from "@/data/categories";
 import type { Product } from "@/data/products";
 import {
   Cog, Wind, Fan, Zap, Monitor, Cpu, Flame,
   Thermometer, CircleDot, RotateCw, Home, Package, Gauge, Wrench, X,
+  Globe, ChevronDown, Headphones,
 } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
+import { locales, type Locale } from "@/lib/i18n";
+import Link from "next/link";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Cog, Wind, Fan, Zap, Monitor, Cpu, Flame,
@@ -35,7 +38,9 @@ export default function Sidebar({
   categories: Category[];
   products: Product[];
 }) {
-  const { t, locale } = useLocale();
+  const { t, locale, setLocale, currency, setCurrencyCode, currencies } = useLocale();
+  const [langOpen, setLangOpen] = useState(false);
+  const [currOpen, setCurrOpen] = useState(false);
   function getCategoryCount(slug: string): number {
     return products.filter((p) => p.categorySlug === slug).length;
   }
@@ -105,6 +110,73 @@ export default function Sidebar({
                   </button>
                 </div>
                 <nav className="space-y-0.5">{categoryList(true)}</nav>
+
+                {/* Divider */}
+                <div className="border-t border-border/60 my-4" />
+
+                {/* Assistenza link */}
+                <Link
+                  href="/assistenza"
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-muted hover:bg-surface-hover hover:text-foreground transition-all duration-200"
+                >
+                  <Headphones className="w-4 h-4 text-muted/50" />
+                  <span>{t("sidebar.assistenza")}</span>
+                </Link>
+
+                {/* Language selector */}
+                <div className="mt-2">
+                  <button
+                    onClick={() => setLangOpen(!langOpen)}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-muted hover:bg-surface-hover hover:text-foreground transition-all"
+                  >
+                    <Globe className="w-4 h-4 text-muted/50" />
+                    <span className="flex-1 text-left">{t("sidebar.language")}: <span className="font-semibold text-foreground uppercase">{locale}</span></span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${langOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {langOpen && (
+                    <div className="ml-10 mt-1 space-y-0.5">
+                      {locales.map((l) => (
+                        <button
+                          key={l}
+                          onClick={() => { setLocale(l as Locale); setLangOpen(false); }}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
+                            locale === l ? "text-accent font-semibold bg-orange-50 dark:bg-orange-950/40" : "text-foreground hover:bg-surface-hover"
+                          }`}
+                        >
+                          {l.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Currency selector */}
+                <div className="mt-1">
+                  <button
+                    onClick={() => setCurrOpen(!currOpen)}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-muted hover:bg-surface-hover hover:text-foreground transition-all"
+                  >
+                    <span className="w-4 h-4 flex items-center justify-center text-muted/50 font-bold text-xs">{currency.symbol}</span>
+                    <span className="flex-1 text-left">{t("sidebar.currency")}: <span className="font-semibold text-foreground">{currency.code}</span></span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${currOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {currOpen && (
+                    <div className="ml-10 mt-1 space-y-0.5">
+                      {currencies.map((c) => (
+                        <button
+                          key={c.code}
+                          onClick={() => { setCurrencyCode(c.code); setCurrOpen(false); }}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
+                            currency.code === c.code ? "text-accent font-semibold bg-orange-50 dark:bg-orange-950/40" : "text-foreground hover:bg-surface-hover"
+                          }`}
+                        >
+                          {c.symbol} {c.code}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.aside>
           </>

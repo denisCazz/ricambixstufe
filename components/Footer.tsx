@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const infoLinkKeys = [
   { key: "footer.info_how_to_buy", href: "/come-acquistare" },
@@ -111,9 +112,12 @@ export default function Footer() {
           <p className="text-xs text-muted">
             &copy; {new Date().getFullYear()} Ricambi X Stufe — ELETTROSERVICE snc. {t("footer.rights")}.
           </p>
-          <p className="text-xs text-muted/60">
-            P.IVA 03771060260
-          </p>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <p className="text-xs text-muted/60">
+              P.IVA 03771060260
+            </p>
+          </div>
         </div>
       </div>
 

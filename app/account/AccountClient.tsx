@@ -17,8 +17,15 @@ import {
   ShieldCheck,
   XCircle,
   BadgePercent,
+  Sun,
+  Moon,
+  Monitor,
+  Globe,
+  Coins,
 } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
+import { useTheme } from "@/lib/theme-context";
+import { locales } from "@/lib/i18n";
 import { updateProfile } from "./actions";
 
 interface ProfileData {
@@ -51,7 +58,8 @@ export default function AccountClient({
   data: ProfileData;
   email: string;
 }) {
-  const { t } = useLocale();
+  const { t, locale, setLocale, currency, setCurrencyCode, currencies } = useLocale();
+  const { theme, setTheme } = useTheme();
   const router = useRouter();
   const { profile, dealerInfo, role } = data;
 
@@ -340,6 +348,96 @@ export default function AccountClient({
               </div>
             </div>
           )}
+
+          {/* Preferences */}
+          <div className="bg-surface rounded-2xl border border-[var(--color-muted)]/30 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Monitor className="w-4 h-4 text-[var(--color-accent)]" />
+              <h2 className="text-sm font-semibold text-[var(--color-foreground)] uppercase tracking-wide">
+                {t("account.preferences")}
+              </h2>
+            </div>
+
+            {/* Theme */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-2">
+                {t("account.theme")}
+              </label>
+              <div className="flex gap-2">
+                {([
+                  { value: "light" as const, label: t("account.theme_light"), Icon: Sun },
+                  { value: "dark" as const, label: t("account.theme_dark"), Icon: Moon },
+                  { value: "system" as const, label: t("account.theme_system"), Icon: Monitor },
+                ]).map(({ value, label, Icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setTheme(value)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm transition-colors ${
+                      theme === value
+                        ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)] font-medium"
+                        : "border-[var(--color-muted)]/40 text-[var(--color-foreground)]/60 hover:border-[var(--color-accent)]/50"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Language */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-2">
+                {t("account.language")}
+              </label>
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[var(--color-foreground)]/30" />
+                <div className="flex gap-2">
+                  {locales.map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setLocale(l)}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-semibold uppercase transition-colors ${
+                        locale === l
+                          ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                          : "border-[var(--color-muted)]/40 text-[var(--color-foreground)]/60 hover:border-[var(--color-accent)]/50"
+                      }`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Currency */}
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-2">
+                {t("account.currency")}
+              </label>
+              <div className="flex items-center gap-2">
+                <Coins className="w-4 h-4 text-[var(--color-foreground)]/30" />
+                <div className="flex gap-2">
+                  {currencies.map((c) => (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => setCurrencyCode(c.code)}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+                        currency.code === c.code
+                          ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                          : "border-[var(--color-muted)]/40 text-[var(--color-foreground)]/60 hover:border-[var(--color-accent)]/50"
+                      }`}
+                    >
+                      {c.symbol} {c.code}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Submit */}
           <button

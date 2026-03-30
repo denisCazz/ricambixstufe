@@ -47,11 +47,25 @@ const LocaleContext = createContext<LocaleContextType | null>(null);
 
 function loadPrefs(): { locale: Locale; currency: string } {
   if (typeof window === "undefined") return { locale: defaultLocale, currency: "EUR" };
+  // 1. Check localStorage (manual user preference)
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       return { locale: parsed.locale || defaultLocale, currency: parsed.currency || "EUR" };
+    }
+  } catch { /* ignore */ }
+  // 2. Fallback to auto-detected cookie from middleware
+  try {
+    const cookies = document.cookie.split(";").map((c) => c.trim());
+    const detected = cookies.find((c) => c.startsWith("ricambixstufe_detected="));
+    if (detected) {
+      const value = decodeURIComponent(detected.split("=").slice(1).join("="));
+      const parsed = JSON.parse(value);
+      return {
+        locale: (parsed.locale as Locale) || defaultLocale,
+        currency: parsed.currency || "EUR",
+      };
     }
   } catch { /* ignore */ }
   return { locale: defaultLocale, currency: "EUR" };

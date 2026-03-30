@@ -3,14 +3,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, User, ShoppingCart, Menu, X, LogOut, Settings, Shield, Loader2, ChevronDown, Globe } from "lucide-react";
+import { Search, User, ShoppingCart, Menu, X, LogOut, Settings, Shield, Loader2, Headphones, Globe, ChevronDown } from "lucide-react";
 import type { AuthUser } from "@/lib/auth";
 import { logout } from "@/app/(auth)/actions";
 import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { searchProducts, type SearchResult } from "@/app/actions/search";
 import { locales, type Locale } from "@/lib/i18n";
-import ThemeToggle from "@/components/ThemeToggle";
 
 const languageLabels: Record<Locale, string> = {
   it: "IT",
@@ -102,12 +101,6 @@ export default function Header({
     setMobileSearch(false);
   }
 
-  function closeAllDropdowns() {
-    setLangOpen(false);
-    setCurrOpen(false);
-    setUserMenuOpen(false);
-  }
-
   const searchDropdown = (
     <div className="absolute left-0 right-0 top-full mt-1.5 bg-surface border border-border rounded-xl shadow-2xl overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
       {searching ? (
@@ -175,6 +168,68 @@ export default function Header({
                 priority
               />
             </a>
+            <Link
+              href="/assistenza"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-muted hover:text-accent hover:bg-surface-hover transition-colors"
+            >
+              <Headphones className="w-4 h-4" />
+              {t("nav.assistenza")}
+            </Link>
+
+            {/* Language selector */}
+            <div className="relative hidden md:block" ref={langRef}>
+              <button
+                onClick={() => { setLangOpen(!langOpen); setCurrOpen(false); }}
+                className="flex items-center gap-0.5 p-2 rounded-lg hover:bg-surface-hover active:bg-surface-hover transition-colors text-xs font-semibold text-muted hover:text-foreground uppercase"
+                aria-label="Lingua"
+              >
+                <Globe className="w-4 h-4" />
+                <span className="ml-0.5">{locale}</span>
+                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${langOpen ? "rotate-180" : ""}`} />
+              </button>
+              {langOpen && (
+                <div className="absolute left-0 top-full mt-1.5 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[120px]">
+                  {locales.map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => { setLocale(l); setLangOpen(false); }}
+                      className={`w-full text-left px-3.5 py-2.5 text-xs hover:bg-surface-hover active:bg-surface-hover transition-colors ${
+                        locale === l ? "text-accent font-semibold bg-orange-50 dark:bg-orange-950/40" : "text-foreground"
+                      }`}
+                    >
+                      {languageLabels[l]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Currency selector */}
+            <div className="relative hidden md:block" ref={currRef}>
+              <button
+                onClick={() => { setCurrOpen(!currOpen); setLangOpen(false); }}
+                className="flex items-center gap-0.5 p-2 rounded-lg hover:bg-surface-hover active:bg-surface-hover transition-colors text-xs font-bold text-muted hover:text-foreground"
+                aria-label="Valuta"
+              >
+                {currency.symbol}
+                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${currOpen ? "rotate-180" : ""}`} />
+              </button>
+              {currOpen && (
+                <div className="absolute left-0 top-full mt-1.5 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[90px]">
+                  {currencies.map((c) => (
+                    <button
+                      key={c.code}
+                      onClick={() => { setCurrencyCode(c.code); setCurrOpen(false); }}
+                      className={`w-full text-left px-3.5 py-2.5 text-xs hover:bg-surface-hover active:bg-surface-hover transition-colors ${
+                        currency.code === c.code ? "text-accent font-semibold bg-orange-50 dark:bg-orange-950/40" : "text-foreground"
+                      }`}
+                    >
+                      {c.symbol} {c.code}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Center: Desktop search */}
@@ -209,7 +264,7 @@ export default function Header({
             {user ? (
               <div className="relative" ref={userMenuRef}>
                 <button
-                  onClick={() => { setUserMenuOpen(!userMenuOpen); setLangOpen(false); setCurrOpen(false); }}
+                  onClick={() => { setUserMenuOpen(!userMenuOpen); }}
                   className="flex items-center gap-1.5 p-2 rounded-xl hover:bg-surface-hover active:bg-surface-hover transition-colors"
                   aria-label="Menu utente"
                 >
@@ -267,7 +322,10 @@ export default function Header({
               </Link>
             )}
 
-            {/* Cart */}
+            {/* Spacer to push cart to far right */}
+            <div className="w-px h-5 bg-border/60 mx-1 hidden sm:block" />
+
+            {/* Cart — isolated far right */}
             <button
               onClick={openCart}
               className="relative p-2 rounded-xl hover:bg-surface-hover active:bg-surface-hover transition-colors"
@@ -280,67 +338,6 @@ export default function Header({
                 </span>
               )}
             </button>
-
-            {/* Theme toggle */}
-            <ThemeToggle />
-
-            {/* Separator */}
-            <div className="hidden sm:block w-px h-5 bg-border/60 mx-0.5" />
-
-            {/* Language selector */}
-            <div className="relative" ref={langRef}>
-              <button
-                onClick={() => { setLangOpen(!langOpen); setCurrOpen(false); setUserMenuOpen(false); }}
-                className="flex items-center gap-0.5 p-2 rounded-xl hover:bg-surface-hover active:bg-surface-hover transition-colors text-xs font-semibold text-foreground uppercase"
-                aria-label="Lingua"
-              >
-                <Globe className="w-4 h-4 text-muted" />
-                <span className="hidden sm:inline ml-0.5">{locale}</span>
-                <ChevronDown className={`w-3 h-3 text-muted transition-transform duration-200 ${langOpen ? "rotate-180" : ""}`} />
-              </button>
-              {langOpen && (
-                <div className="absolute right-0 top-full mt-1.5 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[120px]">
-                  {locales.map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => { setLocale(l); setLangOpen(false); }}
-                      className={`w-full text-left px-3.5 py-2.5 text-xs hover:bg-surface-hover active:bg-surface-hover transition-colors ${
-                        locale === l ? "text-accent font-semibold bg-orange-50" : "text-foreground"
-                      }`}
-                    >
-                      {languageLabels[l]}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Currency selector */}
-            <div className="relative" ref={currRef}>
-              <button
-                onClick={() => { setCurrOpen(!currOpen); setLangOpen(false); setUserMenuOpen(false); }}
-                className="flex items-center gap-0.5 p-2 rounded-xl hover:bg-surface-hover active:bg-surface-hover transition-colors text-xs font-bold text-foreground"
-                aria-label="Valuta"
-              >
-                {currency.symbol}
-                <ChevronDown className={`w-3 h-3 text-muted transition-transform duration-200 ${currOpen ? "rotate-180" : ""}`} />
-              </button>
-              {currOpen && (
-                <div className="absolute right-0 top-full mt-1.5 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[90px]">
-                  {currencies.map((c) => (
-                    <button
-                      key={c.code}
-                      onClick={() => { setCurrencyCode(c.code); setCurrOpen(false); }}
-                      className={`w-full text-left px-3.5 py-2.5 text-xs hover:bg-surface-hover active:bg-surface-hover transition-colors ${
-                        currency.code === c.code ? "text-accent font-semibold bg-orange-50" : "text-foreground"
-                      }`}
-                    >
-                      {c.symbol} {c.code}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
