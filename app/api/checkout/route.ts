@@ -122,6 +122,9 @@ export async function POST(req: NextRequest) {
         shipping_country: countryCode,
         notes: shippingInfo.notes || "",
         dealer_discount: dealerDiscount.toString(),
+        cart_items: JSON.stringify(
+          items.map((i) => [i.id, i.quantity, i.price])
+        ),
       },
       success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout`,

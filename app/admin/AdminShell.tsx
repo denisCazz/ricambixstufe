@@ -8,6 +8,7 @@ import {
   Package,
   Users,
   Briefcase,
+  ShoppingCart,
   Flame,
   Menu,
   X,
@@ -19,6 +20,7 @@ import type { AuthUser } from "@/lib/auth";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/orders", label: "Ordini", icon: ShoppingCart },
   { href: "/admin/products", label: "Prodotti", icon: Package },
   { href: "/admin/users", label: "Utenti", icon: Users },
   { href: "/admin/dealers", label: "Dealer", icon: Briefcase },
