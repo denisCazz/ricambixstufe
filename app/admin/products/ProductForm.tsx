@@ -2,13 +2,22 @@
 
 import { useActionState } from "react";
 import { Save } from "lucide-react";
+import ImageUploader from "@/components/admin/ImageUploader";
 
 interface Category {
   id: number;
   name_it: string;
 }
 
+interface ProductImage {
+  id: number;
+  image_url: string;
+  sort_order: number;
+  alt_text: string | null;
+}
+
 interface ProductData {
+  id?: number;
   name_it: string;
   name_en: string | null;
   name_fr: string | null;
@@ -123,11 +132,13 @@ export default function ProductForm({
   categories,
   action,
   submitLabel,
+  productImages = [],
 }: {
   product?: ProductData;
   categories: Category[];
   action: (prevState: { error?: string } | null, formData: FormData) => Promise<{ error?: string } | null>;
   submitLabel: string;
+  productImages?: ProductImage[];
 }) {
   const [state, formAction, isPending] = useActionState(action, null);
   const p = product || emptyProduct;
@@ -254,23 +265,23 @@ export default function ProductForm({
         </div>
       </section>
 
-      {/* Image & Meta */}
+      {/* Images */}
       <section className="bg-surface border border-border rounded-2xl p-5">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Immagine e SEO</h2>
-        <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Immagini</h2>
+        <ImageUploader productId={product?.id} initialImages={productImages} />
+      </section>
+
+      {/* SEO */}
+      <section className="bg-surface border border-border rounded-2xl p-5">
+        <h2 className="text-lg font-semibold text-foreground mb-4">SEO</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="image_url">URL immagine</Label>
-            <Input name="image_url" defaultValue={p.image_url} placeholder="https://..." />
+            <Label htmlFor="meta_title">Meta title</Label>
+            <Input name="meta_title" defaultValue={p.meta_title} />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="meta_title">Meta title</Label>
-              <Input name="meta_title" defaultValue={p.meta_title} />
-            </div>
-            <div>
-              <Label htmlFor="meta_description">Meta description</Label>
-              <Input name="meta_description" defaultValue={p.meta_description} />
-            </div>
+          <div>
+            <Label htmlFor="meta_description">Meta description</Label>
+            <Input name="meta_description" defaultValue={p.meta_description} />
           </div>
         </div>
       </section>

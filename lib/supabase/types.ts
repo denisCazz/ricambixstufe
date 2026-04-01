@@ -7,7 +7,7 @@ export type OrderStatus =
   | "shipped"
   | "delivered"
   | "cancelled";
-export type PaymentMethod = "paypal" | "bank_transfer" | "cod";
+export type PaymentMethod = "paypal" | "bank_transfer" | "cod" | "stripe";
 
 export interface Database {
   public: {
@@ -363,6 +363,38 @@ export interface Database {
           },
           {
             foreignKeyName: "order_items_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      product_images: {
+        Row: {
+          id: number;
+          product_id: number;
+          image_url: string;
+          sort_order: number;
+          alt_text: string | null;
+          created_at: string;
+        };
+        Insert: {
+          product_id: number;
+          image_url: string;
+          sort_order?: number;
+          alt_text?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          product_id?: number;
+          image_url?: string;
+          sort_order?: number;
+          alt_text?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_fkey";
             columns: ["product_id"];
             isOneToOne: false;
             referencedRelation: "products";

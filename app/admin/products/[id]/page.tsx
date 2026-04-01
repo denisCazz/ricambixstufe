@@ -16,9 +16,10 @@ export default async function EditProductPage({
 
   const supabase = await createClient();
 
-  const [productResult, categoriesResult] = await Promise.all([
+  const [productResult, categoriesResult, imagesResult] = await Promise.all([
     supabase.from("products").select("*").eq("id", productId).single(),
     supabase.from("categories").select("id, name_it").eq("active", true).order("sort_order"),
+    supabase.from("product_images").select("*").eq("product_id", productId).order("sort_order"),
   ]);
 
   if (!productResult.data) notFound();
@@ -50,6 +51,7 @@ export default async function EditProductPage({
         categories={categoriesResult.data || []}
         action={action}
         submitLabel="Salva Modifiche"
+        productImages={imagesResult.data || []}
       />
     </div>
   );

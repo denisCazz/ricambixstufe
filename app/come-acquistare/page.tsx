@@ -39,6 +39,7 @@ export default function ComeAcquistarePage() {
                 <li>{t("how_to_buy.payment_paypal")}</li>
                 <li>{t("how_to_buy.payment_card")}</li>
                 <li>{t("how_to_buy.payment_transfer")}</li>
+                <li>{t("how_to_buy.payment_cod")}</li>
               </ul>
               <p>{t("how_to_buy.payment_note")}</p>
             </div>
@@ -58,9 +59,9 @@ export default function ComeAcquistarePage() {
               <p>{t("how_to_buy.shipping_intro")}</p>
               <ul className="list-disc list-inside space-y-1 ml-2">
                 <li>{t("how_to_buy.shipping_italy")}</li>
+                <li>{t("how_to_buy.shipping_islands")}</li>
                 <li>{t("how_to_buy.shipping_eu")}</li>
               </ul>
-              <p>{t("how_to_buy.shipping_free")}</p>
             </div>
           </section>
 

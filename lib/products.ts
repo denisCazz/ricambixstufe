@@ -1,5 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 
+export interface ProductImage {
+  id: number;
+  image_url: string;
+  sort_order: number;
+  alt_text: string | null;
+}
+
 export interface ProductWithCategory {
   id: number;
   name: string;
@@ -12,6 +19,7 @@ export interface ProductWithCategory {
   categorySlug: string;
   categoryId: number;
   image: string | null;
+  images: ProductImage[];
   sku: string | null;
   ean13: string | null;
   brand: string | null;
@@ -36,7 +44,8 @@ export interface ProductWithCategory {
 function mapProduct(
   p: Record<string, unknown>,
   categoryName?: string,
-  categorySlug?: string
+  categorySlug?: string,
+  images?: ProductImage[]
 ): ProductWithCategory {
   return {
     id: p.id as number,
@@ -50,6 +59,7 @@ function mapProduct(
     categorySlug: categorySlug || "",
     categoryId: p.category_id as number,
     image: p.image_url as string | null,
+    images: images || [],
     sku: p.sku as string | null,
     ean13: p.ean13 as string | null,
     brand: p.brand as string | null,
@@ -127,8 +137,15 @@ export async function getProductBySlug(
 
   if (error || !data) return null;
 
+  // Fetch product images
+  const { data: images } = await supabase
+    .from("product_images")
+    .select("id, image_url, sort_order, alt_text")
+    .eq("product_id", data.id)
+    .order("sort_order", { ascending: true });
+
   const cat = data.categories as unknown as { name_it: string; slug: string };
-  return mapProduct(data, cat.name_it, cat.slug);
+  return mapProduct(data, cat.name_it, cat.slug, (images as ProductImage[]) || []);
 }
 
 export async function getRelatedProducts(

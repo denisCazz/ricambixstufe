@@ -15,6 +15,8 @@ export default function AddToCartButton({
     slug: string;
     price: number;
     image: string | null;
+    weight?: number | null;
+    stockQuantity?: number;
   };
 }) {
   const { addItem } = useCart();
@@ -22,14 +24,28 @@ export default function AddToCartButton({
   const { dealerDiscount } = useUser();
   const [added, setAdded] = useState(false);
 
+  const outOfStock = product.stockQuantity !== undefined && product.stockQuantity <= 0;
+
   const finalPrice = dealerDiscount
     ? product.price * (1 - dealerDiscount / 100)
     : product.price;
 
   function handleClick() {
+    if (outOfStock) return;
     addItem({ ...product, price: finalPrice });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
+  }
+
+  if (outOfStock) {
+    return (
+      <button
+        disabled
+        className="flex-1 py-3 px-6 rounded-xl bg-stone-200 dark:bg-stone-800 text-stone-500 dark:text-stone-400 font-semibold cursor-not-allowed flex items-center justify-center gap-2"
+      >
+        Esaurito
+      </button>
+    );
   }
 
   return (

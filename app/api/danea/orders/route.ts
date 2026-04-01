@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
       shipping_cost,
       tax_amount,
       total,
+      payment_method,
       payment_status,
       shipping_address,
       billing_address,
@@ -198,9 +199,10 @@ interface OrderRow {
   shipping_cost: number;
   tax_amount: number;
   total: number;
+  payment_method: string | null;
   payment_status: string;
   shipping_address: ShippingAddress | null;
-  billing_address: { email?: string } | null;
+  billing_address: { email?: string; vies_exempt?: boolean; vat_number?: string; company?: string } | null;
   notes: string | null;
   danea_exported: boolean;
   user_id: string | null;
@@ -247,7 +249,8 @@ function buildEasyfattXml(
       ? profileMap.get(order.user_id)
       : null;
     const ship = (order.shipping_address || {}) as ShippingAddress;
-    const billing = (order.billing_address || {}) as { email?: string };
+    const billing = (order.billing_address || {}) as { email?: string; vies_exempt?: boolean; vat_number?: string; company?: string };
+    const isViesExempt = billing.vies_exempt === true;
     const date = order.created_at
       ? order.created_at.slice(0, 10)
       : new Date().toISOString().slice(0, 10);
@@ -278,7 +281,7 @@ function buildEasyfattXml(
       "CustomerCountry",
       mapCountryCode(ship.country || profile?.country || "IT")
     );
-    xml += tag("CustomerVatCode", profile?.vat_number);
+    xml += tag("CustomerVatCode", billing.vat_number || profile?.vat_number);
     xml += tag(
       "CustomerTel",
       ship.phone || profile?.phone
@@ -302,17 +305,22 @@ function buildEasyfattXml(
     }
 
     xml += tag("Total", order.total.toFixed(2));
-    xml += tag("PricesIncludeVat", "true");
+    xml += tag("PricesIncludeVat", isViesExempt ? "false" : "true");
 
     // Shipping cost as CostAmount
     if (order.shipping_cost > 0) {
       xml += tag("CostDescription", "Spese di spedizione");
       xml += tag("CostAmount", order.shipping_cost.toFixed(2));
-      xml += `      <CostVatCode Perc="22" Class="Imponibile" Description="IVA 22%">22</CostVatCode>\n`;
+      if (isViesExempt) {
+        xml += `      <CostVatCode Perc="0" Class="Non Imponibile" Description="Non imponibile art. 41 D.L.331/93">N3.2</CostVatCode>\n`;
+      } else {
+        xml += `      <CostVatCode Perc="22" Class="Imponibile" Description="IVA 22%">22</CostVatCode>\n`;
+      }
     }
 
-    // Payment info
-    xml += tag("PaymentName", "Carta di credito");
+    // Payment info - map from payment method
+    const paymentName = getPaymentName(order.payment_method, order.payment_status);
+    xml += tag("PaymentName", paymentName);
     xml += tag("InternalComment", order.notes);
 
     // Rows
@@ -327,18 +335,25 @@ function buildEasyfattXml(
       if (item.discount_percent > 0) {
         xml += rowTag("Discounts", `${item.discount_percent}%`);
       }
-      xml += `          <VatCode Perc="22" Class="Imponibile" Description="IVA 22%">22</VatCode>\n`;
+      if (isViesExempt) {
+        xml += `          <VatCode Perc="0" Class="Non Imponibile" Description="Non imponibile art. 41 D.L.331/93">N3.2</VatCode>\n`;
+      } else {
+        xml += `          <VatCode Perc="22" Class="Imponibile" Description="IVA 22%">22</VatCode>\n`;
+      }
       xml += `        </Row>\n`;
     }
     xml += `      </Rows>\n`;
 
-    // Payment (mark as paid since Stripe already processed)
+    // Payment (mark as paid for stripe/paypal, unpaid for bank_transfer/cod)
+    const isPaid = !order.payment_method || order.payment_method === 'cod' 
+      ? (order.payment_status?.startsWith('stripe:') ? true : false)
+      : order.payment_status?.startsWith('stripe:');
     xml += `      <Payments>\n`;
     xml += `        <Payment>\n`;
     xml += `          <Advance>false</Advance>\n`;
     xml += `          <Date>${date}</Date>\n`;
     xml += `          <Amount>${order.total.toFixed(2)}</Amount>\n`;
-    xml += `          <Paid>true</Paid>\n`;
+    xml += `          <Paid>${isPaid ? 'true' : 'false'}</Paid>\n`;
     xml += `        </Payment>\n`;
     xml += `      </Payments>\n`;
 
@@ -349,6 +364,15 @@ function buildEasyfattXml(
   xml += `</EasyfattDocuments>`;
 
   return xml;
+}
+
+function getPaymentName(paymentMethod: string | null, paymentStatus: string | null): string {
+  if (paymentMethod === 'bank_transfer') return 'Bonifico bancario';
+  if (paymentMethod === 'cod') return 'Contrassegno';
+  if (paymentMethod === 'paypal') return 'PayPal';
+  // Stripe or legacy orders without payment_method
+  if (paymentStatus?.startsWith('stripe:')) return 'Carta di credito';
+  return 'Carta di credito';
 }
 
 function mapCountryCode(code: string | null | undefined): string {

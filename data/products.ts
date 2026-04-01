@@ -7,6 +7,8 @@ export interface Product {
   category: string;
   categorySlug: string;
   image: string | null;
+  weight?: number | null;
+  stockQuantity?: number;
   name_it?: string;
   name_en?: string;
   name_fr?: string;

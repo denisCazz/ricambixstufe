@@ -22,6 +22,7 @@ import {
   Monitor,
   Globe,
   Coins,
+  Package,
 } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
 import { useTheme } from "@/lib/theme-context";
@@ -158,6 +159,25 @@ export default function AccountClient({
             </div>
           </div>
         )}
+
+        {/* My Orders link */}
+        <Link
+          href="/account/orders"
+          className="mb-6 flex items-center gap-3 p-4 rounded-xl bg-surface border border-[var(--color-muted)]/30 hover:border-[var(--color-accent)]/50 transition-all group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center">
+            <Package className="w-5 h-5 text-[var(--color-accent)]" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-[var(--color-foreground)] group-hover:text-[var(--color-accent)] transition-colors">
+              I miei ordini
+            </p>
+            <p className="text-xs text-[var(--color-foreground)]/50">
+              Visualizza lo stato dei tuoi ordini e traccia le spedizioni
+            </p>
+          </div>
+          <ArrowLeft className="w-4 h-4 text-[var(--color-foreground)]/30 rotate-180" />
+        </Link>
 
         {/* Success / Error messages */}
         {success && (

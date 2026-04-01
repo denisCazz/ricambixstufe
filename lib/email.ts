@@ -5,6 +5,192 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "RicambiXStufe <onboarding@resend.dev>";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "info@ricambixstufe.it";
 
+// ============================================================
+// ORDER EMAILS
+// ============================================================
+
+interface OrderItem {
+  product_name: string;
+  product_sku: string | null;
+  quantity: number;
+  unit_price: number;
+  discount_percent: number;
+  line_total: number;
+}
+
+interface OrderEmailData {
+  orderId: number;
+  customerEmail: string;
+  customerName: string;
+  items: OrderItem[];
+  subtotal: number;
+  shippingCost: number;
+  total: number;
+  paymentMethod: string;
+  shippingAddress: {
+    name?: string;
+    address?: string;
+    city?: string;
+    zip?: string;
+    province?: string;
+    country?: string;
+  };
+  billingInfo?: {
+    company?: string;
+    vat_number?: string;
+    sdi_code?: string;
+    pec?: string;
+  };
+}
+
+function getPaymentLabel(method: string): string {
+  const labels: Record<string, string> = {
+    stripe: "Carta di credito",
+    paypal: "PayPal",
+    bank_transfer: "Bonifico bancario",
+    cod: "Contrassegno",
+  };
+  return labels[method] || method;
+}
+
+function formatEur(amount: number): string {
+  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(amount);
+}
+
+function buildItemsTable(items: OrderItem[]): string {
+  const rows = items
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">
+          ${item.product_name}${item.product_sku ? ` <span style="color:#9ca3af">(${item.product_sku})</span>` : ""}
+        </td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-size: 14px;">${item.quantity}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 14px;">${formatEur(item.unit_price)}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 14px; font-weight: 600;">${formatEur(item.line_total)}</td>
+      </tr>`
+    )
+    .join("");
+
+  return `
+    <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+      <thead>
+        <tr style="background: #f9fafb;">
+          <th style="padding: 8px 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Prodotto</th>
+          <th style="padding: 8px 12px; text-align: center; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Qtà</th>
+          <th style="padding: 8px 12px; text-align: right; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Prezzo</th>
+          <th style="padding: 8px 12px; text-align: right; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Totale</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function bankTransferNote(): string {
+  return `
+    <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 16px; margin: 16px 0;">
+      <p style="margin: 0 0 8px; font-weight: 600; color: #92400e;">Coordinate per il bonifico:</p>
+      <p style="margin: 0; font-size: 14px; color: #78350f;">
+        IBAN: <strong>IT76S0708461620000000920491</strong><br/>
+        Intestatario: RicambiXStufe<br/>
+        Causale: Ordine #[orderId]
+      </p>
+    </div>`;
+}
+
+/** Send order confirmation email to customer */
+export async function sendOrderConfirmationEmail(data: OrderEmailData) {
+  const paymentLabel = getPaymentLabel(data.paymentMethod);
+  const addr = data.shippingAddress;
+
+  let paymentNote = "";
+  if (data.paymentMethod === "bank_transfer") {
+    paymentNote = bankTransferNote().replace("[orderId]", data.orderId.toString());
+  } else if (data.paymentMethod === "cod") {
+    paymentNote = `<p style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 16px; font-size: 14px; color: #166534; margin: 16px 0;">Il pagamento avverrà in contanti alla consegna. Supplemento contrassegno incluso nel totale.</p>`;
+  }
+
+  const billingHtml = data.billingInfo?.company
+    ? `<p style="margin: 8px 0 0; font-size: 13px; color: #6b7280;">
+        Fatturazione: ${data.billingInfo.company}${data.billingInfo.vat_number ? ` — P.IVA ${data.billingInfo.vat_number}` : ""}${data.billingInfo.sdi_code ? ` — SDI ${data.billingInfo.sdi_code}` : ""}
+      </p>`
+    : "";
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: data.customerEmail,
+      subject: `Conferma ordine #${data.orderId} — RicambiXStufe`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
+          <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px; border-radius: 12px 12px 0 0;">
+            <h1 style="margin: 0; color: white; font-size: 20px;">Ordine confermato! ✓</h1>
+            <p style="margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">Ordine #${data.orderId}</p>
+          </div>
+
+          <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+            <p>Ciao <strong>${data.customerName}</strong>,</p>
+            <p>Grazie per il tuo ordine! Ecco il riepilogo:</p>
+
+            ${buildItemsTable(data.items)}
+
+            <table style="width: 100%; margin-top: 8px;">
+              <tr><td style="padding: 4px 12px; font-size: 14px; color: #6b7280;">Subtotale</td><td style="padding: 4px 12px; text-align: right; font-size: 14px;">${formatEur(data.subtotal)}</td></tr>
+              <tr><td style="padding: 4px 12px; font-size: 14px; color: #6b7280;">Spedizione</td><td style="padding: 4px 12px; text-align: right; font-size: 14px;">${formatEur(data.shippingCost)}</td></tr>
+              <tr><td style="padding: 8px 12px; font-size: 16px; font-weight: 700; border-top: 2px solid #e5e7eb;">Totale</td><td style="padding: 8px 12px; text-align: right; font-size: 16px; font-weight: 700; border-top: 2px solid #e5e7eb; color: #b45309;">${formatEur(data.total)}</td></tr>
+            </table>
+
+            <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
+              <p style="margin: 0; font-size: 13px; color: #6b7280;"><strong>Pagamento:</strong> ${paymentLabel}</p>
+              <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;"><strong>Spedizione:</strong> ${addr?.name || ""}, ${addr?.address || ""}, ${addr?.zip || ""} ${addr?.city || ""} ${addr?.province || ""} ${addr?.country || ""}</p>
+              ${billingHtml}
+            </div>
+
+            ${paymentNote}
+
+            <p style="margin-top: 24px; font-size: 13px; color: #6b7280;">
+              Riceverai un'email con il numero di tracking non appena il pacco sarà spedito.
+            </p>
+
+            <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">— Il team RicambiXStufe</p>
+          </div>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Failed to send order confirmation email:", error);
+  }
+}
+
+/** Notify admin about a new order */
+export async function sendNewOrderAdminNotification(data: OrderEmailData) {
+  const paymentLabel = getPaymentLabel(data.paymentMethod);
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: ADMIN_EMAIL,
+      subject: `Nuovo ordine #${data.orderId} — ${formatEur(data.total)}`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #b45309;">Nuovo ordine #${data.orderId}</h2>
+          <table style="width: 100%; border-collapse: collapse; margin: 12px 0;">
+            <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Cliente</td><td style="padding: 6px 0; font-size: 14px;">${data.customerName} (${data.customerEmail})</td></tr>
+            <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Pagamento</td><td style="padding: 6px 0; font-size: 14px;">${paymentLabel}</td></tr>
+            <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Totale</td><td style="padding: 6px 0; font-size: 14px; font-weight: 700; color: #b45309;">${formatEur(data.total)}</td></tr>
+          </table>
+
+          ${buildItemsTable(data.items)}
+
+          <p style="margin-top: 16px;"><a href="https://ricambixstufe.it/admin/orders" style="display: inline-block; padding: 10px 20px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">Gestisci ordini</a></p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Failed to send admin order notification:", error);
+  }
+}
+
 /** Notify admin that a new dealer has registered and needs approval */
 export async function sendDealerRegistrationNotification({
   companyName,

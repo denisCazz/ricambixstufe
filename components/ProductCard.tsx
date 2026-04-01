@@ -39,6 +39,7 @@ export default function ProductCard({
       slug: product.slug,
       price: discountedPrice,
       image: product.image,
+      weight: product.weight,
     });
   }
 
@@ -78,6 +79,13 @@ export default function ProductCard({
           <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-surface/90 backdrop-blur-md text-[11px] font-medium text-muted border border-border/50 shadow-sm z-10">
             {product.category}
           </span>
+
+          {/* Out of stock badge */}
+          {product.stockQuantity !== undefined && product.stockQuantity <= 0 && (
+            <span className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-red-600 text-white text-[11px] font-bold uppercase shadow-sm z-10">
+              Esaurito
+            </span>
+          )}
 
           {/* Desktop hover overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:flex items-end justify-center pb-5 z-10">

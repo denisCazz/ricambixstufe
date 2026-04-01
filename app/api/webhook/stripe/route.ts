@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/server";
+import { sendOrderConfirmationEmail, sendNewOrderAdminNotification } from "@/lib/email";
 import Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
@@ -29,6 +30,19 @@ export async function POST(req: NextRequest) {
     const supabase = await createServiceClient();
 
     const total = (session.amount_total || 0) / 100;
+    const shippingCost = parseFloat(meta.shipping_cost || "0");
+
+    // Parse billing info from metadata
+    let billingAddress: Record<string, string> = {
+      email: session.customer_email || "",
+    };
+    try {
+      if (meta.billing_info) {
+        billingAddress = JSON.parse(meta.billing_info);
+      }
+    } catch {
+      // Fallback to email only
+    }
 
     // Save order to Supabase
     const { data: order, error } = await supabase
@@ -38,7 +52,8 @@ export async function POST(req: NextRequest) {
         guest_email: meta.user_id === "guest" ? session.customer_email : null,
         status: "confirmed" as const,
         payment_status: `stripe:${session.payment_intent}`,
-        subtotal: total,
+        subtotal: total - shippingCost,
+        shipping_cost: shippingCost,
         total,
         shipping_address: {
           name: meta.shipping_name,
@@ -49,9 +64,7 @@ export async function POST(req: NextRequest) {
           province: meta.shipping_province,
           country: meta.shipping_country,
         },
-        billing_address: {
-          email: session.customer_email,
-        },
+        billing_address: billingAddress,
         notes: meta.notes || null,
       })
       .select("id")
@@ -105,6 +118,38 @@ export async function POST(req: NextRequest) {
         if (itemsErr) {
           console.error("Failed to save order items:", itemsErr);
         }
+
+        // Send order confirmation emails
+        const emailData = {
+          orderId: order.id,
+          customerEmail: session.customer_email || "",
+          customerName: meta.shipping_name || "Cliente",
+          items: rows.map((r) => ({
+            product_name: r.product_name,
+            product_sku: r.product_sku,
+            quantity: r.quantity,
+            unit_price: r.unit_price,
+            discount_percent: r.discount_percent,
+            line_total: r.line_total,
+          })),
+          subtotal: total - shippingCost,
+          shippingCost,
+          total,
+          paymentMethod: meta.payment_method || "stripe",
+          shippingAddress: {
+            name: meta.shipping_name,
+            address: meta.shipping_address,
+            city: meta.shipping_city,
+            zip: meta.shipping_zip,
+            province: meta.shipping_province,
+            country: meta.shipping_country,
+          },
+          billingInfo: billingAddress,
+        };
+        await Promise.all([
+          sendOrderConfirmationEmail(emailData),
+          sendNewOrderAdminNotification(emailData),
+        ]);
       } catch (e) {
         console.error("Failed to parse cart_items:", e);
       }

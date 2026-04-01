@@ -10,15 +10,16 @@ export default function CheckoutSuccessPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="text-center max-w-md">
-        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+        <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="w-10 h-10 text-green-600" />
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-2">
-          Ordine confermato!
+          Pagamento ricevuto!
         </h1>
         <p className="text-muted mb-8">
-          Grazie per il tuo acquisto. Riceverai una conferma via email con tutti
-          i dettagli dell&apos;ordine e le informazioni sulla spedizione.
+          Grazie per il tuo acquisto. Il pagamento è stato elaborato con
+          successo. Riceverai una conferma via email con tutti i dettagli
+          dell&apos;ordine e le informazioni sulla spedizione.
         </p>
         <Link
           href="/"

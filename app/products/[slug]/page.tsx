@@ -9,6 +9,7 @@ import AddToCartButton from "@/components/AddToCartButton";
 import PriceDisplay from "@/components/PriceDisplay";
 import TranslatedText from "@/components/TranslatedText";
 import LocalizedText from "@/components/LocalizedText";
+import ProductImageCarousel from "@/components/ProductImageCarousel";
 
 export async function generateStaticParams() {
   const supabase = createBuildClient();
@@ -67,20 +68,29 @@ export default async function ProductDetailPage({
           </nav>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-            {/* Image */}
-            <div className="relative aspect-square bg-gradient-to-br from-stone-50 to-orange-50/30 rounded-2xl border border-border overflow-hidden">
-              {product.image ? (
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-contain p-8"
-                  priority
+            {/* Images */}
+            <div>
+              {product.images.length > 0 ? (
+                <ProductImageCarousel
+                  images={product.images}
+                  productName={product.name}
                 />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-4xl font-bold text-muted/20">{product.name.charAt(0)}</span>
+                <div className="relative aspect-square bg-gradient-to-br from-stone-50 to-orange-50/30 rounded-2xl border border-border overflow-hidden">
+                  {product.image ? (
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                      className="object-contain p-8"
+                      priority
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-4xl font-bold text-muted/20">{product.name.charAt(0)}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -124,14 +134,20 @@ export default async function ProductDetailPage({
                     slug: product.slug,
                     price: product.price,
                     image: product.image,
+                    weight: product.weight,
+                    stockQuantity: product.stockQuantity,
                   }}
                 />
               </div>
 
               <div className="mt-8 space-y-3">
                 <div className="flex items-center gap-3 text-sm text-muted">
-                  <span className="w-2 h-2 rounded-full bg-green-500" />
-                  <TranslatedText k="product.available" />
+                  <span className={`w-2 h-2 rounded-full ${product.stockQuantity > 0 ? "bg-green-500" : "bg-red-500"}`} />
+                  {product.stockQuantity > 0 ? (
+                    <TranslatedText k="product.available" />
+                  ) : (
+                    <span className="text-red-600 dark:text-red-400 font-medium">Esaurito</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 text-sm text-muted">
                   <span className="w-2 h-2 rounded-full bg-accent" />
