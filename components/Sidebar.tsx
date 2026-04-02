@@ -183,7 +183,7 @@ export default function Sidebar({
         )}
       </AnimatePresence>
 
-      <aside className="hidden lg:block w-64 shrink-0 sticky top-24 self-start">
+      <aside className="hidden lg:block w-64 shrink-0 sticky top-24 self-start z-10">
         <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
           <h3 className="text-xs font-semibold text-muted uppercase tracking-widest mb-4 px-2">
             {t("sidebar.categories")}

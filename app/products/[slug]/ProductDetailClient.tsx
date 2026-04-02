@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import Header from "@/components/Header";
+import type { AuthUser } from "@/lib/auth";
 
 export default function ProductDetailClient({
   children,
+  user,
 }: {
   children: React.ReactNode;
+  user?: AuthUser | null;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -15,6 +18,7 @@ export default function ProductDetailClient({
       <Header
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         sidebarOpen={sidebarOpen}
+        user={user}
       />
       {children}
     </>

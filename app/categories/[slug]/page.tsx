@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getProducts } from "@/lib/products";
 import { getCategories, getCategoryBySlug } from "@/lib/categories";
 import { createBuildClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/auth";
 import Footer from "@/components/Footer";
 import CategoryPageClient from "./CategoryPageClient";
 
@@ -27,10 +28,11 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [category, allCategories, { products: catProducts }] = await Promise.all([
+  const [category, allCategories, { products: catProducts }, user] = await Promise.all([
     getCategoryBySlug(slug),
     getCategories(),
     getProducts({ categorySlug: slug }),
+    getUser(),
   ]);
 
   if (!category) notFound();
@@ -71,6 +73,7 @@ export default async function CategoryPage({
         category={{ ...category, icon: category.icon || "Package", name_it: category.name_it, name_en: category.name_en, name_fr: category.name_fr, name_es: category.name_es }}
         products={products}
         categories={categories}
+        user={user}
       />
       <Footer />
     </div>

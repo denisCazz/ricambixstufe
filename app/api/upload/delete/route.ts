@@ -3,6 +3,7 @@ import { unlink } from "fs/promises";
 import path from "path";
 import { getUser } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
+import { deleteFromR2, getR2KeyFromUrl } from "@/lib/r2";
 
 export async function POST(req: NextRequest) {
   const user = await getUser();
@@ -38,14 +39,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
 
-  // Try to delete file from disk (non-blocking)
+  // Try to delete file from disk or R2 (non-blocking)
   try {
-    if (image.image_url.startsWith("/uploads/")) {
+    const r2Key = getR2KeyFromUrl(image.image_url);
+    if (r2Key) {
+      await deleteFromR2(r2Key);
+    } else if (image.image_url.startsWith("/uploads/")) {
       const filePath = path.join(process.cwd(), "public", image.image_url);
       await unlink(filePath);
     }
   } catch {
-    // File may not exist locally (external URL), ignore
+    // File may not exist, ignore
   }
 
   // If deleted image was the main one (sort_order 0), update product's image_url

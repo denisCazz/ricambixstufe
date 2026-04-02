@@ -7,6 +7,7 @@ import ImageUploader from "@/components/admin/ImageUploader";
 interface Category {
   id: number;
   name_it: string;
+  slug: string;
 }
 
 interface ProductImage {
@@ -268,7 +269,12 @@ export default function ProductForm({
       {/* Images */}
       <section className="bg-surface border border-border rounded-2xl p-5">
         <h2 className="text-lg font-semibold text-foreground mb-4">Immagini</h2>
-        <ImageUploader productId={product?.id} initialImages={productImages} />
+        <ImageUploader
+          productId={product?.id}
+          categoryId={p.category_id || undefined}
+          categories={categories.map((c) => ({ id: c.id, name_it: c.name_it, slug: c.slug }))}
+          initialImages={productImages}
+        />
       </section>
 
       {/* SEO */}

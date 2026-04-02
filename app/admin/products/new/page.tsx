@@ -8,7 +8,7 @@ export default async function NewProductPage() {
   const supabase = await createClient();
   const { data: categories } = await supabase
     .from("categories")
-    .select("id, name_it")
+    .select("id, name_it, slug")
     .eq("active", true)
     .order("sort_order");
 

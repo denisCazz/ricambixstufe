@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelatedProducts } from "@/lib/products";
 import { createBuildClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/auth";
 import Footer from "@/components/Footer";
 import ProductDetailClient from "./ProductDetailClient";
 import AddToCartButton from "@/components/AddToCartButton";
@@ -36,11 +37,14 @@ export default async function ProductDetailPage({
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const related = await getRelatedProducts(product.id, product.categoryId, 4);
+  const [related, user] = await Promise.all([
+    getRelatedProducts(product.id, product.categoryId, 4),
+    getUser(),
+  ]);
 
   return (
     <div className="min-h-screen flex flex-col">
-      <ProductDetailClient>
+      <ProductDetailClient user={user}>
         <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm text-muted mb-8">

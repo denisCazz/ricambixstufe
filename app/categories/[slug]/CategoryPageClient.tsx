@@ -8,6 +8,7 @@ import Sidebar from "@/components/Sidebar";
 import type { Product } from "@/data/products";
 import type { Category } from "@/data/categories";
 import { useLocale } from "@/lib/locale-context";
+import type { AuthUser } from "@/lib/auth";
 
 function getCategoryName(cat: Category, locale: string): string {
   const key = `name_${locale}` as keyof Category;
@@ -18,10 +19,12 @@ export default function CategoryPageClient({
   category,
   products,
   categories,
+  user,
 }: {
   category: Category;
   products: Product[];
   categories: Category[];
+  user?: AuthUser | null;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { locale } = useLocale();
@@ -32,6 +35,7 @@ export default function CategoryPageClient({
       <Header
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         sidebarOpen={sidebarOpen}
+        user={user}
       />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
