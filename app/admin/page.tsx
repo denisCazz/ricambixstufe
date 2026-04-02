@@ -51,7 +51,7 @@ export default async function AdminDashboard() {
       label: "Ordini",
       value: stats.totalOrders,
       icon: ShoppingCart,
-      href: "/admin/dealers",
+      href: "/admin/orders",
       color: "bg-purple-50 text-purple-600",
     },
   ];
