@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import ProductGrid from "@/components/ProductGrid";
 import Sidebar from "@/components/Sidebar";
@@ -28,7 +29,17 @@ export default function CategoryPageClient({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { locale } = useLocale();
+  const router = useRouter();
   const categoryName = getCategoryName(category, locale);
+
+  function handleCategorySelect(slug: string | null) {
+    if (slug) {
+      router.push(`/categories/${slug}`);
+    } else {
+      router.push("/");
+    }
+    setSidebarOpen(false);
+  }
 
   return (
     <>
@@ -56,7 +67,7 @@ export default function CategoryPageClient({
             open={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
             activeCategory={category.slug}
-            onSelect={() => {}}
+            onSelect={handleCategorySelect}
             categories={categories}
             products={products}
           />
