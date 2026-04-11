@@ -2,7 +2,7 @@ export interface Category {
   id: number;
   name: string;
   slug: string;
-  icon: string;
+  icon: string | null;
   name_it?: string;
   name_en?: string;
   name_fr?: string;

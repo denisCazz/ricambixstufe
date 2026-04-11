@@ -54,7 +54,7 @@ export default function Sidebar({
 
   const categoryList = (mobile: boolean) =>
     categories.map((cat) => {
-      const Icon = iconMap[cat.icon];
+      const Icon = cat.icon ? iconMap[cat.icon] : undefined;
       const count = getCategoryCount(cat.slug);
       const isActive = activeCategory === cat.slug;
       return (

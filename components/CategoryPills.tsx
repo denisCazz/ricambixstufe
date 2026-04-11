@@ -41,7 +41,7 @@ export default function CategoryPills({
           {t("categories.all")}
         </button>
         {categories.map((cat) => {
-          const Icon = iconMap[cat.icon];
+          const Icon = cat.icon ? iconMap[cat.icon] : undefined;
           return (
             <button
               key={cat.id}
