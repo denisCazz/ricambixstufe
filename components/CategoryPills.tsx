@@ -12,6 +12,11 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Thermometer, CircleDot, RotateCw, Home, Package, Gauge, Wrench,
 };
 
+function getCategoryName(cat: Category, locale: string): string {
+  const key = `name_${locale}` as keyof Category;
+  return (cat[key] as string) || cat.name_it || cat.name;
+}
+
 export default function CategoryPills({
   activeCategory,
   onSelect,
@@ -21,7 +26,7 @@ export default function CategoryPills({
   onSelect: (slug: string | null) => void;
   categories: Category[];
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   return (
     <div className="w-full overflow-x-auto pb-2 scrollbar-none">
       <div className="flex gap-2 min-w-max px-4 lg:px-0 lg:flex-wrap">
@@ -30,7 +35,7 @@ export default function CategoryPills({
           className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
             activeCategory === null
               ? "bg-accent text-white shadow-md shadow-accent/20"
-              : "bg-white border border-border text-muted hover:bg-surface-hover hover:text-foreground hover:border-border-hover"
+              : "bg-surface border border-border text-muted hover:bg-surface-hover hover:text-foreground hover:border-border-hover"
           }`}
         >
           {t("categories.all")}
@@ -44,11 +49,11 @@ export default function CategoryPills({
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                 activeCategory === cat.slug
                   ? "bg-accent text-white shadow-md shadow-accent/20"
-                  : "bg-white border border-border text-muted hover:bg-surface-hover hover:text-foreground hover:border-border-hover"
+                  : "bg-surface border border-border text-muted hover:bg-surface-hover hover:text-foreground hover:border-border-hover"
               }`}
             >
               {Icon && <Icon className="w-3.5 h-3.5" />}
-              {cat.name}
+              {getCategoryName(cat, locale)}
             </button>
           );
         })}

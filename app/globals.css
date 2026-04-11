@@ -118,6 +118,18 @@ a, button, input, select, textarea, [role="button"] {
   animation: flame-flicker 2s ease-in-out infinite;
 }
 
+@keyframes cart-bounce {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.4); }
+  50% { transform: scale(0.9); }
+  75% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.animate-cart-bounce {
+  animation: cart-bounce 0.4s ease-out;
+}
+
 .animate-flame-rise {
   animation: flame-rise 1.8s ease-out infinite;
 }

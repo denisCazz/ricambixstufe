@@ -333,7 +333,10 @@ export default function Header({
             >
               <ShoppingCart className="w-5 h-5 text-foreground" />
               {totalItems > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-accent rounded-full text-[10px] font-bold text-white flex items-center justify-center leading-none px-1">
+                <span
+                  key={totalItems}
+                  className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-accent rounded-full text-[10px] font-bold text-white flex items-center justify-center leading-none px-1 animate-cart-bounce"
+                >
                   {totalItems > 99 ? "99+" : totalItems}
                 </span>
               )}
@@ -354,7 +357,7 @@ export default function Header({
               onChange={(e) => doSearch(e.target.value)}
               placeholder={t("search.placeholder.short")}
               autoFocus
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-background border border-border text-sm placeholder:text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all"
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-background border border-border text-base placeholder:text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all"
             />
             {showResults && query.length >= 2 && searchDropdown}
           </div>

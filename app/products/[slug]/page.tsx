@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelatedProducts } from "@/lib/products";
+import { getCategories } from "@/lib/categories";
 import { createBuildClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth";
 import Footer from "@/components/Footer";
@@ -37,20 +38,21 @@ export default async function ProductDetailPage({
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const [related, user] = await Promise.all([
+  const [related, user, categories] = await Promise.all([
     getRelatedProducts(product.id, product.categoryId, 4),
     getUser(),
+    getCategories(),
   ]);
 
   return (
     <div className="min-h-screen flex flex-col">
-      <ProductDetailClient user={user}>
+      <ProductDetailClient user={user} categories={categories}>
         <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-sm text-muted mb-8">
-            <Link href="/" className="hover:text-accent transition-colors"><TranslatedText k="breadcrumb.home" /></Link>
-            <span>/</span>
-            <Link href={`/categories/${product.categorySlug}`} className="hover:text-accent transition-colors">
+          <nav className="flex items-center gap-1.5 text-xs sm:text-sm text-muted mb-6 overflow-x-auto scrollbar-none lowercase">
+            <Link href="/" className="hover:text-accent transition-colors shrink-0"><TranslatedText k="breadcrumb.home" /></Link>
+            <span className="text-border shrink-0">/</span>
+            <Link href={`/categories/${product.categorySlug}`} className="hover:text-accent transition-colors shrink-0">
               <LocalizedText
                 it={product.category}
                 en={product.name_en ? product.category : undefined}
@@ -59,7 +61,7 @@ export default async function ProductDetailPage({
                 fallback={product.category}
               />
             </Link>
-            <span>/</span>
+            <span className="text-border shrink-0">/</span>
             <span className="text-foreground font-medium truncate">
               <LocalizedText
                 it={product.name_it}
@@ -130,8 +132,9 @@ export default async function ProductDetailPage({
                 <p className="text-xs text-muted"><TranslatedText k="product.vat" /></p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <AddToCartButton
+                  showBuyNow
                   product={{
                     id: product.id,
                     name: product.name,

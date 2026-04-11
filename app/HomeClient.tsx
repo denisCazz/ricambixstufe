@@ -4,6 +4,7 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import ProductGrid from "@/components/ProductGrid";
+import CategoryPills from "@/components/CategoryPills";
 import Footer from "@/components/Footer";
 import CookieBanner from "@/components/CookieBanner";
 import FireBackground from "@/components/FireBackground";
@@ -33,6 +34,13 @@ export default function HomeClient({
       />
 
       <main id="prodotti" className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
+        <div className="lg:hidden mb-4">
+          <CategoryPills
+            activeCategory={activeCategory}
+            onSelect={setActiveCategory}
+            categories={categories}
+          />
+        </div>
         <div className="flex gap-8">
           <Sidebar
             open={sidebarOpen}

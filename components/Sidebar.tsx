@@ -30,6 +30,7 @@ export default function Sidebar({
   onSelect,
   categories,
   products,
+  mobileOnly = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -37,6 +38,7 @@ export default function Sidebar({
   onSelect: (slug: string | null) => void;
   categories: Category[];
   products: Product[];
+  mobileOnly?: boolean;
 }) {
   const { t, locale, setLocale, currency, setCurrencyCode, currencies } = useLocale();
   const [langOpen, setLangOpen] = useState(false);
@@ -71,9 +73,9 @@ export default function Sidebar({
             }`} />
           )}
           <span className="truncate text-left flex-1">{getCategoryName(cat, locale)}</span>
-          {count > 0 && !mobile && (
+          {count > 0 && products.length > 0 && (
             <span className={`text-[11px] tabular-nums px-1.5 py-0.5 rounded-md ${
-              isActive ? "bg-orange-100 text-accent" : "bg-background text-muted/50"
+              isActive ? "bg-orange-100 dark:bg-orange-900/40 text-accent" : "bg-background text-muted/50"
             }`}>
               {count}
             </span>
@@ -109,7 +111,29 @@ export default function Sidebar({
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <nav className="space-y-0.5">{categoryList(true)}</nav>
+                <nav className="space-y-0.5">
+                  <button
+                    onClick={() => { onSelect(null); onClose(); }}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-all duration-200 group ${
+                      !activeCategory
+                        ? "bg-orange-50 dark:bg-orange-950/40 text-accent font-medium"
+                        : "text-muted hover:bg-surface-hover hover:text-foreground"
+                    }`}
+                  >
+                    <Home className={`w-4 h-4 shrink-0 transition-colors ${
+                      !activeCategory ? "text-accent" : "text-muted/50 group-hover:text-foreground"
+                    }`} />
+                    <span className="truncate text-left flex-1">{t("categories.all")}</span>
+                    {products.length > 0 && (
+                      <span className={`text-[11px] tabular-nums px-1.5 py-0.5 rounded-md ${
+                        !activeCategory ? "bg-orange-100 dark:bg-orange-900/40 text-accent" : "bg-background text-muted/50"
+                      }`}>
+                        {products.length}
+                      </span>
+                    )}
+                  </button>
+                  {categoryList(true)}
+                </nav>
 
                 {/* Divider */}
                 <div className="border-t border-border/60 my-4" />
@@ -183,14 +207,16 @@ export default function Sidebar({
         )}
       </AnimatePresence>
 
-      <aside className="hidden lg:block w-64 shrink-0 sticky top-24 self-start z-10">
-        <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
-          <h3 className="text-xs font-semibold text-muted uppercase tracking-widest mb-4 px-2">
-            {t("sidebar.categories")}
-          </h3>
-          <nav className="space-y-0.5">{categoryList(false)}</nav>
-        </div>
-      </aside>
+      {!mobileOnly && (
+        <aside className="hidden lg:block w-64 shrink-0 sticky top-24 self-start z-10">
+          <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
+            <h3 className="text-xs font-semibold text-muted uppercase tracking-widest mb-4 px-2">
+              {t("sidebar.categories")}
+            </h3>
+            <nav className="space-y-0.5">{categoryList(false)}</nav>
+          </div>
+        </aside>
+      )}
     </>
   );
 }
