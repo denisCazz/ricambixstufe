@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { profiles, dealerProfiles } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 
 export async function updateProfile(formData: FormData) {
@@ -22,24 +24,24 @@ export async function updateProfile(formData: FormData) {
     return { error: "Nome e cognome sono obbligatori" };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      first_name: firstName,
-      last_name: lastName,
-      phone,
-      address_line1: addressLine1,
-      address_line2: addressLine2,
-      city,
-      province,
-      postal_code: postalCode,
-      country,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", user.id);
-
-  if (error) {
+  const db = getDb();
+  try {
+    await db
+      .update(profiles)
+      .set({
+        firstName,
+        lastName,
+        phone: phone || null,
+        addressLine1: addressLine1 || null,
+        addressLine2: addressLine2 || null,
+        city: city || null,
+        province: province || null,
+        postalCode: postalCode || null,
+        country: country || "IT",
+        updatedAt: new Date(),
+      })
+      .where(eq(profiles.id, user.id));
+  } catch {
     return { error: "Errore durante l'aggiornamento del profilo" };
   }
 
@@ -51,25 +53,59 @@ export async function getProfile() {
   const user = await getUser();
   if (!user) return null;
 
-  const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  const db = getDb();
+  const profile = await db
+    .select()
+    .from(profiles)
+    .where(eq(profiles.id, user.id))
+    .limit(1)
+    .then((r) => r[0]);
 
   if (!profile) return null;
 
-  let dealerInfo = null;
+  let dealerInfo: {
+    company_name: string;
+    vat_number: string;
+    status: string;
+    discount_percent: number;
+  } | null = null;
   if (user.role === "dealer") {
-    const { data } = await supabase
-      .from("dealer_profiles")
-      .select("company_name, vat_number, status, discount_percent")
-      .eq("id", user.id)
-      .single();
-    dealerInfo = data;
+    const d = await db
+      .select({
+        companyName: dealerProfiles.companyName,
+        vatNumber: dealerProfiles.vatNumber,
+        status: dealerProfiles.status,
+        discountPercent: dealerProfiles.discountPercent,
+      })
+      .from(dealerProfiles)
+      .where(eq(dealerProfiles.id, user.id))
+      .limit(1)
+      .then((r) => r[0] ?? null);
+    if (d) {
+      dealerInfo = {
+        company_name: d.companyName,
+        vat_number: d.vatNumber,
+        status: d.status,
+        discount_percent: d.discountPercent,
+      };
+    }
   }
 
-  return { profile, dealerInfo, role: user.role };
+  const profileRow = {
+    first_name: profile.firstName,
+    last_name: profile.lastName,
+    email: profile.email,
+    role: profile.role,
+    company: profile.company,
+    vat_number: profile.vatNumber,
+    phone: profile.phone,
+    address_line1: profile.addressLine1,
+    address_line2: profile.addressLine2,
+    city: profile.city,
+    province: profile.province,
+    postal_code: profile.postalCode,
+    country: profile.country,
+  };
+
+  return { profile: profileRow, dealerInfo, role: user.role };
 }

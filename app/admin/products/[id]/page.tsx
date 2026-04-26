@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { asc, eq } from "drizzle-orm";
 import { ChevronLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getDb } from "@/db";
+import { products, categories, productImages } from "@/db/schema";
+import { productToFormData, productImagesToForm } from "@/lib/mappers";
 import { updateProduct } from "@/app/admin/actions/products";
 import ProductForm from "@/app/admin/products/ProductForm";
 
@@ -11,19 +14,33 @@ export default async function EditProductPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const productId = parseInt(id);
+  const productId = parseInt(id, 10);
   if (isNaN(productId)) notFound();
 
-  const supabase = await createClient();
-
-  const [productResult, categoriesResult, imagesResult] = await Promise.all([
-    supabase.from("products").select("*").eq("id", productId).single(),
-    supabase.from("categories").select("id, name_it, slug").eq("active", true).order("sort_order"),
-    supabase.from("product_images").select("*").eq("product_id", productId).order("sort_order"),
+  const db = getDb();
+  const [productRow, catRows, imageRows] = await Promise.all([
+    db.select().from(products).where(eq(products.id, productId)).limit(1).then((r) => r[0]),
+    db
+      .select({ id: categories.id, nameIt: categories.nameIt, slug: categories.slug })
+      .from(categories)
+      .where(eq(categories.active, true))
+      .orderBy(asc(categories.sortOrder)),
+    db
+      .select()
+      .from(productImages)
+      .where(eq(productImages.productId, productId))
+      .orderBy(asc(productImages.sortOrder)),
   ]);
 
-  if (!productResult.data) notFound();
-  const product = productResult.data;
+  if (!productRow) notFound();
+
+  const product = productToFormData(productRow);
+  const categoriesList = catRows.map((c) => ({
+    id: c.id,
+    name_it: c.nameIt,
+    slug: c.slug,
+  }));
+  const initialImages = productImagesToForm(imageRows);
 
   async function action(_prev: { error?: string } | null, formData: FormData) {
     "use server";
@@ -48,10 +65,10 @@ export default async function EditProductPage({
 
       <ProductForm
         product={product}
-        categories={categoriesResult.data || []}
+        categories={categoriesList}
+        productImages={initialImages}
         action={action}
         submitLabel="Salva Modifiche"
-        productImages={imagesResult.data || []}
       />
     </div>
   );

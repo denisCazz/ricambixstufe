@@ -1,8 +1,11 @@
 "use server";
 
-import { createServiceClient } from "@/lib/supabase/server";
+import { desc, eq, and, inArray, type SQL } from "drizzle-orm";
+import { getDb } from "@/db";
+import { orders, orderItems, profiles } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import type { OrderStatus } from "@/lib/types";
 
 export async function getOrders(filters?: {
   status?: string;
@@ -11,54 +14,42 @@ export async function getOrders(filters?: {
   const user = await getUser();
   if (!user || user.role !== "admin") throw new Error("Unauthorized");
 
-  const supabase = await createServiceClient();
-  let query = supabase
-    .from("orders")
-    .select(
-      `
-      id,
-      created_at,
-      status,
-      payment_status,
-      subtotal,
-      shipping_cost,
-      total,
-      shipping_address,
-      billing_address,
-      guest_email,
-      user_id,
-      notes,
-      danea_exported,
-      tracking_number,
-      order_items (
-        id,
-        product_name,
-        product_sku,
-        quantity,
-        unit_price,
-        discount_percent,
-        line_total
-      )
-    `
-    )
-    .order("id", { ascending: false });
-
+  const db = getDb();
+  const conds: SQL[] = [];
   if (filters?.status && filters.status !== "all") {
-    query = query.eq(
-      "status",
-      filters.status as "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled"
-    );
+    conds.push(eq(orders.status, filters.status as OrderStatus));
   }
   if (filters?.daneaExported !== undefined) {
-    query = query.eq("danea_exported", filters.daneaExported);
+    conds.push(eq(orders.daneaExported, filters.daneaExported));
+  }
+  const whereClause = conds.length ? and(...conds) : undefined;
+
+  const orderRows = whereClause
+    ? await db
+        .select()
+        .from(orders)
+        .where(whereClause)
+        .orderBy(desc(orders.id))
+    : await db.select().from(orders).orderBy(desc(orders.id));
+
+  const orderIds = orderRows.map((o) => o.id);
+  const itemRows =
+    orderIds.length > 0
+      ? await db
+          .select()
+          .from(orderItems)
+          .where(inArray(orderItems.orderId, orderIds))
+      : [];
+
+  const itemsByOrder = new Map<number, typeof itemRows>();
+  for (const it of itemRows) {
+    const list = itemsByOrder.get(it.orderId) || [];
+    list.push(it);
+    itemsByOrder.set(it.orderId, list);
   }
 
-  const { data, error } = await query;
-  if (error) throw error;
-
-  // Fetch profile info for registered users
-  const userIds = (data || [])
-    .map((o) => o.user_id)
+  const userIds = orderRows
+    .map((o) => o.userId)
     .filter((id): id is string => !!id);
 
   let profileMap: Record<
@@ -67,31 +58,65 @@ export async function getOrders(filters?: {
   > = {};
 
   if (userIds.length > 0) {
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, email, first_name, last_name")
-      .in("id", userIds);
-    if (profiles) {
-      profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]));
-    }
+    const profs = await db
+      .select({
+        id: profiles.id,
+        email: profiles.email,
+        firstName: profiles.firstName,
+        lastName: profiles.lastName,
+      })
+      .from(profiles)
+      .where(inArray(profiles.id, userIds));
+    profileMap = Object.fromEntries(
+      profs.map((p) => [
+        p.id,
+        {
+          email: p.email,
+          first_name: p.firstName,
+          last_name: p.lastName,
+        },
+      ])
+    );
   }
 
-  return { orders: data || [], profileMap };
+  const data = orderRows.map((o) => ({
+    id: o.id,
+    created_at: o.createdAt.toISOString(),
+    status: o.status,
+    payment_status: o.paymentStatus,
+    subtotal: Number(o.subtotal),
+    shipping_cost: Number(o.shippingCost),
+    total: Number(o.total),
+    shipping_address: o.shippingAddress as Record<string, unknown>,
+    billing_address: o.billingAddress as Record<string, unknown>,
+    guest_email: o.guestEmail,
+    user_id: o.userId,
+    notes: o.notes,
+    danea_exported: o.daneaExported,
+    tracking_number: o.trackingNumber,
+    order_items: (itemsByOrder.get(o.id) || []).map((it) => ({
+      id: it.id,
+      product_name: it.productName,
+      product_sku: it.productSku,
+      quantity: it.quantity,
+      unit_price: Number(it.unitPrice),
+      discount_percent: it.discountPercent,
+      line_total: Number(it.lineTotal),
+    })),
+  }));
+
+  return { orders: data, profileMap };
 }
 
 export async function updateOrderStatus(orderId: number, status: string) {
   const user = await getUser();
   if (!user || user.role !== "admin") throw new Error("Unauthorized");
 
-  const supabase = await createServiceClient();
-  const { error } = await supabase
-    .from("orders")
-    .update({
-      status: status as "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled",
-    })
-    .eq("id", orderId);
-
-  if (error) throw error;
+  const db = getDb();
+  await db
+    .update(orders)
+    .set({ status: status as OrderStatus, updatedAt: new Date() })
+    .where(eq(orders.id, orderId));
   revalidatePath("/admin/orders");
 }
 
@@ -102,13 +127,11 @@ export async function updateTrackingNumber(
   const user = await getUser();
   if (!user || user.role !== "admin") throw new Error("Unauthorized");
 
-  const supabase = await createServiceClient();
-  const { error } = await supabase
-    .from("orders")
-    .update({ tracking_number: trackingNumber })
-    .eq("id", orderId);
-
-  if (error) throw error;
+  const db = getDb();
+  await db
+    .update(orders)
+    .set({ trackingNumber, updatedAt: new Date() })
+    .where(eq(orders.id, orderId));
   revalidatePath("/admin/orders");
 }
 
@@ -116,12 +139,10 @@ export async function resetDaneaExport(orderId: number) {
   const user = await getUser();
   if (!user || user.role !== "admin") throw new Error("Unauthorized");
 
-  const supabase = await createServiceClient();
-  const { error } = await supabase
-    .from("orders")
-    .update({ danea_exported: false })
-    .eq("id", orderId);
-
-  if (error) throw error;
+  const db = getDb();
+  await db
+    .update(orders)
+    .set({ daneaExported: false, updatedAt: new Date() })
+    .where(eq(orders.id, orderId));
   revalidatePath("/admin/orders");
 }

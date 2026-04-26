@@ -1,17 +1,42 @@
-import { createServiceClient } from "@/lib/supabase/server";
+import { desc, eq, getTableColumns } from "drizzle-orm";
+import { getDb } from "@/db";
+import { dealerProfiles, profiles } from "@/db/schema";
 import DealerActions from "./DealerActions";
 
 export default async function AdminDealersPage() {
-  const supabase = await createServiceClient();
+  const db = getDb();
+  const rows = await db
+    .select({
+      ...getTableColumns(dealerProfiles),
+      email: profiles.email,
+      firstName: profiles.firstName,
+      lastName: profiles.lastName,
+      phone: profiles.phone,
+    })
+    .from(dealerProfiles)
+    .innerJoin(profiles, eq(dealerProfiles.id, profiles.id))
+    .orderBy(desc(dealerProfiles.createdAt));
 
-  const { data: dealers, error } = await supabase
-    .from("dealer_profiles")
-    .select("id, company_name, vat_number, status, discount_percent, rejection_reason, created_at, approved_at, profiles!dealer_profiles_id_fkey(email, first_name, last_name, phone)")
-    .order("created_at", { ascending: false });
+  const dealers = rows.map((r) => ({
+    id: r.id,
+    company_name: r.companyName,
+    vat_number: r.vatNumber,
+    status: r.status,
+    discount_percent: r.discountPercent,
+    rejection_reason: r.rejectionReason,
+    created_at: r.createdAt.toISOString(),
+    approved_at: r.approvedAt?.toISOString() ?? null,
+    profiles: {
+      email: r.email,
+      first_name: r.firstName,
+      last_name: r.lastName,
+      phone: r.phone,
+    },
+  }));
 
-  const pending = (dealers || []).filter((d) => d.status === "pending");
-  const approved = (dealers || []).filter((d) => d.status === "approved");
-  const rejected = (dealers || []).filter((d) => d.status === "rejected");
+  const pending = dealers.filter((d) => d.status === "pending");
+  const approved = dealers.filter((d) => d.status === "approved");
+  const rejected = dealers.filter((d) => d.status === "rejected");
 
   const statusColors = {
     pending: "bg-yellow-50 dark:bg-yellow-950/40 text-yellow-700",
@@ -34,7 +59,6 @@ export default async function AdminDealersPage() {
         </p>
       </div>
 
-      {/* Pending dealers highlighted */}
       {pending.length > 0 && (
         <div className="mb-6">
           <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
@@ -43,11 +67,7 @@ export default async function AdminDealersPage() {
           </h2>
           <div className="space-y-3">
             {pending.map((dealer) => {
-              const profile =
-                dealer.profiles && typeof dealer.profiles === "object" && !Array.isArray(dealer.profiles)
-                  ? (dealer.profiles as { email: string; first_name: string | null; last_name: string | null; phone: string | null })
-                  : null;
-
+              const profile = dealer.profiles;
               return (
                 <div
                   key={dealer.id}
@@ -63,7 +83,9 @@ export default async function AdminDealersPage() {
                         <div>Email: {profile?.email ?? "—"}</div>
                         <div>
                           Nome:{" "}
-                          {[profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "—"}
+                          {[profile?.first_name, profile?.last_name]
+                            .filter(Boolean)
+                            .join(" ") || "—"}
                         </div>
                         <div>Tel: {profile?.phone || "—"}</div>
                         <div>
@@ -90,7 +112,6 @@ export default async function AdminDealersPage() {
         </div>
       )}
 
-      {/* All dealers table */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -107,11 +128,7 @@ export default async function AdminDealersPage() {
             </thead>
             <tbody>
               {[...pending, ...approved, ...rejected].map((dealer) => {
-                const profile =
-                  dealer.profiles && typeof dealer.profiles === "object" && !Array.isArray(dealer.profiles)
-                    ? (dealer.profiles as { email: string; first_name: string | null; last_name: string | null; phone: string | null })
-                    : null;
-
+                const profile = dealer.profiles;
                 return (
                   <tr
                     key={dealer.id}
@@ -160,7 +177,7 @@ export default async function AdminDealersPage() {
           </table>
         </div>
 
-        {(dealers || []).length === 0 && (
+        {dealers.length === 0 && (
           <div className="py-12 text-center text-muted">
             Nessun dealer registrato.
           </div>

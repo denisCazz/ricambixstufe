@@ -10,11 +10,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build-time env vars needed for generateStaticParams (Supabase)
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+# Build-time: database per generateStaticParams (slug prodotti/categorie)
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
+ARG AUTH_SECRET
+ENV AUTH_SECRET=$AUTH_SECRET
 
 RUN npm run build
 

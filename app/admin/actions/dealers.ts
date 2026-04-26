@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createServiceClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { appUsers, profiles, dealerProfiles, orders } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 import { sendDealerApprovedEmail, sendDealerRejectedEmail } from "@/lib/email";
 
@@ -15,37 +17,38 @@ async function requireAdmin() {
 
 export async function approveDealer(dealerId: string, discountPercent: number) {
   const admin = await requireAdmin();
-  const supabase = await createServiceClient();
+  const db = getDb();
+  try {
+    await db
+      .update(dealerProfiles)
+      .set({
+        status: "approved",
+        discountPercent,
+        approvedBy: admin.id,
+        approvedAt: new Date(),
+      })
+      .where(eq(dealerProfiles.id, dealerId));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Errore" };
+  }
 
-  const { error } = await supabase
-    .from("dealer_profiles")
-    .update({
-      status: "approved",
-      discount_percent: discountPercent,
-      approved_by: admin.id,
-      approved_at: new Date().toISOString(),
-    })
-    .eq("id", dealerId);
+  const p = await db
+    .select({ email: profiles.email })
+    .from(profiles)
+    .where(eq(profiles.id, dealerId))
+    .limit(1)
+    .then((r) => r[0]);
+  const d = await db
+    .select({ companyName: dealerProfiles.companyName })
+    .from(dealerProfiles)
+    .where(eq(dealerProfiles.id, dealerId))
+    .limit(1)
+    .then((r) => r[0]);
 
-  if (error) return { error: error.message };
-
-  // Fetch dealer email for notification
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("email")
-    .eq("id", dealerId)
-    .single();
-
-  const { data: dealer } = await supabase
-    .from("dealer_profiles")
-    .select("company_name")
-    .eq("id", dealerId)
-    .single();
-
-  if (profile?.email && dealer?.company_name) {
+  if (p?.email && d?.companyName) {
     sendDealerApprovedEmail({
-      dealerEmail: profile.email,
-      companyName: dealer.company_name,
+      dealerEmail: p.email,
+      companyName: d.companyName,
       discountPercent,
     });
   }
@@ -56,35 +59,36 @@ export async function approveDealer(dealerId: string, discountPercent: number) {
 
 export async function rejectDealer(dealerId: string, reason: string) {
   await requireAdmin();
-  const supabase = await createServiceClient();
+  const db = getDb();
+  try {
+    await db
+      .update(dealerProfiles)
+      .set({
+        status: "rejected",
+        rejectionReason: reason || null,
+      })
+      .where(eq(dealerProfiles.id, dealerId));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Errore" };
+  }
 
-  const { error } = await supabase
-    .from("dealer_profiles")
-    .update({
-      status: "rejected",
-      rejection_reason: reason || null,
-    })
-    .eq("id", dealerId);
+  const p = await db
+    .select({ email: profiles.email })
+    .from(profiles)
+    .where(eq(profiles.id, dealerId))
+    .limit(1)
+    .then((r) => r[0]);
+  const d = await db
+    .select({ companyName: dealerProfiles.companyName })
+    .from(dealerProfiles)
+    .where(eq(dealerProfiles.id, dealerId))
+    .limit(1)
+    .then((r) => r[0]);
 
-  if (error) return { error: error.message };
-
-  // Fetch dealer email for notification
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("email")
-    .eq("id", dealerId)
-    .single();
-
-  const { data: dealer } = await supabase
-    .from("dealer_profiles")
-    .select("company_name")
-    .eq("id", dealerId)
-    .single();
-
-  if (profile?.email && dealer?.company_name) {
+  if (p?.email && d?.companyName) {
     sendDealerRejectedEmail({
-      dealerEmail: profile.email,
-      companyName: dealer.company_name,
+      dealerEmail: p.email,
+      companyName: d.companyName,
       reason: reason || null,
     });
   }
@@ -93,17 +97,20 @@ export async function rejectDealer(dealerId: string, reason: string) {
   revalidatePath("/admin");
 }
 
-export async function updateDealerDiscount(dealerId: string, discountPercent: number) {
+export async function updateDealerDiscount(
+  dealerId: string,
+  discountPercent: number
+) {
   await requireAdmin();
-  const supabase = await createServiceClient();
-
-  const { error } = await supabase
-    .from("dealer_profiles")
-    .update({ discount_percent: discountPercent })
-    .eq("id", dealerId);
-
-  if (error) return { error: error.message };
-
+  const db = getDb();
+  try {
+    await db
+      .update(dealerProfiles)
+      .set({ discountPercent })
+      .where(eq(dealerProfiles.id, dealerId));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Errore" };
+  }
   revalidatePath("/admin/dealers");
 }
 
@@ -119,52 +126,41 @@ export async function updateDealerData(
   }
 ) {
   await requireAdmin();
-  const supabase = await createServiceClient();
-
-  const { error: dealerError } = await supabase
-    .from("dealer_profiles")
-    .update({
-      company_name: data.companyName,
-      vat_number: data.vatNumber,
-      discount_percent: data.discountPercent,
-    })
-    .eq("id", dealerId);
-
-  if (dealerError) return { error: dealerError.message };
-
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({
-      first_name: data.firstName,
-      last_name: data.lastName,
-      phone: data.phone || null,
-      company: data.companyName,
-      vat_number: data.vatNumber,
-    })
-    .eq("id", dealerId);
-
-  if (profileError) return { error: profileError.message };
-
+  const db = getDb();
+  try {
+    await db
+      .update(dealerProfiles)
+      .set({
+        companyName: data.companyName,
+        vatNumber: data.vatNumber,
+        discountPercent: data.discountPercent,
+      })
+      .where(eq(dealerProfiles.id, dealerId));
+    await db
+      .update(profiles)
+      .set({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone || null,
+        company: data.companyName,
+        vatNumber: data.vatNumber,
+        updatedAt: new Date(),
+      })
+      .where(eq(profiles.id, dealerId));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Errore" };
+  }
   revalidatePath("/admin/dealers");
 }
 
 export async function deleteDealer(dealerId: string) {
   await requireAdmin();
-  const supabase = await createServiceClient();
-
-  // Delete dealer_profiles first (FK constraint)
-  const { error: dealerError } = await supabase
-    .from("dealer_profiles")
-    .delete()
-    .eq("id", dealerId);
-
-  if (dealerError) return { error: dealerError.message };
-
-  // Delete the auth user entirely (cascades to profiles)
-  // This allows the email to be re-used for a new registration
-  const { error: authError } = await supabase.auth.admin.deleteUser(dealerId);
-
-  if (authError) return { error: authError.message };
-
+  const db = getDb();
+  try {
+    await db.update(orders).set({ userId: null }).where(eq(orders.userId, dealerId));
+    await db.delete(appUsers).where(eq(appUsers.id, dealerId));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Errore" };
+  }
   revalidatePath("/admin/dealers");
 }

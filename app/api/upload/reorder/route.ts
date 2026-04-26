@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { getUser } from "@/lib/auth";
-import { createServiceClient } from "@/lib/supabase/server";
+import { getDb } from "@/db";
+import { productImages, products } from "@/db/schema";
 
 export async function POST(req: NextRequest) {
   const user = await getUser();
@@ -8,7 +10,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
   }
 
-  const { images } = await req.json() as {
+  const { images } = (await req.json()) as {
     images: { id: number; sort_order: number }[];
   };
 
@@ -16,29 +18,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Nessuna immagine" }, { status: 400 });
   }
 
-  const supabase = await createServiceClient();
-
+  const db = getDb();
   for (const img of images) {
-    await supabase
-      .from("product_images")
-      .update({ sort_order: img.sort_order })
-      .eq("id", img.id);
+    await db
+      .update(productImages)
+      .set({ sortOrder: img.sort_order })
+      .where(eq(productImages.id, img.id));
   }
 
-  // Update product's main image_url to the first image (sort_order = 0)
   const first = images.find((i) => i.sort_order === 0);
   if (first) {
-    const { data: firstImage } = await supabase
-      .from("product_images")
-      .select("image_url, product_id")
-      .eq("id", first.id)
-      .single();
-
+    const firstImage = await db
+      .select({
+        imageUrl: productImages.imageUrl,
+        productId: productImages.productId,
+      })
+      .from(productImages)
+      .where(eq(productImages.id, first.id))
+      .limit(1)
+      .then((r) => r[0]);
     if (firstImage) {
-      await supabase
-        .from("products")
-        .update({ image_url: firstImage.image_url })
-        .eq("id", firstImage.product_id);
+      await db
+        .update(products)
+        .set({ imageUrl: firstImage.imageUrl, updatedAt: new Date() })
+        .where(eq(products.id, firstImage.productId));
     }
   }
 

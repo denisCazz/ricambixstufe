@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { getUser } from "@/lib/auth";
-import { createServiceClient } from "@/lib/supabase/server";
+import { getDb } from "@/db";
+import { productImages } from "@/db/schema";
 
 export async function POST(req: NextRequest) {
   const user = await getUser();
@@ -13,16 +15,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "imageId richiesto" }, { status: 400 });
   }
 
-  const supabase = await createServiceClient();
-
-  const { error } = await supabase
-    .from("product_images")
-    .update({ alt_text: altText || null })
-    .eq("id", imageId);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  const db = getDb();
+  try {
+    await db
+      .update(productImages)
+      .set({ altText: altText || null })
+      .where(eq(productImages.id, imageId));
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Errore" },
+      { status: 500 }
+    );
   }
-
   return NextResponse.json({ success: true });
 }

@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { products } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 
 async function requireAdmin() {
@@ -24,40 +26,52 @@ function slugify(text: string): string {
 
 export async function createProduct(formData: FormData) {
   await requireAdmin();
-  const supabase = await createClient();
+  const db = getDb();
 
   const nameIt = formData.get("name_it") as string;
   const slug = slugify(nameIt) || `product-${Date.now()}`;
 
-  const { error } = await supabase.from("products").insert({
-    name_it: nameIt,
-    name_en: (formData.get("name_en") as string) || null,
-    name_fr: (formData.get("name_fr") as string) || null,
-    name_es: (formData.get("name_es") as string) || null,
-    slug,
-    category_id: parseInt(formData.get("category_id") as string),
-    price: parseFloat(formData.get("price") as string) || 0,
-    wholesale_price: parseFloat(formData.get("wholesale_price") as string) || null,
-    stock_quantity: parseInt(formData.get("stock_quantity") as string) || 0,
-    sku: (formData.get("sku") as string) || null,
-    ean13: (formData.get("ean13") as string) || null,
-    brand: (formData.get("brand") as string) || null,
-    weight: parseFloat(formData.get("weight") as string) || null,
-    width: parseFloat(formData.get("width") as string) || null,
-    height: parseFloat(formData.get("height") as string) || null,
-    depth: parseFloat(formData.get("depth") as string) || null,
-    description_it: (formData.get("description_it") as string) || null,
-    description_en: (formData.get("description_en") as string) || null,
-    description_short_it: (formData.get("description_short_it") as string) || null,
-    description_short_en: (formData.get("description_short_en") as string) || null,
-    image_url: (formData.get("image_url") as string) || null,
-    meta_title: (formData.get("meta_title") as string) || null,
-    meta_description: (formData.get("meta_description") as string) || null,
-    active: formData.get("active") === "on",
-  });
-
-  if (error) {
-    return { error: error.message };
+  try {
+    await db.insert(products).values({
+      nameIt,
+      nameEn: (formData.get("name_en") as string) || null,
+      nameFr: (formData.get("name_fr") as string) || null,
+      nameEs: (formData.get("name_es") as string) || null,
+      slug,
+      categoryId: parseInt(formData.get("category_id") as string, 10),
+      price: String(parseFloat(formData.get("price") as string) || 0),
+      wholesalePrice:
+        formData.get("wholesale_price") != null &&
+        (formData.get("wholesale_price") as string) !== ""
+          ? String(parseFloat(formData.get("wholesale_price") as string))
+          : null,
+      stockQuantity: parseInt(formData.get("stock_quantity") as string, 10) || 0,
+      sku: (formData.get("sku") as string) || null,
+      ean13: (formData.get("ean13") as string) || null,
+      brand: (formData.get("brand") as string) || null,
+      weight: formData.get("weight")
+        ? String(parseFloat(formData.get("weight") as string))
+        : null,
+      width: formData.get("width")
+        ? String(parseFloat(formData.get("width") as string))
+        : null,
+      height: formData.get("height")
+        ? String(parseFloat(formData.get("height") as string))
+        : null,
+      depth: formData.get("depth")
+        ? String(parseFloat(formData.get("depth") as string))
+        : null,
+      descriptionIt: (formData.get("description_it") as string) || null,
+      descriptionEn: (formData.get("description_en") as string) || null,
+      descriptionShortIt: (formData.get("description_short_it") as string) || null,
+      descriptionShortEn: (formData.get("description_short_en") as string) || null,
+      imageUrl: (formData.get("image_url") as string) || null,
+      metaTitle: (formData.get("meta_title") as string) || null,
+      metaDescription: (formData.get("meta_description") as string) || null,
+      active: formData.get("active") === "on",
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Errore" };
   }
 
   revalidatePath("/admin/products");
@@ -67,43 +81,56 @@ export async function createProduct(formData: FormData) {
 
 export async function updateProduct(id: number, formData: FormData) {
   await requireAdmin();
-  const supabase = await createClient();
+  const db = getDb();
 
   const nameIt = formData.get("name_it") as string;
   const slug = slugify(nameIt) || `product-${id}`;
 
-  const { error } = await supabase
-    .from("products")
-    .update({
-      name_it: nameIt,
-      name_en: (formData.get("name_en") as string) || null,
-      name_fr: (formData.get("name_fr") as string) || null,
-      name_es: (formData.get("name_es") as string) || null,
-      slug,
-      category_id: parseInt(formData.get("category_id") as string),
-      price: parseFloat(formData.get("price") as string) || 0,
-      wholesale_price: parseFloat(formData.get("wholesale_price") as string) || null,
-      stock_quantity: parseInt(formData.get("stock_quantity") as string) || 0,
-      sku: (formData.get("sku") as string) || null,
-      ean13: (formData.get("ean13") as string) || null,
-      brand: (formData.get("brand") as string) || null,
-      weight: parseFloat(formData.get("weight") as string) || null,
-      width: parseFloat(formData.get("width") as string) || null,
-      height: parseFloat(formData.get("height") as string) || null,
-      depth: parseFloat(formData.get("depth") as string) || null,
-      description_it: (formData.get("description_it") as string) || null,
-      description_en: (formData.get("description_en") as string) || null,
-      description_short_it: (formData.get("description_short_it") as string) || null,
-      description_short_en: (formData.get("description_short_en") as string) || null,
-      image_url: (formData.get("image_url") as string) || null,
-      meta_title: (formData.get("meta_title") as string) || null,
-      meta_description: (formData.get("meta_description") as string) || null,
-      active: formData.get("active") === "on",
-    })
-    .eq("id", id);
-
-  if (error) {
-    return { error: error.message };
+  try {
+    await db
+      .update(products)
+      .set({
+        nameIt,
+        nameEn: (formData.get("name_en") as string) || null,
+        nameFr: (formData.get("name_fr") as string) || null,
+        nameEs: (formData.get("name_es") as string) || null,
+        slug,
+        categoryId: parseInt(formData.get("category_id") as string, 10),
+        price: String(parseFloat(formData.get("price") as string) || 0),
+        wholesalePrice:
+          formData.get("wholesale_price") != null &&
+          (formData.get("wholesale_price") as string) !== ""
+            ? String(parseFloat(formData.get("wholesale_price") as string))
+            : null,
+        stockQuantity: parseInt(formData.get("stock_quantity") as string, 10) || 0,
+        sku: (formData.get("sku") as string) || null,
+        ean13: (formData.get("ean13") as string) || null,
+        brand: (formData.get("brand") as string) || null,
+        weight: formData.get("weight")
+          ? String(parseFloat(formData.get("weight") as string))
+          : null,
+        width: formData.get("width")
+          ? String(parseFloat(formData.get("width") as string))
+          : null,
+        height: formData.get("height")
+          ? String(parseFloat(formData.get("height") as string))
+          : null,
+        depth: formData.get("depth")
+          ? String(parseFloat(formData.get("depth") as string))
+          : null,
+        descriptionIt: (formData.get("description_it") as string) || null,
+        descriptionEn: (formData.get("description_en") as string) || null,
+        descriptionShortIt: (formData.get("description_short_it") as string) || null,
+        descriptionShortEn: (formData.get("description_short_en") as string) || null,
+        imageUrl: (formData.get("image_url") as string) || null,
+        metaTitle: (formData.get("meta_title") as string) || null,
+        metaDescription: (formData.get("meta_description") as string) || null,
+        active: formData.get("active") === "on",
+        updatedAt: new Date(),
+      })
+      .where(eq(products.id, id));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Errore" };
   }
 
   revalidatePath("/admin/products");
@@ -114,31 +141,27 @@ export async function updateProduct(id: number, formData: FormData) {
 
 export async function toggleProductActive(id: number, active: boolean) {
   await requireAdmin();
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from("products")
-    .update({ active })
-    .eq("id", id);
-
-  if (error) {
-    return { error: error.message };
+  const db = getDb();
+  try {
+    await db
+      .update(products)
+      .set({ active, updatedAt: new Date() })
+      .where(eq(products.id, id));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Errore" };
   }
-
   revalidatePath("/admin/products");
   revalidatePath("/");
 }
 
 export async function deleteProduct(id: number) {
   await requireAdmin();
-  const supabase = await createClient();
-
-  const { error } = await supabase.from("products").delete().eq("id", id);
-
-  if (error) {
-    return { error: error.message };
+  const db = getDb();
+  try {
+    await db.delete(products).where(eq(products.id, id));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Errore" };
   }
-
   revalidatePath("/admin/products");
   revalidatePath("/");
 }

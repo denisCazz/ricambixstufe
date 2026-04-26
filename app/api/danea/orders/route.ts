@@ -1,5 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/server";
+import { and, asc, eq, inArray, gte, lte } from "drizzle-orm";
+import { getDb } from "@/db";
+import { orders, orderItems, profiles } from "@/db/schema";
+
+interface ShippingAddress {
+  name?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  zip?: string;
+  province?: string;
+  country?: string;
+}
+
+interface OrderRow {
+  id: number;
+  created_at: string;
+  status: string;
+  subtotal: number;
+  shipping_cost: number;
+  tax_amount: number;
+  total: number;
+  payment_method: string | null;
+  payment_status: string;
+  shipping_address: ShippingAddress | null;
+  billing_address: {
+    email?: string;
+    vies_exempt?: boolean;
+    vat_number?: string;
+    company?: string;
+  } | null;
+  notes: string | null;
+  danea_exported: boolean;
+  user_id: string | null;
+  guest_email: string | null;
+  order_items: {
+    id: number;
+    product_id: number;
+    product_name: string;
+    product_sku: string | null;
+    quantity: number;
+    unit_price: number;
+    discount_percent: number;
+    line_total: number;
+  }[];
+}
+
+interface ProfileInfo {
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  company: string | null;
+  vat_number: string | null;
+  phone: string | null;
+  address_line1: string | null;
+  city: string | null;
+  province: string | null;
+  postal_code: string | null;
+  country: string | null;
+}
 
 /**
  * Danea Easyfatt e-commerce integration endpoint.
@@ -43,66 +102,85 @@ export async function GET(req: NextRequest) {
   const firstnum = searchParams.get("firstnum");
   const lastnum = searchParams.get("lastnum");
 
-  const supabase = await createServiceClient();
-
-  // --- Build query ---
-  let query = supabase
-    .from("orders")
-    .select(
-      `
-      id,
-      created_at,
-      status,
-      subtotal,
-      shipping_cost,
-      tax_amount,
-      total,
-      payment_method,
-      payment_status,
-      shipping_address,
-      billing_address,
-      notes,
-      danea_exported,
-      user_id,
-      guest_email,
-      order_items (
-        id,
-        product_id,
-        product_name,
-        product_sku,
-        quantity,
-        unit_price,
-        discount_percent,
-        line_total
-      )
-    `
-    )
-    .eq("danea_exported", false)
-    .in("status", ["confirmed", "processing", "shipped", "delivered"])
-    .order("id", { ascending: true });
+  const db = getDb();
+  const conds = [
+    eq(orders.daneaExported, false),
+    inArray(orders.status, [
+      "confirmed",
+      "processing",
+      "shipped",
+      "delivered",
+    ]),
+  ];
 
   if (firstdate) {
-    query = query.gte("created_at", `${firstdate}T00:00:00`);
+    conds.push(
+      gte(orders.createdAt, new Date(`${firstdate}T00:00:00.000Z`))
+    );
   }
   if (lastdate) {
-    query = query.lte("created_at", `${lastdate}T23:59:59`);
+    conds.push(
+      lte(orders.createdAt, new Date(`${lastdate}T23:59:59.999Z`))
+    );
   }
   if (firstnum) {
-    query = query.gte("id", parseInt(firstnum, 10));
+    conds.push(gte(orders.id, parseInt(firstnum, 10)));
   }
   if (lastnum) {
-    query = query.lte("id", parseInt(lastnum, 10));
+    conds.push(lte(orders.id, parseInt(lastnum, 10)));
   }
 
-  const { data: orders, error } = await query;
+  const orderRows = await db
+    .select()
+    .from(orders)
+    .where(and(...conds))
+    .orderBy(asc(orders.id));
 
-  if (error) {
-    console.error("Danea orders fetch error:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+  const oids = orderRows.map((o) => o.id);
+  const itemRows =
+    oids.length > 0
+      ? await db
+          .select()
+          .from(orderItems)
+          .where(inArray(orderItems.orderId, oids))
+      : [];
+  const byOrder = new Map<number, typeof itemRows>();
+  for (const it of itemRows) {
+    const list = byOrder.get(it.orderId) || [];
+    list.push(it);
+    byOrder.set(it.orderId, list);
   }
+
+  const mapped: OrderRow[] = orderRows.map((o) => ({
+    id: o.id,
+    created_at: o.createdAt.toISOString(),
+    status: o.status,
+    subtotal: Number(o.subtotal),
+    shipping_cost: Number(o.shippingCost),
+    tax_amount: Number(o.taxAmount),
+    total: Number(o.total),
+    payment_method: o.paymentMethod,
+    payment_status: o.paymentStatus,
+    shipping_address: o.shippingAddress as ShippingAddress | null,
+    billing_address: o.billingAddress as OrderRow["billing_address"] | null,
+    notes: o.notes,
+    danea_exported: o.daneaExported,
+    user_id: o.userId,
+    guest_email: o.guestEmail,
+    order_items: (byOrder.get(o.id) || []).map((it) => ({
+      id: it.id,
+      product_id: it.productId,
+      product_name: it.productName,
+      product_sku: it.productSku,
+      quantity: it.quantity,
+      unit_price: Number(it.unitPrice),
+      discount_percent: it.discountPercent,
+      line_total: Number(it.lineTotal),
+    })),
+  }));
 
   // --- Fetch customer profiles for user_id orders ---
-  const userIds = (orders || [])
+  const userIds = mapped
     .map((o) => o.user_id)
     .filter((id): id is string => !!id);
 
@@ -124,28 +202,40 @@ export async function GET(req: NextRequest) {
   >();
 
   if (userIds.length > 0) {
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select(
-        "id, email, first_name, last_name, company, vat_number, phone, address_line1, city, province, postal_code, country"
-      )
-      .in("id", userIds);
-
-    if (profiles) {
-      profileMap = new Map(profiles.map((p) => [p.id, p]));
-    }
+    const prows = await db
+      .select()
+      .from(profiles)
+      .where(inArray(profiles.id, userIds));
+    profileMap = new Map(
+      prows.map((p) => [
+        p.id,
+        {
+          email: p.email,
+          first_name: p.firstName,
+          last_name: p.lastName,
+          company: p.company,
+          vat_number: p.vatNumber,
+          phone: p.phone,
+          address_line1: p.addressLine1,
+          city: p.city,
+          province: p.province,
+          postal_code: p.postalCode,
+          country: p.country,
+        },
+      ])
+    );
   }
 
   // --- Build XML ---
-  const xml = buildEasyfattXml(orders || [], profileMap);
+  const xml = buildEasyfattXml(mapped, profileMap);
 
   // --- Mark orders as exported ---
-  if (orders && orders.length > 0) {
-    const orderIds = orders.map((o) => o.id);
-    await supabase
-      .from("orders")
-      .update({ danea_exported: true })
-      .in("id", orderIds);
+  if (mapped.length > 0) {
+    const orderIds = mapped.map((o) => o.id);
+    await db
+      .update(orders)
+      .set({ daneaExported: true, updatedAt: new Date() })
+      .where(inArray(orders.id, orderIds));
   }
 
   return new NextResponse(xml, {
@@ -179,58 +269,6 @@ function rowTag(
 ): string {
   if (value === null || value === undefined || value === "") return "";
   return `          <${name}>${escapeXml(String(value))}</${name}>\n`;
-}
-
-interface ShippingAddress {
-  name?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  zip?: string;
-  province?: string;
-  country?: string;
-}
-
-interface OrderRow {
-  id: number;
-  created_at: string;
-  status: string;
-  subtotal: number;
-  shipping_cost: number;
-  tax_amount: number;
-  total: number;
-  payment_method: string | null;
-  payment_status: string;
-  shipping_address: ShippingAddress | null;
-  billing_address: { email?: string; vies_exempt?: boolean; vat_number?: string; company?: string } | null;
-  notes: string | null;
-  danea_exported: boolean;
-  user_id: string | null;
-  guest_email: string | null;
-  order_items: {
-    id: number;
-    product_id: number;
-    product_name: string;
-    product_sku: string | null;
-    quantity: number;
-    unit_price: number;
-    discount_percent: number;
-    line_total: number;
-  }[];
-}
-
-interface ProfileInfo {
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  company: string | null;
-  vat_number: string | null;
-  phone: string | null;
-  address_line1: string | null;
-  city: string | null;
-  province: string | null;
-  postal_code: string | null;
-  country: string | null;
 }
 
 function buildEasyfattXml(

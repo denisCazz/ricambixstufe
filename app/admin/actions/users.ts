@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { profiles } from "@/db/schema";
 import { getUser } from "@/lib/auth";
-import type { UserRole } from "@/lib/supabase/types";
+import type { UserRole } from "@/lib/types";
 
 async function requireAdmin() {
   const user = await getUser();
@@ -18,16 +20,14 @@ export async function updateUserRole(userId: string, role: UserRole) {
   if (userId === admin.id) {
     return { error: "Non puoi modificare il tuo stesso ruolo" };
   }
-
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("profiles")
-    .update({ role })
-    .eq("id", userId);
-
-  if (error) {
-    return { error: error.message };
+  const db = getDb();
+  try {
+    await db
+      .update(profiles)
+      .set({ role, updatedAt: new Date() })
+      .where(eq(profiles.id, userId));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Errore" };
   }
-
   revalidatePath("/admin/users");
 }

@@ -3,7 +3,9 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelatedProducts } from "@/lib/products";
 import { getCategories } from "@/lib/categories";
-import { createBuildClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { products } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 import Footer from "@/components/Footer";
 import ProductDetailClient from "./ProductDetailClient";
@@ -14,9 +16,12 @@ import LocalizedText from "@/components/LocalizedText";
 import ProductImageCarousel from "@/components/ProductImageCarousel";
 
 export async function generateStaticParams() {
-  const supabase = createBuildClient();
-  const { data } = await supabase.from("products").select("slug").eq("active", true);
-  return (data || []).map((p) => ({ slug: p.slug }));
+  const db = getDb();
+  const rows = await db
+    .select({ slug: products.slug })
+    .from(products)
+    .where(eq(products.active, true));
+  return rows.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
