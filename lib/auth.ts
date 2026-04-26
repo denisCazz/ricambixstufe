@@ -1,50 +1,56 @@
-import { createClient } from "@/lib/supabase/server";
-import type { UserRole } from "@/lib/supabase/types";
+import { auth } from "@/auth";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { profiles, dealerProfiles } from "@/db/schema";
+import { AuthUser } from "./auth-types";
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  role: UserRole;
-  firstName: string | null;
-  lastName: string | null;
-  dealerDiscount: number | null;
-}
+export type { AuthUser } from "./auth-types";
 
+/**
+ * Carica il profilo (sconto rivenditore aggiornato) dal DB, non solo dal JWT.
+ */
 export async function getUser(): Promise<AuthUser | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return null;
 
-  if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, first_name, last_name")
-    .eq("id", user.id)
-    .single();
+  const db = getDb();
+  const profile = await db
+    .select({
+      firstName: profiles.firstName,
+      lastName: profiles.lastName,
+      email: profiles.email,
+      role: profiles.role,
+    })
+    .from(profiles)
+    .where(eq(profiles.id, userId))
+    .limit(1)
+    .then((r) => r[0]);
 
   if (!profile) return null;
 
   let dealerDiscount: number | null = null;
   if (profile.role === "dealer") {
-    const { data: dealer } = await supabase
-      .from("dealer_profiles")
-      .select("discount_percent, status")
-      .eq("id", user.id)
-      .single();
-
-    if (dealer?.status === "approved") {
-      dealerDiscount = dealer.discount_percent;
+    const d = await db
+      .select({
+        discountPercent: dealerProfiles.discountPercent,
+        status: dealerProfiles.status,
+      })
+      .from(dealerProfiles)
+      .where(eq(dealerProfiles.id, userId))
+      .limit(1)
+      .then((r) => r[0]);
+    if (d?.status === "approved") {
+      dealerDiscount = d.discountPercent;
     }
   }
 
   return {
-    id: user.id,
-    email: user.email!,
+    id: userId,
+    email: profile.email,
     role: profile.role,
-    firstName: profile.first_name,
-    lastName: profile.last_name,
+    firstName: profile.firstName,
+    lastName: profile.lastName,
     dealerDiscount,
   };
 }

@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { updateUserRole } from "../actions/users";
-import type { UserRole } from "@/lib/supabase/types";
+import type { UserRole } from "@/lib/types";
 
 const roleColors: Record<UserRole, string> = {
   customer: "bg-stone-100 dark:bg-stone-800 text-muted border-border",

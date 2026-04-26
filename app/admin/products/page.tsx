@@ -1,6 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/server";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  or,
+  type SQL,
+} from "drizzle-orm";
+import { getDb } from "@/db";
+import { products, categories } from "@/db/schema";
 import { Plus, Search } from "lucide-react";
 import ProductActions from "./ProductActions";
 
@@ -12,37 +23,78 @@ export default async function AdminProductsPage({
   searchParams: Promise<{ page?: string; q?: string; category?: string }>;
 }) {
   const params = await searchParams;
-  const page = Math.max(1, parseInt(params.page || "1"));
+  const page = Math.max(1, parseInt(params.page || "1", 10));
   const search = params.q || "";
   const categoryFilter = params.category || "";
   const offset = (page - 1) * PAGE_SIZE;
 
-  const supabase = await createClient();
+  const db = getDb();
+  const catRows = await db
+    .select({ id: categories.id, nameIt: categories.nameIt })
+    .from(categories)
+    .orderBy(asc(categories.sortOrder));
 
-  // Fetch categories for filter
-  const { data: categories } = await supabase
-    .from("categories")
-    .select("id, name_it")
-    .order("sort_order");
-
-  // Build product query
-  let query = supabase
-    .from("products")
-    .select("id, name_it, slug, price, stock_quantity, active, image_url, sku, category_id, categories(name_it)", {
-      count: "exact",
-    })
-    .order("id", { ascending: false })
-    .range(offset, offset + PAGE_SIZE - 1);
-
+  const conds: SQL[] = [];
   if (search) {
-    query = query.or(`name_it.ilike.%${search}%,sku.ilike.%${search}%`);
+    const t = `%${search}%`;
+    conds.push(
+      or(
+        ilike(products.nameIt, t),
+        ilike(products.sku, t)
+      )!
+    );
   }
   if (categoryFilter) {
-    query = query.eq("category_id", parseInt(categoryFilter));
+    conds.push(eq(products.categoryId, parseInt(categoryFilter, 10)));
   }
+  const whereClause = conds.length ? and(...conds) : undefined;
 
-  const { data: products, count } = await query;
-  const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
+  const countQuery = db.select({ n: count() }).from(products);
+  const [countRes] = whereClause
+    ? await countQuery.where(whereClause)
+    : await countQuery;
+
+  const productRows = whereClause
+    ? await db
+        .select({
+          id: products.id,
+          nameIt: products.nameIt,
+          slug: products.slug,
+          price: products.price,
+          stockQuantity: products.stockQuantity,
+          active: products.active,
+          imageUrl: products.imageUrl,
+          sku: products.sku,
+          categoryId: products.categoryId,
+          catName: categories.nameIt,
+        })
+        .from(products)
+        .innerJoin(categories, eq(products.categoryId, categories.id))
+        .where(whereClause)
+        .orderBy(desc(products.id))
+        .limit(PAGE_SIZE)
+        .offset(offset)
+    : await db
+        .select({
+          id: products.id,
+          nameIt: products.nameIt,
+          slug: products.slug,
+          price: products.price,
+          stockQuantity: products.stockQuantity,
+          active: products.active,
+          imageUrl: products.imageUrl,
+          sku: products.sku,
+          categoryId: products.categoryId,
+          catName: categories.nameIt,
+        })
+        .from(products)
+        .innerJoin(categories, eq(products.categoryId, categories.id))
+        .orderBy(desc(products.id))
+        .limit(PAGE_SIZE)
+        .offset(offset);
+
+  const totalCount = Number(countRes.n);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   function buildUrl(overrides: Record<string, string>) {
     const p = new URLSearchParams();
@@ -61,7 +113,7 @@ export default async function AdminProductsPage({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Prodotti</h1>
-          <p className="text-sm text-muted mt-1">{count ?? 0} prodotti totali</p>
+          <p className="text-sm text-muted mt-1">{totalCount} prodotti totali</p>
         </div>
         <Link
           href="/admin/products/new"
@@ -72,7 +124,6 @@ export default async function AdminProductsPage({
         </Link>
       </div>
 
-      {/* Filters */}
       <div className="bg-surface border border-border rounded-2xl p-4 mb-4">
         <form className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -91,9 +142,9 @@ export default async function AdminProductsPage({
             className="py-2 px-3 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all"
           >
             <option value="">Tutte le categorie</option>
-            {(categories || []).map((cat) => (
+            {catRows.map((cat) => (
               <option key={cat.id} value={cat.id}>
-                {cat.name_it}
+                {cat.nameIt}
               </option>
             ))}
           </select>
@@ -106,7 +157,6 @@ export default async function AdminProductsPage({
         </form>
       </div>
 
-      {/* Table */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -122,14 +172,8 @@ export default async function AdminProductsPage({
               </tr>
             </thead>
             <tbody>
-              {(products || []).map((product) => {
-                const catName =
-                  product.categories &&
-                  typeof product.categories === "object" &&
-                  "name_it" in product.categories
-                    ? (product.categories as { name_it: string }).name_it
-                    : "—";
-
+              {productRows.map((product) => {
+                const priceNum = Number(product.price);
                 return (
                   <tr
                     key={product.id}
@@ -137,9 +181,9 @@ export default async function AdminProductsPage({
                   >
                     <td className="py-3 px-4">
                       <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-stone-800 border border-border overflow-hidden relative">
-                        {product.image_url ? (
+                        {product.imageUrl ? (
                           <Image
-                            src={product.image_url}
+                            src={product.imageUrl}
                             alt=""
                             fill
                             sizes="40px"
@@ -147,7 +191,7 @@ export default async function AdminProductsPage({
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xs font-bold text-muted/30">
-                            {product.name_it.charAt(0)}
+                            {product.nameIt.charAt(0)}
                           </div>
                         )}
                       </div>
@@ -157,27 +201,29 @@ export default async function AdminProductsPage({
                         href={`/admin/products/${product.id}`}
                         className="font-medium text-foreground hover:text-accent transition-colors line-clamp-1"
                       >
-                        {product.name_it}
+                        {product.nameIt}
                       </Link>
                       {product.sku && (
                         <div className="text-xs text-muted mt-0.5">SKU: {product.sku}</div>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-muted hidden md:table-cell">{catName}</td>
+                    <td className="py-3 px-4 text-muted hidden md:table-cell">
+                      {product.catName}
+                    </td>
                     <td className="py-3 px-4 font-medium tabular-nums">
-                      €{product.price.toFixed(2)}
+                      €{priceNum.toFixed(2)}
                     </td>
                     <td className="py-3 px-4 tabular-nums hidden sm:table-cell">
                       <span
                         className={
-                          product.stock_quantity <= 0
+                          product.stockQuantity <= 0
                             ? "text-red-600"
-                            : product.stock_quantity <= 5
+                            : product.stockQuantity <= 5
                             ? "text-orange-600"
                             : "text-foreground"
                         }
                       >
-                        {product.stock_quantity}
+                        {product.stockQuantity}
                       </span>
                     </td>
                     <td className="py-3 px-4 hidden sm:table-cell">
@@ -195,7 +241,7 @@ export default async function AdminProductsPage({
                       <ProductActions
                         productId={product.id}
                         active={product.active}
-                        productName={product.name_it}
+                        productName={product.nameIt}
                       />
                     </td>
                   </tr>
@@ -205,14 +251,13 @@ export default async function AdminProductsPage({
           </table>
         </div>
 
-        {(products || []).length === 0 && (
+        {productRows.length === 0 && (
           <div className="py-12 text-center text-muted">
             Nessun prodotto trovato.
           </div>
         )}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6">
           {page > 1 && (

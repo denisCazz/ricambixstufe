@@ -1,9 +1,11 @@
 import type { MetadataRoute } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { products, categories } from "@/db/schema";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = "https://www.ricambixstufe.it";
-  const supabase = await createClient();
+  const db = getDb();
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [
@@ -51,25 +53,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // Dynamic product pages
-  const { data: products } = await supabase
-    .from("products")
-    .select("slug, updated_at")
-    .eq("active", true);
+  const prodRows = await db
+    .select({ slug: products.slug, updatedAt: products.updatedAt })
+    .from(products)
+    .where(eq(products.active, true));
 
-  const productPages: MetadataRoute.Sitemap = (products ?? []).map((p) => ({
+  const productPages: MetadataRoute.Sitemap = prodRows.map((p) => ({
     url: `${siteUrl}/products/${p.slug}`,
-    lastModified: p.updated_at ? new Date(p.updated_at) : new Date(),
+    lastModified: p.updatedAt ? new Date(p.updatedAt) : new Date(),
     changeFrequency: "weekly" as const,
     priority: 0.8,
   }));
 
-  // Dynamic category pages
-  const { data: categories } = await supabase
-    .from("categories")
-    .select("slug");
+  const catRows = await db
+    .select({ slug: categories.slug })
+    .from(categories)
+    .where(eq(categories.active, true));
 
-  const categoryPages: MetadataRoute.Sitemap = (categories ?? []).map((c) => ({
+  const categoryPages: MetadataRoute.Sitemap = catRows.map((c) => ({
     url: `${siteUrl}/categories/${c.slug}`,
     lastModified: new Date(),
     changeFrequency: "weekly" as const,

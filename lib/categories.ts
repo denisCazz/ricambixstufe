@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { and, eq, asc } from "drizzle-orm";
+import { getDb } from "@/db";
+import { categories, products } from "@/db/schema";
 
 export interface CategoryWithCount {
   id: number;
@@ -12,87 +14,73 @@ export interface CategoryWithCount {
   name_es?: string;
 }
 
+function mapRow(row: {
+  id: number;
+  nameIt: string;
+  nameEn: string | null;
+  nameFr: string | null;
+  nameEs: string | null;
+  slug: string;
+  icon: string | null;
+}): CategoryWithCount {
+  return {
+    id: row.id,
+    name: row.nameIt,
+    slug: row.slug,
+    icon: row.icon,
+    name_it: row.nameIt ?? undefined,
+    name_en: row.nameEn ?? undefined,
+    name_fr: row.nameFr ?? undefined,
+    name_es: row.nameEs ?? undefined,
+  };
+}
+
 export async function getCategories(): Promise<CategoryWithCount[]> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name_it, name_en, name_fr, name_es, slug, icon, sort_order")
-    .eq("active", true)
-    .order("sort_order", { ascending: true });
-
-  if (error) throw error;
-
-  return (data || []).map((cat) => ({
-    id: cat.id,
-    name: cat.name_it,
-    slug: cat.slug,
-    icon: cat.icon,
-    name_it: cat.name_it ?? undefined,
-    name_en: cat.name_en ?? undefined,
-    name_fr: cat.name_fr ?? undefined,
-    name_es: cat.name_es ?? undefined,
-  }));
+  const db = getDb();
+  const data = await db
+    .select()
+    .from(categories)
+    .where(eq(categories.active, true))
+    .orderBy(asc(categories.sortOrder));
+  return data.map((row) => mapRow(row));
 }
 
 export async function getCategoryBySlug(
   slug: string
 ): Promise<CategoryWithCount | null> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name_it, name_en, name_fr, name_es, slug, icon")
-    .eq("slug", slug)
-    .eq("active", true)
-    .single();
-
-  if (error || !data) return null;
-
-  return {
-    id: data.id,
-    name: data.name_it,
-    slug: data.slug,
-    icon: data.icon,
-    name_it: data.name_it ?? undefined,
-    name_en: data.name_en ?? undefined,
-    name_fr: data.name_fr ?? undefined,
-    name_es: data.name_es ?? undefined,
-  };
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(categories)
+    .where(and(eq(categories.slug, slug), eq(categories.active, true)))
+    .limit(1);
+  if (!row) return null;
+  return mapRow(row);
 }
 
 export async function getCategoriesWithCounts(): Promise<CategoryWithCount[]> {
-  const supabase = await createClient();
+  const db = getDb();
+  const cats = await db
+    .select()
+    .from(categories)
+    .where(eq(categories.active, true))
+    .orderBy(asc(categories.sortOrder));
 
-  const { data: categories, error: catError } = await supabase
-    .from("categories")
-    .select("id, name_it, name_en, name_fr, name_es, slug, icon, sort_order")
-    .eq("active", true)
-    .order("sort_order", { ascending: true });
-
-  if (catError) throw catError;
-
-  const { data: products, error: prodError } = await supabase
-    .from("products")
-    .select("category_id")
-    .eq("active", true);
-
-  if (prodError) throw prodError;
+  const prods = await db
+    .select({ categoryId: products.categoryId })
+    .from(products)
+    .where(eq(products.active, true));
 
   const countMap = new Map<number, number>();
-  for (const p of products || []) {
-    countMap.set(p.category_id, (countMap.get(p.category_id) || 0) + 1);
+  for (const p of prods) {
+    countMap.set(
+      p.categoryId,
+      (countMap.get(p.categoryId) || 0) + 1
+    );
   }
 
-  return (categories || []).map((cat) => ({
-    id: cat.id,
-    name: cat.name_it,
-    slug: cat.slug,
-    icon: cat.icon,
-    productCount: countMap.get(cat.id) || 0,
-    name_it: cat.name_it ?? undefined,
-    name_en: cat.name_en ?? undefined,
-    name_fr: cat.name_fr ?? undefined,
-    name_es: cat.name_es ?? undefined,
+  return cats.map((c) => ({
+    ...mapRow(c),
+    productCount: countMap.get(c.id) || 0,
   }));
 }

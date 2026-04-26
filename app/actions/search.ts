@@ -1,6 +1,8 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { and, or, ilike, eq, asc, getTableColumns } from "drizzle-orm";
+import { getDb } from "@/db";
+import { products, categories } from "@/db/schema";
 
 export interface SearchResult {
   id: number;
@@ -13,26 +15,39 @@ export interface SearchResult {
 
 export async function searchProducts(query: string): Promise<SearchResult[]> {
   if (!query || query.trim().length < 2) return [];
-
-  const supabase = await createClient();
-  const term = query.trim();
-
-  // Try ilike partial match for short queries or if text search fails
-  const { data, error } = await supabase
-    .from("products")
-    .select("id, name_it, slug, price, image_url, categories!inner(name_it)")
-    .eq("active", true)
-    .or(`name_it.ilike.%${term}%,sku.ilike.%${term}%,description_it.ilike.%${term}%`)
+  const term = `%${query.trim()}%`;
+  const db = getDb();
+  const p = getTableColumns(products);
+  const rows = await db
+    .select({
+      id: p.id,
+      nameIt: p.nameIt,
+      slug: p.slug,
+      price: p.price,
+      imageUrl: p.imageUrl,
+      catName: categories.nameIt,
+    })
+    .from(products)
+    .innerJoin(categories, eq(products.categoryId, categories.id))
+    .where(
+      and(
+        eq(products.active, true),
+        or(
+          ilike(products.nameIt, term),
+          ilike(products.sku, term),
+          ilike(products.descriptionIt, term)
+        )
+      )
+    )
+    .orderBy(asc(products.id))
     .limit(8);
 
-  if (error || !data) return [];
-
-  return data.map((row) => ({
-    id: row.id as number,
-    name: row.name_it as string,
-    slug: row.slug as string,
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.nameIt,
+    slug: row.slug,
     price: Number(row.price),
-    image: row.image_url as string | null,
-    category: (row.categories as unknown as { name_it: string }).name_it,
+    image: row.imageUrl,
+    category: row.catName,
   }));
 }

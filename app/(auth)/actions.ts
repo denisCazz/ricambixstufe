@@ -1,177 +1,130 @@
 "use server";
 
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { signIn, signOut } from "@/auth";
+import { getDb } from "@/db";
+import { appUsers, profiles, dealerProfiles } from "@/db/schema";
 import { sendDealerRegistrationNotification } from "@/lib/email";
 
-export async function login(formData: FormData) {
-  const supabase = await createClient();
+const SALT = 10;
 
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+export async function login(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const redirectTo = formData.get("redirectTo") as string;
+  const redirectTo = (formData.get("redirectTo") as string) || "/";
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
+  const res = await signIn("credentials", {
+    email: normalizeEmail(email),
     password,
+    redirect: false,
   });
 
-  if (error) {
-    return { error: error.message };
+  if (res?.error) {
+    return { error: "Email o password non validi" };
   }
 
-  redirect(redirectTo || "/");
+  redirect(redirectTo);
 }
 
 export async function register(formData: FormData) {
-  const supabase = await createClient();
-
-  const email = formData.get("email") as string;
+  const email = normalizeEmail(formData.get("email") as string);
   const password = formData.get("password") as string;
-  const firstName = formData.get("firstName") as string;
-  const lastName = formData.get("lastName") as string;
+  const firstName = (formData.get("firstName") as string) || "";
+  const lastName = (formData.get("lastName") as string) || "";
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        first_name: firstName,
-        last_name: lastName,
-      },
-    },
-  });
+  const db = getDb();
+  const existing = await db
+    .select({ id: appUsers.id })
+    .from(appUsers)
+    .where(eq(appUsers.email, email))
+    .limit(1)
+    .then((r) => r[0]);
 
-  if (error) {
-    return { error: error.message };
-  }
-
-  // Supabase returns a fake user with no identities when the email
-  // is already registered (to avoid leaking existing accounts).
-  if (data.user && data.user.identities?.length === 0) {
+  if (existing) {
     return { error: "Questa email è già registrata. Prova ad accedere o usa un'altra email." };
   }
+
+  const passwordHash = await bcrypt.hash(password, SALT);
+
+  await db.transaction(async (tx) => {
+    const [u] = await tx
+      .insert(appUsers)
+      .values({ email, passwordHash, name: `${firstName} ${lastName}`.trim() || null })
+      .returning({ id: appUsers.id });
+    if (!u) throw new Error("insert user");
+    await tx.insert(profiles).values({
+      id: u.id,
+      email,
+      firstName: firstName || null,
+      lastName: lastName || null,
+      role: "customer",
+    });
+  });
 
   redirect("/login?registered=true");
 }
 
 export async function logout() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  await signOut({ redirect: false });
   redirect("/");
 }
 
 export async function registerDealer(formData: FormData) {
-  const supabase = await createClient();
-
-  const email = formData.get("email") as string;
+  const email = normalizeEmail(formData.get("email") as string);
   const password = formData.get("password") as string;
-  const firstName = formData.get("firstName") as string;
-  const lastName = formData.get("lastName") as string;
-  const companyName = formData.get("companyName") as string;
-  const vatNumber = formData.get("vatNumber") as string;
-  const phone = formData.get("phone") as string;
+  const firstName = (formData.get("firstName") as string) || "";
+  const lastName = (formData.get("lastName") as string) || "";
+  const companyName = (formData.get("companyName") as string) || "";
+  const vatNumber = (formData.get("vatNumber") as string) || "";
+  const phone = (formData.get("phone") as string) || "";
 
-  // Create auth user
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        first_name: firstName,
-        last_name: lastName,
-      },
-    },
-  });
+  const db = getDb();
+  const existing = await db
+    .select({ id: appUsers.id })
+    .from(appUsers)
+    .where(eq(appUsers.email, email))
+    .limit(1)
+    .then((r) => r[0]);
 
-  if (authError) {
-    return { error: authError.message };
-  }
-
-  if (!authData.user) {
-    return { error: "Errore nella registrazione" };
-  }
-
-  // Supabase returns a fake user with no identities when the email
-  // is already registered (to avoid leaking existing accounts).
-  if (authData.user.identities?.length === 0) {
+  if (existing) {
     return { error: "Questa email è già registrata. Prova ad accedere o usa un'altra email." };
   }
 
-  // Use service client for post-signup operations — the user session
-  // may not be established yet (e.g. email confirmation pending),
-  // so auth.uid() would be NULL and RLS would block the inserts.
-  const service = await createServiceClient();
+  const passwordHash = await bcrypt.hash(password, SALT);
 
-  // Wait for the trigger-created profile row to exist before updating.
-  // The handle_new_user trigger fires on auth.users INSERT and creates
-  // the profiles row, but there can be a brief delay.
-  let profileExists = false;
-  for (let i = 0; i < 10; i++) {
-    const { data } = await service
-      .from("profiles")
-      .select("id")
-      .eq("id", authData.user.id)
-      .single();
-    if (data) {
-      profileExists = true;
-      break;
-    }
-    await new Promise((r) => setTimeout(r, 300));
-  }
-
-  if (!profileExists) {
-    // Trigger didn't fire — create the profile directly
-    const { error: insertError } = await service
-      .from("profiles")
-      .insert({
-        id: authData.user.id,
-        email,
-        first_name: firstName,
-        last_name: lastName,
-        company: companyName,
-        vat_number: vatNumber,
-        phone,
-        role: "dealer",
-      });
-    if (insertError) {
-      return { error: insertError.message };
-    }
-  } else {
-    // Update the trigger-created profile with dealer info
-    const { error: profileError } = await service
-      .from("profiles")
-      .update({
-        company: companyName,
-        vat_number: vatNumber,
-        phone,
-        role: "dealer",
-      })
-      .eq("id", authData.user.id);
-
-    if (profileError) {
-      return { error: profileError.message };
-    }
-  }
-
-  // Create dealer profile (pending approval)
-  const { error: dealerError } = await service
-    .from("dealer_profiles")
-    .insert({
-      id: authData.user.id,
-      company_name: companyName,
-      vat_number: vatNumber,
+  await db.transaction(async (tx) => {
+    const [u] = await tx
+      .insert(appUsers)
+      .values({ email, passwordHash, name: `${firstName} ${lastName}`.trim() || null })
+      .returning({ id: appUsers.id });
+    if (!u) throw new Error("insert user");
+    await tx.insert(profiles).values({
+      id: u.id,
+      email,
+      firstName: firstName || null,
+      lastName: lastName || null,
+      company: companyName,
+      vatNumber: vatNumber,
+      phone: phone || null,
+      role: "dealer",
     });
+    await tx.insert(dealerProfiles).values({
+      id: u.id,
+      companyName,
+      vatNumber,
+    });
+  });
 
-  if (dealerError) {
-    return { error: dealerError.message };
-  }
-
-  // Send email notification to admin
   sendDealerRegistrationNotification({
     companyName,
     vatNumber,
-    dealerName: `${firstName} ${lastName}`,
+    dealerName: `${firstName} ${lastName}`.trim(),
     dealerEmail: email,
     phone,
   });

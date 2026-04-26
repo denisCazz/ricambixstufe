@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { stripe } from "@/lib/stripe";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { getDb } from "@/db";
+import { products, orders, orderItems, profiles, dealerProfiles } from "@/db/schema";
+import { eq, inArray } from "drizzle-orm";
 import {
   calculateShippingCost,
   getShippingZone,
@@ -59,44 +62,45 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user is logged in for dealer discount
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const session = await auth();
+    const user = session?.user;
+    const db = getDb();
 
     let dealerDiscount = 0;
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
+    if (user?.id) {
+      const profile = await db
+        .select({ role: profiles.role })
+        .from(profiles)
+        .where(eq(profiles.id, user.id))
+        .limit(1)
+        .then((r) => r[0]);
       if (profile?.role === "dealer") {
-        const { data: dealer } = await supabase
-          .from("dealer_profiles")
-          .select("discount_percent, status")
-          .eq("id", user.id)
-          .single();
-
+        const dealer = await db
+          .select({
+            discountPercent: dealerProfiles.discountPercent,
+            status: dealerProfiles.status,
+          })
+          .from(dealerProfiles)
+          .where(eq(dealerProfiles.id, user.id))
+          .limit(1)
+          .then((r) => r[0]);
         if (dealer?.status === "approved") {
-          dealerDiscount = dealer.discount_percent ?? 0;
+          dealerDiscount = dealer.discountPercent ?? 0;
         }
       }
     }
 
     // --- Calculate shipping cost server-side ---
-    const serviceSupabase = await createServiceClient();
 
     // Fetch product weights
     const productIds = items.map((i) => i.id);
-    const { data: dbProducts } = await serviceSupabase
-      .from("products")
-      .select("id, weight")
-      .in("id", productIds);
+    const dbProducts = await db
+      .select({ id: products.id, weight: products.weight })
+      .from(products)
+      .where(inArray(products.id, productIds));
 
     const weightMap = new Map(
-      (dbProducts || []).map((p) => [p.id, Number(p.weight) || 0.5])
+      dbProducts.map((p) => [p.id, p.weight != null ? Number(p.weight) : 0.5])
     );
 
     const totalWeight = items.reduce((sum, item) => {
@@ -105,19 +109,23 @@ export async function POST(req: NextRequest) {
     }, 0);
 
     // --- Validate stock availability ---
-    const { data: stockProducts } = await serviceSupabase
-      .from("products")
-      .select("id, stock_quantity, name_it")
-      .in("id", productIds);
+    const stockProducts = await db
+      .select({
+        id: products.id,
+        stockQuantity: products.stockQuantity,
+        nameIt: products.nameIt,
+      })
+      .from(products)
+      .where(inArray(products.id, productIds));
 
-    if (stockProducts) {
+    if (stockProducts.length) {
       const outOfStock = stockProducts.filter((p) => {
         const requested = items.find((i) => i.id === p.id);
-        return requested && p.stock_quantity < requested.quantity;
+        return requested && p.stockQuantity < requested.quantity;
       });
 
       if (outOfStock.length > 0) {
-        const names = outOfStock.map((p) => p.name_it).join(", ");
+        const names = outOfStock.map((p) => p.nameIt).join(", ");
         return NextResponse.json(
           { error: `Disponibilità insufficiente per: ${names}` },
           { status: 400 }
@@ -321,29 +329,32 @@ export async function POST(req: NextRequest) {
     const dbPaymentMethod =
       paymentMethod === "bank_transfer" ? "bank_transfer" : "cod";
 
-    const { data: order, error: orderError } = await serviceSupabase
-      .from("orders")
-      .insert({
-        user_id: user?.id || null,
-        guest_email: !user ? shippingInfo.email : null,
-        status: "pending" as const,
-        payment_method: dbPaymentMethod,
-        payment_status:
-          paymentMethod === "bank_transfer"
-            ? "awaiting_transfer"
-            : "cod_pending",
-        subtotal: Math.round(subtotal * 100) / 100,
-        shipping_cost: shippingCost,
-        tax_amount: 0,
-        total,
-        shipping_address: shippingAddress,
-        billing_address: billingAddress,
-        notes: shippingInfo.notes || null,
-      })
-      .select("id")
-      .single();
-
-    if (orderError || !order) {
+    const subtotalRounded = Math.round(subtotal * 100) / 100;
+    let orderId: number;
+    try {
+      const [o] = await db
+        .insert(orders)
+        .values({
+          userId: user?.id || null,
+          guestEmail: !user ? shippingInfo.email : null,
+          status: "pending",
+          paymentMethod: dbPaymentMethod,
+          paymentStatus:
+            paymentMethod === "bank_transfer"
+              ? "awaiting_transfer"
+              : "cod_pending",
+          subtotal: String(subtotalRounded),
+          shippingCost: String(shippingCost),
+          taxAmount: "0",
+          total: String(total),
+          shippingAddress,
+          billingAddress,
+          notes: shippingInfo.notes || null,
+        })
+        .returning({ id: orders.id });
+      if (!o) throw new Error("no id");
+      orderId = o.id;
+    } catch (orderError) {
       console.error("Failed to create order:", orderError);
       return NextResponse.json(
         { error: "Errore nella creazione dell'ordine" },
@@ -352,14 +363,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Save order items
-    const { data: productDetails } = await serviceSupabase
-      .from("products")
-      .select("id, sku, name_it")
-      .in("id", productIds);
+    const productDetails = await db
+      .select({ id: products.id, sku: products.sku, nameIt: products.nameIt })
+      .from(products)
+      .where(inArray(products.id, productIds));
 
-    const productMap = new Map(
-      (productDetails || []).map((p) => [p.id, p])
-    );
+    const productMap = new Map(productDetails.map((p) => [p.id, p]));
 
     const rows = items.map((item) => {
       const product = productMap.get(item.id);
@@ -368,38 +377,48 @@ export async function POST(req: NextRequest) {
           ? item.price * (1 - dealerDiscount / 100)
           : item.price;
       return {
-        order_id: order.id,
-        product_id: item.id,
-        product_name: product?.name_it || item.name,
-        product_sku: product?.sku || null,
+        orderId: orderId,
+        productId: item.id,
+        productName: product?.nameIt || item.name,
+        productSku: product?.sku || null,
         quantity: item.quantity,
-        unit_price: item.price,
-        discount_percent: dealerDiscount,
-        line_total:
-          Math.round(discountedPrice * item.quantity * 100) / 100,
+        unitPrice: String(item.price),
+        discountPercent: dealerDiscount,
+        lineTotal: String(
+          Math.round(discountedPrice * item.quantity * 100) / 100
+        ),
       };
     });
 
-    const { error: itemsErr } = await serviceSupabase
-      .from("order_items")
-      .insert(rows);
-
-    if (itemsErr) {
+    try {
+      await db.insert(orderItems).values(
+        rows.map((r) => ({
+          orderId: r.orderId,
+          productId: r.productId,
+          productName: r.productName,
+          productSku: r.productSku,
+          quantity: r.quantity,
+          unitPrice: r.unitPrice,
+          discountPercent: r.discountPercent,
+          lineTotal: r.lineTotal,
+        }))
+      );
+    } catch (itemsErr) {
       console.error("Failed to save order items:", itemsErr);
     }
 
     // Send order confirmation emails
     const emailData = {
-      orderId: order.id,
+      orderId: orderId,
       customerEmail: shippingInfo.email,
       customerName: shippingInfo.name,
       items: rows.map((r) => ({
-        product_name: r.product_name,
-        product_sku: r.product_sku,
+        product_name: r.productName,
+        product_sku: r.productSku,
         quantity: r.quantity,
-        unit_price: r.unit_price,
-        discount_percent: r.discount_percent,
-        line_total: r.line_total,
+        unit_price: Number(r.unitPrice),
+        discount_percent: r.discountPercent,
+        line_total: Number(r.lineTotal),
       })),
       subtotal: Math.round(subtotal * 100) / 100,
       shippingCost: shippingCost + codSurcharge,
@@ -414,7 +433,7 @@ export async function POST(req: NextRequest) {
     ]);
 
     return NextResponse.json({
-      orderId: order.id,
+      orderId: orderId,
       total,
       paymentMethod,
     });

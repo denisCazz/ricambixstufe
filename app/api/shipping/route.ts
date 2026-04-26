@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { inArray } from "drizzle-orm";
+import { getDb } from "@/db";
+import { products } from "@/db/schema";
 import {
   calculateShippingCost,
   getShippingZone,
@@ -26,20 +28,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
-
-    // Fetch product weights
+    const db = getDb();
     const productIds = items.map((i) => i.id);
-    const { data: products } = await supabase
-      .from("products")
-      .select("id, weight")
-      .in("id", productIds);
+    const prods = await db
+      .select({ id: products.id, weight: products.weight })
+      .from(products)
+      .where(inArray(products.id, productIds));
 
     const weightMap = new Map(
-      (products || []).map((p) => [p.id, Number(p.weight) || 0.5])
+      prods.map((p) => [p.id, p.weight != null ? Number(p.weight) : 0.5])
     );
 
-    // Calculate total weight
     const totalWeight = items.reduce((sum, item) => {
       const weight = weightMap.get(item.id) || 0.5;
       return sum + weight * item.quantity;
@@ -47,16 +46,11 @@ export async function POST(req: NextRequest) {
 
     const zone = getShippingZone(country, province);
     const shippingCost = calculateShippingCost(totalWeight, zone);
-
-    return NextResponse.json({
-      zone,
-      totalWeight: Math.round(totalWeight * 1000) / 1000,
-      shippingCost,
-      codSurcharge: COD_SURCHARGE,
-    });
-  } catch {
+    return NextResponse.json({ shippingCost, zone, codSurcharge: COD_SURCHARGE });
+  } catch (e) {
+    console.error(e);
     return NextResponse.json(
-      { error: "Errore nel calcolo della spedizione" },
+      { error: "Calcolo spedizione non riuscito" },
       { status: 500 }
     );
   }

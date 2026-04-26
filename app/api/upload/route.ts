@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { desc, eq } from "drizzle-orm";
 import { getUser } from "@/lib/auth";
-import { createServiceClient } from "@/lib/supabase/server";
-import { uploadToR2, R2_PUBLIC_URL } from "@/lib/r2";
+import { getDb } from "@/db";
+import { productImages, products } from "@/db/schema";
+import { uploadToR2 } from "@/lib/r2";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "products");
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -41,19 +43,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Sanitize filename
   const ext = path.extname(file.name).toLowerCase() || ".jpg";
   const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
   const bytes = new Uint8Array(await file.arrayBuffer());
+  const pid = parseInt(productId, 10);
 
   let imageUrl: string;
 
   if (USE_R2) {
-    // Upload su Cloudflare R2
     const r2Key = `products/${productId}/${safeName}`;
     imageUrl = await uploadToR2(r2Key, Buffer.from(bytes), file.type);
   } else {
-    // Fallback: salva su filesystem locale
     const productDir = path.join(UPLOAD_DIR, productId);
     await mkdir(productDir, { recursive: true });
     const filePath = path.join(productDir, safeName);
@@ -61,38 +61,41 @@ export async function POST(req: NextRequest) {
     imageUrl = `/uploads/products/${productId}/${safeName}`;
   }
 
-  // Get next sort_order
-  const supabase = await createServiceClient();
-  const { data: existing } = await supabase
-    .from("product_images")
-    .select("sort_order")
-    .eq("product_id", parseInt(productId))
-    .order("sort_order", { ascending: false })
+  const db = getDb();
+  const [last] = await db
+    .select({ sortOrder: productImages.sortOrder })
+    .from(productImages)
+    .where(eq(productImages.productId, pid))
+    .orderBy(desc(productImages.sortOrder))
     .limit(1);
+  const nextOrder = last ? last.sortOrder + 1 : 0;
 
-  const nextOrder = existing?.[0] ? existing[0].sort_order + 1 : 0;
-
-  const { data: image, error } = await supabase
-    .from("product_images")
-    .insert({
-      product_id: parseInt(productId),
-      image_url: imageUrl,
-      sort_order: nextOrder,
+  const [image] = await db
+    .insert(productImages)
+    .values({
+      productId: pid,
+      imageUrl,
+      sortOrder: nextOrder,
     })
-    .select()
-    .single();
+    .returning();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!image) {
+    return NextResponse.json({ error: "Insert fallito" }, { status: 500 });
   }
 
-  // Also update product's main image_url if this is the first image
   if (nextOrder === 0) {
-    await supabase
-      .from("products")
-      .update({ image_url: imageUrl })
-      .eq("id", parseInt(productId));
+    await db
+      .update(products)
+      .set({ imageUrl, updatedAt: new Date() })
+      .where(eq(products.id, pid));
   }
 
-  return NextResponse.json({ image });
+  return NextResponse.json({
+    image: {
+      id: image.id,
+      image_url: image.imageUrl,
+      sort_order: image.sortOrder,
+      alt_text: image.altText,
+    },
+  });
 }

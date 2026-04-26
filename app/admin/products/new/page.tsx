@@ -1,16 +1,24 @@
 import Link from "next/link";
+import { asc, eq } from "drizzle-orm";
 import { ChevronLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getDb } from "@/db";
+import { categories } from "@/db/schema";
 import { createProduct } from "../../actions/products";
 import ProductForm from "../ProductForm";
 
 export default async function NewProductPage() {
-  const supabase = await createClient();
-  const { data: categories } = await supabase
-    .from("categories")
-    .select("id, name_it, slug")
-    .eq("active", true)
-    .order("sort_order");
+  const db = getDb();
+  const catRows = await db
+    .select({ id: categories.id, nameIt: categories.nameIt, slug: categories.slug })
+    .from(categories)
+    .where(eq(categories.active, true))
+    .orderBy(asc(categories.sortOrder));
+
+  const categoriesList = catRows.map((c) => ({
+    id: c.id,
+    name_it: c.nameIt,
+    slug: c.slug,
+  }));
 
   async function action(_prev: { error?: string } | null, formData: FormData) {
     "use server";
@@ -32,7 +40,7 @@ export default async function NewProductPage() {
       </div>
 
       <ProductForm
-        categories={categories || []}
+        categories={categoriesList}
         action={action}
         submitLabel="Crea Prodotto"
       />

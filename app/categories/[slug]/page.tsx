@@ -1,15 +1,20 @@
 import { notFound } from "next/navigation";
 import { getProducts } from "@/lib/products";
 import { getCategories, getCategoryBySlug } from "@/lib/categories";
-import { createBuildClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { categories } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 import Footer from "@/components/Footer";
 import CategoryPageClient from "./CategoryPageClient";
 
 export async function generateStaticParams() {
-  const supabase = createBuildClient();
-  const { data } = await supabase.from("categories").select("slug").eq("active", true);
-  return (data || []).map((c) => ({ slug: c.slug }));
+  const db = getDb();
+  const rows = await db
+    .select({ slug: categories.slug })
+    .from(categories)
+    .where(eq(categories.active, true));
+  return rows.map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {

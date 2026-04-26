@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { and, eq, ne, sql, count, getTableColumns, type SQL, asc, inArray } from "drizzle-orm";
+import { getDb } from "@/db";
+import { products, categories, productImages } from "@/db/schema";
 
 export interface ProductImage {
   id: number;
@@ -41,44 +43,82 @@ export interface ProductWithCategory {
   descriptionShort_es?: string;
 }
 
+function num(v: string | null | undefined): number {
+  if (v === null || v === undefined) return 0;
+  return Number(v);
+}
+
+function numOrNull(v: string | null | undefined): number | null {
+  if (v === null || v === undefined) return null;
+  return Number(v);
+}
+
+type PRow = {
+  id: number;
+  nameIt: string;
+  slug: string;
+  descriptionIt: string | null;
+  descriptionShortIt: string | null;
+  price: string;
+  wholesalePrice: string | null;
+  categoryId: number;
+  imageUrl: string | null;
+  sku: string | null;
+  ean13: string | null;
+  brand: string | null;
+  weight: string | null;
+  stockQuantity: number;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  nameEn: string | null;
+  nameFr: string | null;
+  nameEs: string | null;
+  descriptionEn: string | null;
+  descriptionFr: string | null;
+  descriptionEs: string | null;
+  descriptionShortEn: string | null;
+  descriptionShortFr: string | null;
+  descriptionShortEs: string | null;
+};
+
 function mapProduct(
-  p: Record<string, unknown>,
-  categoryName?: string,
-  categorySlug?: string,
-  images?: ProductImage[]
+  pr: PRow,
+  categoryName: string,
+  categorySlug: string,
+  images: ProductImage[]
 ): ProductWithCategory {
   return {
-    id: p.id as number,
-    name: p.name_it as string,
-    slug: p.slug as string,
-    description: (p.description_it as string) || "",
-    descriptionShort: (p.description_short_it as string) || "",
-    price: Number(p.price),
-    wholesalePrice: p.wholesale_price ? Number(p.wholesale_price) : null,
-    category: categoryName || "",
-    categorySlug: categorySlug || "",
-    categoryId: p.category_id as number,
-    image: p.image_url as string | null,
+    id: pr.id,
+    name: pr.nameIt,
+    slug: pr.slug,
+    description: pr.descriptionIt || "",
+    descriptionShort: pr.descriptionShortIt || "",
+    price: num(pr.price),
+    wholesalePrice: numOrNull(pr.wholesalePrice),
+    category: categoryName,
+    categorySlug,
+    categoryId: pr.categoryId,
+    image: pr.imageUrl,
     images: images || [],
-    sku: p.sku as string | null,
-    ean13: p.ean13 as string | null,
-    brand: p.brand as string | null,
-    weight: p.weight ? Number(p.weight) : null,
-    stockQuantity: p.stock_quantity as number,
-    metaTitle: p.meta_title as string | null,
-    metaDescription: p.meta_description as string | null,
-    name_it: (p.name_it as string) || undefined,
-    name_en: (p.name_en as string) || undefined,
-    name_fr: (p.name_fr as string) || undefined,
-    name_es: (p.name_es as string) || undefined,
-    description_it: (p.description_it as string) || undefined,
-    description_en: (p.description_en as string) || undefined,
-    description_fr: (p.description_fr as string) || undefined,
-    description_es: (p.description_es as string) || undefined,
-    descriptionShort_it: (p.description_short_it as string) || undefined,
-    descriptionShort_en: (p.description_short_en as string) || undefined,
-    descriptionShort_fr: (p.description_short_fr as string) || undefined,
-    descriptionShort_es: (p.description_short_es as string) || undefined,
+    sku: pr.sku,
+    ean13: pr.ean13,
+    brand: pr.brand,
+    weight: numOrNull(pr.weight),
+    stockQuantity: pr.stockQuantity,
+    metaTitle: pr.metaTitle,
+    metaDescription: pr.metaDescription,
+    name_it: pr.nameIt || undefined,
+    name_en: pr.nameEn ?? undefined,
+    name_fr: pr.nameFr ?? undefined,
+    name_es: pr.nameEs ?? undefined,
+    description_it: pr.descriptionIt ?? undefined,
+    description_en: pr.descriptionEn ?? undefined,
+    description_fr: pr.descriptionFr ?? undefined,
+    description_es: pr.descriptionEs ?? undefined,
+    descriptionShort_it: pr.descriptionShortIt ?? undefined,
+    descriptionShort_en: pr.descriptionShortEn ?? undefined,
+    descriptionShort_fr: pr.descriptionShortFr ?? undefined,
+    descriptionShort_es: pr.descriptionShortEs ?? undefined,
   };
 }
 
@@ -88,86 +128,135 @@ export async function getProducts(options?: {
   offset?: number;
   search?: string;
 }): Promise<{ products: ProductWithCategory[]; total: number }> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from("products")
-    .select("*, categories!inner(name_it, slug)", { count: "exact" })
-    .eq("active", true)
-    .order("id", { ascending: true });
+  const db = getDb();
+  const p = getTableColumns(products);
+  const conditions: SQL[] = [eq(products.active, true)];
 
   if (options?.categorySlug) {
-    query = query.eq("categories.slug", options.categorySlug);
+    conditions.push(eq(categories.slug, options.categorySlug));
   }
-
   if (options?.search) {
-    query = query.textSearch("search_vector", options.search, {
-      type: "websearch",
-      config: "italian",
-    });
+    const term = options.search.trim();
+    conditions.push(
+      sql`products.search_vector @@ websearch_to_tsquery('italian', ${term})`
+    );
+  }
+  const whereClause = and(...conditions)!;
+
+  const [totalRes] = await db
+    .select({ n: count() })
+    .from(products)
+    .innerJoin(categories, eq(products.categoryId, categories.id))
+    .where(whereClause);
+
+  const baseQuery = db
+    .select({
+      ...p,
+      catName: categories.nameIt,
+      catSlug: categories.slug,
+    })
+    .from(products)
+    .innerJoin(categories, eq(products.categoryId, categories.id))
+    .where(whereClause)
+    .orderBy(asc(products.id));
+
+  const data =
+    options?.limit != null
+      ? await baseQuery
+          .limit(options.limit)
+          .offset(options.offset || 0)
+      : await baseQuery;
+
+  const ids = data.map((r) => r.id);
+  const imgMap = new Map<number, ProductImage[]>();
+  if (ids.length) {
+    const imgs = await db
+      .select()
+      .from(productImages)
+      .where(inArray(productImages.productId, ids));
+    for (const i of imgs) {
+      const list = imgMap.get(i.productId) || [];
+      list.push({
+        id: i.id,
+        image_url: i.imageUrl,
+        sort_order: i.sortOrder,
+        alt_text: i.altText,
+      });
+      imgMap.set(i.productId, list);
+    }
+    for (const list of imgMap.values()) {
+      list.sort((a, b) => a.sort_order - b.sort_order);
+    }
   }
 
-  if (options?.limit) {
-    const offset = options.offset || 0;
-    query = query.range(offset, offset + options.limit - 1);
-  }
-
-  const { data, count, error } = await query;
-  if (error) throw error;
-
-  const products = (data || []).map((row) => {
-    const cat = row.categories as unknown as { name_it: string; slug: string };
-    return mapProduct(row, cat.name_it, cat.slug);
+  const out: ProductWithCategory[] = data.map((row) => {
+    const { catName, catSlug, ...rest } = row;
+    const imgs = imgMap.get(row.id) || [];
+    return mapProduct(rest as unknown as PRow, catName, catSlug, imgs);
   });
 
-  return { products, total: count || 0 };
+  return { products: out, total: Number(totalRes.n) };
 }
 
 export async function getProductBySlug(
   slug: string
 ): Promise<ProductWithCategory | null> {
-  const supabase = await createClient();
+  const db = getDb();
+  const [row] = await db
+    .select({
+      ...getTableColumns(products),
+      catName: categories.nameIt,
+      catSlug: categories.slug,
+    })
+    .from(products)
+    .innerJoin(categories, eq(products.categoryId, categories.id))
+    .where(and(eq(products.slug, slug), eq(products.active, true)))
+    .limit(1);
 
-  const { data, error } = await supabase
-    .from("products")
-    .select("*, categories!inner(name_it, slug)")
-    .eq("slug", slug)
-    .eq("active", true)
-    .single();
+  if (!row) return null;
 
-  if (error || !data) return null;
+  const { catName, catSlug, ...pr } = row;
+  const imgs = await db
+    .select()
+    .from(productImages)
+    .where(eq(productImages.productId, pr.id))
+    .orderBy(asc(productImages.sortOrder));
+  const images: ProductImage[] = imgs.map((i) => ({
+    id: i.id,
+    image_url: i.imageUrl,
+    sort_order: i.sortOrder,
+    alt_text: i.altText,
+  }));
 
-  // Fetch product images
-  const { data: images } = await supabase
-    .from("product_images")
-    .select("id, image_url, sort_order, alt_text")
-    .eq("product_id", data.id)
-    .order("sort_order", { ascending: true });
-
-  const cat = data.categories as unknown as { name_it: string; slug: string };
-  return mapProduct(data, cat.name_it, cat.slug, (images as ProductImage[]) || []);
+  return mapProduct(pr as unknown as PRow, catName, catSlug, images);
 }
 
 export async function getRelatedProducts(
   productId: number,
   categoryId: number,
-  limit = 4
+  limitN = 4
 ): Promise<ProductWithCategory[]> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("products")
-    .select("*, categories!inner(name_it, slug)")
-    .eq("category_id", categoryId)
-    .eq("active", true)
-    .neq("id", productId)
-    .limit(limit);
-
-  if (error || !data) return [];
+  const db = getDb();
+  const data = await db
+    .select({
+      ...getTableColumns(products),
+      catName: categories.nameIt,
+      catSlug: categories.slug,
+    })
+    .from(products)
+    .innerJoin(categories, eq(products.categoryId, categories.id))
+    .where(
+      and(
+        eq(products.categoryId, categoryId),
+        eq(products.active, true),
+        ne(products.id, productId)
+      )
+    )
+    .limit(limitN);
 
   return data.map((row) => {
-    const cat = row.categories as unknown as { name_it: string; slug: string };
-    return mapProduct(row, cat.name_it, cat.slug);
+    const { catName, catSlug, ...pr } = row;
+    return mapProduct(pr as unknown as PRow, catName, catSlug, []);
   });
 }
 

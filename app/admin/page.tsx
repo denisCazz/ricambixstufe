@@ -1,24 +1,25 @@
-import { createClient } from "@/lib/supabase/server";
+import { count, eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { products, profiles, dealerProfiles, orders } from "@/db/schema";
 import { Package, Users, Briefcase, ShoppingCart } from "lucide-react";
 
 async function getStats() {
-  const supabase = await createClient();
-
-  const [products, profiles, pendingDealers, orders] = await Promise.all([
-    supabase.from("products").select("id", { count: "exact", head: true }),
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
-    supabase
-      .from("dealer_profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending"),
-    supabase.from("orders").select("id", { count: "exact", head: true }),
+  const db = getDb();
+  const [p, prof, deal, ords] = await Promise.all([
+    db.select({ n: count() }).from(products).then((r) => r[0]),
+    db.select({ n: count() }).from(profiles).then((r) => r[0]),
+    db
+      .select({ n: count() })
+      .from(dealerProfiles)
+      .where(eq(dealerProfiles.status, "pending"))
+      .then((r) => r[0]),
+    db.select({ n: count() }).from(orders).then((r) => r[0]),
   ]);
-
   return {
-    totalProducts: products.count ?? 0,
-    totalUsers: profiles.count ?? 0,
-    pendingDealers: pendingDealers.count ?? 0,
-    totalOrders: orders.count ?? 0,
+    totalProducts: Number(p.n),
+    totalUsers: Number(prof.n),
+    pendingDealers: Number(deal.n),
+    totalOrders: Number(ords.n),
   };
 }
 
