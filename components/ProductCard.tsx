@@ -30,9 +30,12 @@ export default function ProductCard({
     ? product.price * (1 - dealerDiscount / 100)
     : product.price;
 
+  const outOfStock = product.stockQuantity !== undefined && product.stockQuantity <= 0;
+
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    if (outOfStock) return;
     addItem({
       id: product.id,
       name: product.name,
@@ -125,10 +128,15 @@ export default function ProductCard({
         </div>
         <button
           onClick={handleAddToCart}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white text-xs font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 shrink-0"
+          disabled={outOfStock}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-xs font-semibold transition-all duration-200 shrink-0 ${
+            outOfStock
+              ? "bg-stone-400 cursor-not-allowed opacity-60"
+              : "bg-gradient-to-r from-orange-500 to-red-600 hover:shadow-lg hover:shadow-orange-500/25 hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
+          }`}
         >
           <ShoppingCart className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">{t("product.add")}</span>
+          <span className="hidden sm:inline">{outOfStock ? "Esaurito" : t("product.add")}</span>
         </button>
       </div>
 

@@ -1,58 +1,145 @@
-# Guida: da Supabase a PostgreSQL su VPS
+﻿# Migrazione a PostgreSQL su VPS — Guida operativa
 
-L’applicazione usa **PostgreSQL** (Drizzle ORM + `pg`), **NextAuth** (JWT) per email/password e **nessun RLS**: i controlli sono in middleware e server actions.
+Stack: **Next.js** + **Drizzle ORM** + **PostgreSQL 18** (self-hosted su Coolify) + **NextAuth JWT** + **Cloudflare R2**.
 
-## 1. Schema e init database
+---
 
-- SQL autonomo: [`db/migrations/0000_vps_standalone.sql`](../db/migrations/0000_vps_standalone.sql) (tabelle `app_users`, `profiles`, catalogo, ordini, ecc.).
-- Definizione Drizzle: [`db/schema.ts`](../db/schema.ts).
+## 1. Prerequisiti
 
-Su un VPS con PostgreSQL 15+:
+| Strumento | Versione minima | Note |
+|-----------|----------------|-------|
+| Node.js | 20 | |
+| psql | 15+ | Windows: `C:\Program Files\PostgreSQL\18\bin\psql.exe` |
+| Docker + Compose | qualsiasi | solo per deploy |
+
+Il DB è già attivo su VPS a `212.227.193.249:60001` (Coolify → porta pubblica abilitata).
+
+---
+
+## 2. Variabili d ambiente
+
+Copia `.env.local.example` in `.env.local` e compila:
+
+```env
+# PostgreSQL VPS
+DATABASE_URL=postgresql://postgres:PASSWORD@212.227.193.249:60001/ricambixstufe
+
+# NextAuth
+AUTH_SECRET=<openssl rand -base64 32>
+AUTH_URL=http://localhost:3000        # in prod: https://www.ricambixstufe.it
+
+# Email (Resend)
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=RicambiXStufe <info@bitora.it>
+ADMIN_EMAIL=info@ricambixstufe.it
+
+# Cloudflare R2
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET_NAME=ricambixstufe-images
+R2_PUBLIC_URL=https://pub-xxxxxxxx.r2.dev
+```
+
+In produzione, `DATABASE_URL` usa il hostname Docker interno `db:5432` (rete interna Compose).
+
+---
+
+## 3. Applicare lo schema
 
 ```bash
 psql "$DATABASE_URL" -f db/migrations/0000_vps_standalone.sql
 ```
 
-Eventuale immagine Docker ufficiale: `postgres:16-alpine`; mount del volume per i dati; variabile `POSTGRES_PASSWORD`.
+Tabelle create: `app_users`, `profiles`, `dealer_profiles`, `categories`, `products`, `product_images`, `orders`, `order_items`, `cart_items`.
 
-## 2. Variabili d’ambiente
+---
 
-| Variabile | Ruolo |
-|-----------|--------|
-| `DATABASE_URL` | Connessione Postgres (meglio con `sslmode=require` se esposto su rete). |
-| `AUTH_SECRET` | Segreto NextAuth (genera con `openssl rand -base64 32`). |
-| `AUTH_URL` / `NEXTAUTH_URL` | URL pubblico del sito (es. `https://www.ricambixstufe.it`). |
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Pagamenti. |
-| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Email. |
-| `R2_*` / `R2_PUBLIC_URL` | Immagini (invariato). |
-| DANEa, VIES, ecc. | Come già in uso. |
+## 4. Importare i dati
 
-Rimuovere: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+### 4a. CSV master (categorie + prodotti + immagini)
 
-**Build Docker**: il [`Dockerfile`](../Dockerfile) richiede `DATABASE_URL` e `AUTH_SECRET` in fase build (per `generateStaticParams` che legge slug da DB), oltre al runtime in `.env.production`.
+```bash
+psql "$DATABASE_URL" -f scripts/import-supabase-data.sql
+```
 
-## 3. Esporto dati da Supabase (cutover)
+File attesi in `ex_supabase/`:
+- `categories_rows.csv`
+- `products_rows_utf8.csv`  (vedi §4b per la conversione)
+- `product_images_rows.csv`
 
-1. **Dati business** (schema `public`): `pg_dump` solo dati o `COPY` tabelle, adattando i nomi se migravi da `auth.users` a `app_users` (gli ID UUID degli utenti vanno riallineati: `profiles.id` → `app_users.id`).
-2. **Password**: in migrazione reale, importare hash compatibili con bcrypt (come in NextAuth) oppure forzare **reset password** per tutti.
-3. **Sequenze** (`products_id_seq`, …): `SELECT setval('…', (SELECT MAX(id) FROM …));` dopo l’import.
-4. **Product images** da `image_url` su `products` se usi la stessa logica del vecchio `004` migration: copiare in `product_images` se necessario.
+L admin `deniscazzulo@icloud.com` (pwd `qqq`) viene inserito automaticamente.
 
-## 4. Infrastruttura VPS (checklist)
+### 4b. Conversione encoding prodotti (solo Windows, se necessario)
 
-- **TLS**: collegamento app→DB cifrato (o DB solo su rete privata).
-- **Firewall**: Postgres in ascolto solo sull’IP dell’app o sulla rete interna.
-- **Backup**: `pg_dump` giornaliero o pgBackRest; copia off-site.
-- **PgBouncer** (opzionale) se molte connessioni da Next.js.
-- **Monitoraggio** spazio disco e log errori.
+```powershell
+$src = [System.IO.File]::ReadAllBytes("ex_supabase\products_rows.csv")
+$txt = [System.Text.Encoding]::GetEncoding(1252).GetString($src)
+[System.IO.File]::WriteAllText("ex_supabase\products_rows_utf8.csv", $txt, [System.Text.Encoding]::UTF8)
+```
 
-## 5. Script legacy in `scripts/`
+### 4c. Verifica conteggi
 
-Alcuni script (es. `migrate-prestashop.ts`, `associate-images-to-products.ts`, `check-*.js`) usano ancora `@supabase/supabase-js` in **devDependency** per import storici. Per usarli serve un progetto Supabase o adattarli a `DATABASE_URL` + Drizzle. Non fanno parte del runtime dell’app.
+```sql
+SELECT (SELECT COUNT(*) FROM categories)     AS cat,
+       (SELECT COUNT(*) FROM products)       AS prod,
+       (SELECT COUNT(*) FROM product_images) AS img,
+       (SELECT COUNT(*) FROM app_users)      AS users;
+-- atteso: 14 | 162 | 250 | 1
+```
 
-## 6. Riferimenti file principali
+---
 
-- Connessione DB: [`db/index.ts`](../db/index.ts)
-- Autenticazione: [`auth.ts`](../auth.ts), [`auth.config.ts`](../auth.config.ts)
-- Middleware: [`middleware.ts`](../middleware.ts)
-- Tipo utente sessione: [`types/next-auth.d.ts`](../types/next-auth.d.ts)
+## 5. Sviluppo locale
+
+```bash
+npm install
+npm run dev   # http://localhost:3000
+```
+
+Login admin: `deniscazzulo@icloud.com` / `qqq`
+
+---
+
+## 6. Deploy produzione (Docker Compose)
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Il `docker-compose.yml` include:
+- **`db`** — postgres:18-alpine, volume `pgdata`, healthcheck
+- **`web`** — Next.js app, `depends_on: db` (attende healthcheck)
+
+Applicare lo schema al primo avvio (con le credenziali interne Compose):
+
+```bash
+docker compose exec db psql -U postgres ricambixstufe -f /migrations/0000_vps_standalone.sql
+```
+
+---
+
+## 7. Checklist post-deploy
+
+- [ ] `AUTH_SECRET` diverso dall ambiente di sviluppo
+- [ ] `AUTH_URL` = URL pubblico HTTPS
+- [ ] Porta DB **non** esposta pubblicamente (solo rete Docker interna)
+- [ ] Backup `pg_dump` schedulato (es. cron giornaliero)
+- [ ] Certificato TLS valido via nginx/Coolify
+
+---
+
+## 8. File principali
+
+| File | Ruolo |
+|------|-------|
+| `db/migrations/0000_vps_standalone.sql` | Schema completo |
+| `db/schema.ts` | Definizione Drizzle |
+| `db/index.ts` | Connessione DB |
+| `auth.ts` | NextAuth config |
+| `middleware.ts` | Protezione route |
+| `docker-compose.yml` | Stack produzione |
+| `scripts/import-supabase-data.sql` | Import dati master |
+| `.env.local.example` | Template variabili dev |
+| `.env.production.example` | Template variabili produzione |

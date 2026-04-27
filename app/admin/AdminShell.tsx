@@ -14,6 +14,7 @@ import {
   X,
   LogOut,
   ChevronLeft,
+  Settings,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import type { AuthUser } from "@/lib/auth";
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/admin/products", label: "Prodotti", icon: Package },
   { href: "/admin/users", label: "Utenti", icon: Users },
   { href: "/admin/dealers", label: "Dealer", icon: Briefcase },
+  { href: "/admin/settings", label: "Impostazioni", icon: Settings },
 ];
 
 export default function AdminShell({

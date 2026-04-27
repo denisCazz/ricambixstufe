@@ -6,6 +6,7 @@ import { orders, orderItems, profiles } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import type { OrderStatus } from "@/lib/types";
+import { sendOrderStatusUpdateEmail } from "@/lib/email";
 
 export async function getOrders(filters?: {
   status?: string;
@@ -113,10 +114,45 @@ export async function updateOrderStatus(orderId: number, status: string) {
   if (!user || user.role !== "admin") throw new Error("Unauthorized");
 
   const db = getDb();
+
+  // Fetch order + customer info before updating (needed for email)
+  const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+
   await db
     .update(orders)
     .set({ status: status as OrderStatus, updatedAt: new Date() })
     .where(eq(orders.id, orderId));
+
+  // Resolve customer email and name
+  if (order) {
+    let customerEmail = order.guestEmail ?? "";
+    let customerName = "";
+
+    const billing = order.billingAddress as Record<string, string> | null;
+    const shipping = order.shippingAddress as Record<string, string> | null;
+
+    if (order.userId) {
+      const [prof] = await db.select().from(profiles).where(eq(profiles.id, order.userId)).limit(1);
+      if (prof) {
+        customerEmail = prof.email ?? customerEmail;
+        customerName = [prof.firstName, prof.lastName].filter(Boolean).join(" ");
+      }
+    }
+
+    if (!customerEmail && billing?.email) customerEmail = billing.email;
+    if (!customerName && shipping?.name) customerName = shipping.name;
+
+    if (customerEmail) {
+      await sendOrderStatusUpdateEmail({
+        orderId,
+        customerEmail,
+        customerName: customerName || "Cliente",
+        status,
+        trackingNumber: order.trackingNumber,
+      });
+    }
+  }
+
   revalidatePath("/admin/orders");
 }
 

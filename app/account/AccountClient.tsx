@@ -307,8 +307,9 @@ export default function AccountClient({
                     name="province"
                     type="text"
                     defaultValue={profile.province || ""}
-                    className={inputClass}
+                    className={inputClass + " uppercase"}
                     placeholder="TV"
+                    maxLength={2}
                   />
                 </div>
               </div>

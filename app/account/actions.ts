@@ -16,7 +16,7 @@ export async function updateProfile(formData: FormData) {
   const addressLine1 = (formData.get("addressLine1") as string)?.trim() || undefined;
   const addressLine2 = (formData.get("addressLine2") as string)?.trim() || undefined;
   const city = (formData.get("city") as string)?.trim() || undefined;
-  const province = (formData.get("province") as string)?.trim() || undefined;
+  const province = ((formData.get("province") as string)?.trim() || "").toUpperCase().slice(0, 2) || undefined;
   const postalCode = (formData.get("postalCode") as string)?.trim() || undefined;
   const country = (formData.get("country") as string)?.trim() || undefined;
 

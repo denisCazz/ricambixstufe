@@ -1,4 +1,20 @@
 services:
+  db:
+    image: postgres:18-alpine
+    container_name: ricambixstufe_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ricambixstufe}
+      POSTGRES_USER: ${POSTGRES_USER:-ricambi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ricambi} -d ${POSTGRES_DB:-ricambixstufe}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   web:
     build:
       context: .
@@ -7,13 +23,19 @@ services:
         AUTH_SECRET: ${AUTH_SECRET}
     container_name: ricambixstufe
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "${PORT:-3100}:3000"
     env_file:
-      - .env.production
+      - .env.local
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 15s
+
+volumes:
+  pgdata:

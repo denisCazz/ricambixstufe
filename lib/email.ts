@@ -5,6 +5,14 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "RicambiXStufe <onboarding@resend.dev>";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "info@ricambixstufe.it";
 
+function parseEmailList(env: string | undefined): string[] {
+  if (!env?.trim()) return [];
+  return env.split(",").map((e) => e.trim()).filter(Boolean);
+}
+
+const EMAIL_CC = parseEmailList(process.env.EMAIL_CC);
+const EMAIL_BCC = parseEmailList(process.env.EMAIL_BCC);
+
 // ============================================================
 // ORDER EMAILS
 // ============================================================
@@ -45,7 +53,6 @@ interface OrderEmailData {
 
 function getPaymentLabel(method: string): string {
   const labels: Record<string, string> = {
-    stripe: "Carta di credito",
     paypal: "PayPal",
     bank_transfer: "Bonifico bancario",
     cod: "Contrassegno",
@@ -120,11 +127,13 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: data.customerEmail,
-      subject: `Conferma ordine #${data.orderId} — RicambiXStufe`,
+      ...(EMAIL_CC.length ? { cc: EMAIL_CC } : {}),
+      ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
+      subject: `📬 Ordine ricevuto #${data.orderId} — RicambiXStufe`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
           <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="margin: 0; color: white; font-size: 20px;">Ordine confermato! ✓</h1>
+            <h1 style="margin: 0; color: white; font-size: 20px;">📬 Ordine ricevuto!</h1>
             <p style="margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">Ordine #${data.orderId}</p>
           </div>
 
@@ -162,6 +171,87 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
   }
 }
 
+// ============================================================
+// ORDER STATUS UPDATE EMAIL
+// ============================================================
+
+const STATUS_CONFIG: Record<string, { emoji: string; label: string; color: string; message: string }> = {
+  pending:    { emoji: "⏳", label: "In attesa",       color: "#d97706", message: "Il tuo ordine è in attesa di conferma. Ti aggiorneremo a breve." },
+  confirmed:  { emoji: "✅", label: "Confermato",      color: "#2563eb", message: "Il tuo ordine è stato confermato e sarà messo in lavorazione." },
+  processing: { emoji: "🔧", label: "In lavorazione",  color: "#4f46e5", message: "Il tuo ordine è in fase di preparazione nel nostro magazzino." },
+  shipped:    { emoji: "🚚", label: "Spedito",         color: "#7c3aed", message: "Il tuo pacco è stato affidato al corriere e sta per arrivare!" },
+  delivered:  { emoji: "📦", label: "Consegnato",      color: "#16a34a", message: "Il tuo pacco risulta consegnato. Grazie per aver scelto RicambiXStufe!" },
+  cancelled:  { emoji: "❌", label: "Annullato",       color: "#dc2626", message: "Il tuo ordine è stato annullato. Contattaci per qualsiasi chiarimento." },
+};
+
+export async function sendOrderStatusUpdateEmail({
+  orderId,
+  customerEmail,
+  customerName,
+  status,
+  trackingNumber,
+}: {
+  orderId: number;
+  customerEmail: string;
+  customerName: string;
+  status: string;
+  trackingNumber?: string | null;
+}) {
+  const cfg = STATUS_CONFIG[status];
+  if (!cfg) return; // unknown status, skip
+
+  const trackingHtml =
+    status === "shipped" && trackingNumber
+      ? `<div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 10px; padding: 16px; margin: 16px 0;">
+          <p style="margin: 0; font-size: 14px; color: #5b21b6; font-weight: 600;">📬 Numero di tracking</p>
+          <p style="margin: 8px 0 0; font-size: 20px; font-weight: 700; color: #4c1d95; letter-spacing: 1px;">${trackingNumber}</p>
+          <p style="margin: 6px 0 0; font-size: 12px; color: #7c3aed;">Usa questo codice sul sito del corriere per seguire la spedizione.</p>
+        </div>`
+      : "";
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: customerEmail,
+      ...(EMAIL_CC.length ? { cc: EMAIL_CC } : {}),
+      ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
+      subject: `${cfg.emoji} Ordine #${orderId}: ${cfg.label} — RicambiXStufe`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
+          <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px; border-radius: 12px 12px 0 0;">
+            <h1 style="margin: 0; color: white; font-size: 22px;">${cfg.emoji} ${cfg.label}</h1>
+            <p style="margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">Ordine #${orderId}</p>
+          </div>
+
+          <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+            <p style="margin: 0 0 12px;">Ciao <strong>${customerName}</strong>,</p>
+
+            <div style="background: #f9fafb; border-left: 4px solid ${cfg.color}; border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 16px 0;">
+              <p style="margin: 0; font-size: 15px; color: #374151;">${cfg.message}</p>
+            </div>
+
+            ${trackingHtml}
+
+            <p style="margin-top: 24px;">
+              <a href="https://ricambixstufe.it/account/orders"
+                 style="display: inline-block; padding: 11px 22px; background: linear-gradient(135deg, #f97316, #dc2626); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                Visualizza i tuoi ordini
+              </a>
+            </p>
+
+            <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">
+              Per assistenza rispondi a questa email o scrivici a <a href="mailto:${ADMIN_EMAIL}" style="color: #b45309;">${ADMIN_EMAIL}</a>.<br/>
+              — Il team RicambiXStufe
+            </p>
+          </div>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Failed to send order status update email:", error);
+  }
+}
+
 /** Notify admin about a new order */
 export async function sendNewOrderAdminNotification(data: OrderEmailData) {
   const paymentLabel = getPaymentLabel(data.paymentMethod);
@@ -170,6 +260,7 @@ export async function sendNewOrderAdminNotification(data: OrderEmailData) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
+      ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
       subject: `Nuovo ordine #${data.orderId} — ${formatEur(data.total)}`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto;">
@@ -209,6 +300,7 @@ export async function sendDealerRegistrationNotification({
     await resend.emails.send({
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
+      ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
       subject: `Nuova richiesta dealer: ${companyName}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -244,6 +336,8 @@ export async function sendDealerApprovedEmail({
     await resend.emails.send({
       from: FROM_EMAIL,
       to: dealerEmail,
+      ...(EMAIL_CC.length ? { cc: EMAIL_CC } : {}),
+      ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
       subject: `Richiesta approvata — ${companyName}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -281,6 +375,8 @@ export async function sendDealerRejectedEmail({
     await resend.emails.send({
       from: FROM_EMAIL,
       to: dealerEmail,
+      ...(EMAIL_CC.length ? { cc: EMAIL_CC } : {}),
+      ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
       subject: `Richiesta rivenditore — ${companyName}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
