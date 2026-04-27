@@ -12,7 +12,7 @@ function getPool() {
   if (!url) {
     throw new Error("DATABASE_URL is not set");
   }
-  pool = new Pool({ connectionString: url, max: 15 });
+  pool = new Pool({ connectionString: url, max: 5 });
   if (process.env.NODE_ENV !== "production") {
     globalForPool.dbPool = pool;
   }
