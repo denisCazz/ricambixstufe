@@ -211,7 +211,7 @@ export default function DashboardClient({
                 tickFormatter={(v: string) => v.length > 22 ? v.slice(0, 22) + "…" : v}
               />
               <Tooltip
-                formatter={(value: number) => [`${value} pz`, "Qtà"]}
+                formatter={(value) => [`${value} pz`, "Qtà"]}
                 contentStyle={{ borderRadius: "12px", fontSize: 12, border: "1px solid #e5e7eb" }}
               />
               <Bar dataKey="qty" fill="#f97316" radius={[0, 6, 6, 0]} />

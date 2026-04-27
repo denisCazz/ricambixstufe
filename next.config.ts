@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Limit parallel workers during static generation to avoid DB connection exhaustion
+  experimental: {
+    workerThreads: false,
+    cpus: 2,
+  },
   images: {
     remotePatterns: [
       {
