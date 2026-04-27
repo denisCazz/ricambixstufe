@@ -11,6 +11,7 @@ import { getDb } from "@/db";
 import { profiles } from "@/db/schema";
 import { Search } from "lucide-react";
 import UserRoleSelect from "./UserRoleSelect";
+import CreateUserModal from "./CreateUserModal";
 import type { UserRole } from "@/lib/types";
 
 const PAGE_SIZE = 30;
@@ -80,7 +81,10 @@ export default async function AdminUsersPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-foreground mb-6">Utenti</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-foreground">Utenti</h1>
+        <CreateUserModal />
+      </div>
       <div className="bg-surface border border-border rounded-2xl p-4 mb-4">
         <form className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">

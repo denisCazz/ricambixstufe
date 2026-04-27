@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { stripe } from "@/lib/stripe";
 import { getDb } from "@/db";
+import { createPayPalOrder } from "@/lib/paypal";
+import { signPayload } from "@/lib/signed-payload";
 import { products, orders, orderItems, profiles, dealerProfiles } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import {
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
         notes?: string;
       };
       billingInfo?: BillingInfo;
-      paymentMethod: "stripe" | "paypal" | "bank_transfer" | "cod";
+      paymentMethod: "bank_transfer" | "cod" | "paypal";
       viesExempt?: boolean;
     };
 
@@ -182,9 +183,6 @@ export async function POST(req: NextRequest) {
     const total =
       Math.round((taxAdjustedSubtotal + shippingCost + codSurcharge) * 100) / 100;
 
-    const origin =
-      req.headers.get("origin") || "https://www.ricambixstufe.it";
-
     // Map country names to ISO 2-letter codes
     const countryMap: Record<string, string> = {
       Italia: "IT",
@@ -225,7 +223,7 @@ export async function POST(req: NextRequest) {
       address: shippingInfo.address,
       city: shippingInfo.city,
       zip: shippingInfo.zip,
-      province: shippingInfo.province || "",
+      province: (shippingInfo.province || "").toUpperCase().slice(0, 2) || "",
       country: countryCode,
     };
 
@@ -243,86 +241,61 @@ export async function POST(req: NextRequest) {
       ...(isViesExempt ? { vies_exempt: true } : {}),
     };
 
-    // --- Handle Stripe / PayPal (redirect to Stripe Checkout) ---
-    if (paymentMethod === "stripe" || paymentMethod === "paypal") {
-      const line_items = items.map((item) => {
-        let unitAmount = Math.round(item.price * 100);
-        if (dealerDiscount > 0) {
-          unitAmount = Math.round(
-            unitAmount * (1 - dealerDiscount / 100)
-          );
-        }
-        // Remove IVA for VIES-exempt orders
-        if (isViesExempt) {
-          unitAmount = Math.round(unitAmount / 1.22);
-        }
-        return {
-          price_data: {
-            currency: "eur",
-            product_data: {
-              name: item.name,
-              ...(item.image ? { images: [item.image] } : {}),
-            },
-            unit_amount: unitAmount,
-          },
-          quantity: item.quantity,
-        };
+    // --- Handle PayPal (no DB insert yet — create order only after capture) ---
+    if (paymentMethod === "paypal") {
+      const siteUrl = process.env.AUTH_URL || "http://localhost:3000";
+
+      // Fetch product details needed for order items at capture time
+      const productDetails = await db
+        .select({ id: products.id, sku: products.sku, nameIt: products.nameIt })
+        .from(products)
+        .where(inArray(products.id, productIds));
+      const productMap = new Map(productDetails.map((p) => [p.id, p]));
+
+      const orderPayload = {
+        userId: user?.id || null,
+        guestEmail: !user ? shippingInfo.email : null,
+        dealerDiscount,
+        subtotal: Math.round(taxAdjustedSubtotal * 100) / 100,
+        shippingCost,
+        total,
+        shippingAddress,
+        billingAddress,
+        notes: shippingInfo.notes || null,
+        items: items.map((item) => {
+          const product = productMap.get(item.id);
+          const discountedPrice =
+            dealerDiscount > 0 ? item.price * (1 - dealerDiscount / 100) : item.price;
+          return {
+            productId: item.id,
+            productName: product?.nameIt || item.name,
+            productSku: product?.sku || null,
+            quantity: item.quantity,
+            unitPrice: item.price,
+            discountPercent: dealerDiscount,
+            lineTotal: Math.round(discountedPrice * item.quantity * 100) / 100,
+          };
+        }),
+        expiresAt: Date.now() + 3 * 60 * 60 * 1000, // 3h (PayPal order TTL)
+      };
+
+      const signed = signPayload(orderPayload);
+
+      const { approvalUrl } = await createPayPalOrder({
+        totalEur: total,
+        returnUrl: `${siteUrl}/api/paypal/capture`,
+        cancelUrl: `${siteUrl}/checkout?error=paypal_cancelled`,
       });
 
-      const paymentMethodTypes: ("card" | "paypal")[] =
-        paymentMethod === "paypal" ? ["paypal"] : ["card"];
-
-      const session = await stripe.checkout.sessions.create({
-        mode: "payment",
-        payment_method_types: paymentMethodTypes,
-        line_items,
-        customer_email: shippingInfo.email,
-        shipping_options: [
-          {
-            shipping_rate_data: {
-              type: "fixed_amount",
-              fixed_amount: {
-                amount: Math.round(shippingCost * 100),
-                currency: "eur",
-              },
-              display_name: `Spedizione ${zone === "europe" ? "Europa" : zone === "islands_calabria" ? "Isole/Calabria" : "Italia"}`,
-              delivery_estimate: {
-                minimum: {
-                  unit: "business_day",
-                  value: zone === "europe" ? 5 : 3,
-                },
-                maximum: {
-                  unit: "business_day",
-                  value: zone === "europe" ? 10 : 7,
-                },
-              },
-            },
-          },
-        ],
-        metadata: {
-          user_id: user?.id || "guest",
-          payment_method: paymentMethod,
-          shipping_name: shippingInfo.name,
-          shipping_phone: shippingInfo.phone || "",
-          shipping_address: shippingInfo.address,
-          shipping_city: shippingInfo.city,
-          shipping_zip: shippingInfo.zip,
-          shipping_province: shippingInfo.province || "",
-          shipping_country: countryCode,
-          shipping_cost: shippingCost.toString(),
-          notes: shippingInfo.notes || "",
-          dealer_discount: dealerDiscount.toString(),
-          vies_exempt: isViesExempt ? "true" : "false",
-          billing_info: JSON.stringify(billingAddress),
-          cart_items: JSON.stringify(
-            items.map((i) => [i.id, i.quantity, i.price])
-          ),
-        },
-        success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${origin}/checkout`,
+      const response = NextResponse.json({ url: approvalUrl });
+      response.cookies.set("paypal_order", signed, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 3 * 60 * 60, // 3 hours
+        path: "/",
       });
-
-      return NextResponse.json({ url: session.url });
+      return response;
     }
 
     // --- Handle Bank Transfer / COD (create order directly) ---

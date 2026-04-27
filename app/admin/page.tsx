@@ -1,87 +1,76 @@
-import { count, eq } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { products, profiles, dealerProfiles, orders } from "@/db/schema";
-import { Package, Users, Briefcase, ShoppingCart } from "lucide-react";
+import { products, profiles, dealerProfiles, orders, orderItems } from "@/db/schema";
+import DashboardClient from "./DashboardClient";
+import type { DailyStat, TopProduct, DashboardStats } from "./DashboardClient";
 
-async function getStats() {
+async function getDashboardData() {
   const db = getDb();
-  const [p, prof, deal, ords] = await Promise.all([
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const [p, prof, deal, ords, daily, top, monthStats] = await Promise.all([
     db.select({ n: count() }).from(products).then((r) => r[0]),
     db.select({ n: count() }).from(profiles).then((r) => r[0]),
-    db
-      .select({ n: count() })
-      .from(dealerProfiles)
-      .where(eq(dealerProfiles.status, "pending"))
-      .then((r) => r[0]),
+    db.select({ n: count() }).from(dealerProfiles).where(eq(dealerProfiles.status, "pending")).then((r) => r[0]),
     db.select({ n: count() }).from(orders).then((r) => r[0]),
+    db.execute(sql`
+      SELECT
+        TO_CHAR(DATE(created_at AT TIME ZONE 'Europe/Rome'), 'DD/MM') AS day,
+        COUNT(*)::int AS orders,
+        COALESCE(SUM(total::numeric), 0)::float AS revenue
+      FROM orders
+      WHERE created_at >= ${thirtyDaysAgo} AND status != 'cancelled'
+      GROUP BY DATE(created_at AT TIME ZONE 'Europe/Rome')
+      ORDER BY DATE(created_at AT TIME ZONE 'Europe/Rome') ASC
+    `),
+    db.execute(sql`
+      SELECT
+        oi.product_name AS name,
+        SUM(oi.quantity)::int AS qty,
+        COALESCE(SUM(oi.quantity * oi.unit_price::numeric), 0)::float AS revenue
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.created_at >= ${thirtyDaysAgo} AND o.status != 'cancelled'
+      GROUP BY oi.product_name
+      ORDER BY qty DESC
+      LIMIT 5
+    `),
+    db.execute(sql`
+      SELECT
+        COUNT(*)::int AS order_count,
+        COALESCE(SUM(total::numeric), 0)::float AS revenue
+      FROM orders
+      WHERE created_at >= ${thirtyDaysAgo} AND status != 'cancelled'
+    `),
   ]);
-  return {
+
+  const stats: DashboardStats = {
     totalProducts: Number(p.n),
     totalUsers: Number(prof.n),
     pendingDealers: Number(deal.n),
     totalOrders: Number(ords.n),
+    revenueThisMonth: Number((monthStats.rows[0] as { revenue: number })?.revenue ?? 0),
+    ordersThisMonth: Number((monthStats.rows[0] as { order_count: number })?.order_count ?? 0),
   };
+
+  const dailyData: DailyStat[] = (daily.rows as { day: string; orders: number; revenue: number }[]).map((r) => ({
+    day: r.day,
+    orders: Number(r.orders),
+    revenue: Number(r.revenue),
+  }));
+
+  const topProducts: TopProduct[] = (top.rows as { name: string; qty: number; revenue: number }[]).map((r) => ({
+    name: r.name,
+    qty: Number(r.qty),
+    revenue: Number(r.revenue),
+  }));
+
+  return { stats, dailyData, topProducts };
 }
 
 export default async function AdminDashboard() {
-  const stats = await getStats();
+  const { stats, dailyData, topProducts } = await getDashboardData();
 
-  const cards = [
-    {
-      label: "Prodotti",
-      value: stats.totalProducts,
-      icon: Package,
-      href: "/admin/products",
-      color: "bg-blue-50 dark:bg-blue-950/40 text-blue-600",
-    },
-    {
-      label: "Utenti",
-      value: stats.totalUsers,
-      icon: Users,
-      href: "/admin/users",
-      color: "bg-green-50 dark:bg-green-950/40 text-green-600",
-    },
-    {
-      label: "Dealer in attesa",
-      value: stats.pendingDealers,
-      icon: Briefcase,
-      href: "/admin/dealers",
-      color: "bg-orange-50 dark:bg-orange-950/40 text-orange-600",
-    },
-    {
-      label: "Ordini",
-      value: stats.totalOrders,
-      icon: ShoppingCart,
-      href: "/admin/orders",
-      color: "bg-purple-50 text-purple-600",
-    },
-  ];
-
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-foreground mb-6">Dashboard</h1>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {cards.map((card) => (
-          <a
-            key={card.label}
-            href={card.href}
-            className="bg-surface border border-border rounded-2xl p-5 hover:border-accent/30 hover:shadow-md transition-all duration-200 group"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center ${card.color}`}
-              >
-                <card.icon className="w-5 h-5" />
-              </div>
-            </div>
-            <div className="text-3xl font-bold text-foreground tabular-nums">
-              {card.value}
-            </div>
-            <div className="text-sm text-muted mt-1">{card.label}</div>
-          </a>
-        ))}
-      </div>
-    </div>
-  );
+  return <DashboardClient stats={stats} dailyData={dailyData} topProducts={topProducts} />;
 }

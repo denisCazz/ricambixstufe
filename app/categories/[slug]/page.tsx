@@ -51,6 +51,8 @@ export default async function CategoryPage({
     category: p.category,
     categorySlug: p.categorySlug,
     image: p.image,
+    weight: p.weight,
+    stockQuantity: p.stockQuantity,
     name_it: p.name_it,
     name_en: p.name_en,
     name_fr: p.name_fr,

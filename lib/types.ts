@@ -7,4 +7,4 @@ export type OrderStatus =
   | "shipped"
   | "delivered"
   | "cancelled";
-export type PaymentMethod = "paypal" | "bank_transfer" | "cod" | "stripe";
+export type PaymentMethod = "paypal" | "bank_transfer" | "cod";

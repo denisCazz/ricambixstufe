@@ -16,7 +16,6 @@ import {
   User,
   Building2,
   Banknote,
-  CircleDollarSign,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
@@ -84,7 +83,7 @@ const COUNTRY_TO_NAME: Record<string, string> = {
   CH: "Svizzera",
 };
 
-type PaymentMethod = "stripe" | "bank_transfer" | "cod" | "paypal";
+type PaymentMethod = "bank_transfer" | "cod" | "paypal";
 
 interface Profile {
   first_name: string | null;
@@ -128,7 +127,7 @@ export default function CheckoutClient() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stripe");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("paypal");
   const [isCompany, setIsCompany] = useState(false);
   const [shippingCalc, setShippingCalc] = useState<ShippingCalc | null>(null);
   const [shippingLoading, setShippingLoading] = useState(false);
@@ -404,7 +403,7 @@ export default function CheckoutClient() {
       address: form.get("address") as string,
       city: form.get("city") as string,
       zip: form.get("zip") as string,
-      province: form.get("province") as string,
+      province: ((form.get("province") as string) || "").toUpperCase().slice(0, 2),
       country: form.get("country") as string,
       notes: form.get("notes") as string,
     };
@@ -445,9 +444,9 @@ export default function CheckoutClient() {
         return;
       }
 
-      // For Stripe / PayPal: redirect to checkout URL
+      // For PayPal: redirect to approval URL — do NOT clear cart here,
+      // it will be cleared on the success page after capture is confirmed
       if (data.url) {
-        clearCart();
         window.location.href = data.url;
         return;
       }
@@ -626,8 +625,10 @@ export default function CheckoutClient() {
                     name="province"
                     autoComplete="address-level1"
                     defaultValue={defaults.province}
-                    onChange={(e) => setSelectedProvince(e.target.value)}
-                    className={inputClass}
+                    onChange={(e) => setSelectedProvince(e.target.value.toUpperCase().slice(0, 2))}
+                    maxLength={2}
+                    className={inputClass + " uppercase"}
+                    placeholder="TV"
                   />
                 </div>
                 <div>
@@ -795,47 +796,6 @@ export default function CheckoutClient() {
             </div>
 
             <div className="space-y-3">
-              {/* Carta di credito (Stripe) */}
-              <label
-                className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
-                  paymentMethod === "stripe"
-                    ? "border-accent bg-orange-50/50 dark:bg-orange-950/20"
-                    : "border-border hover:border-accent/30"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethodRadio"
-                  value="stripe"
-                  checked={paymentMethod === "stripe"}
-                  onChange={() => setPaymentMethod("stripe")}
-                  className="mt-0.5 text-accent focus:ring-accent/30"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-accent" />
-                    <span className="font-semibold text-foreground text-sm">
-                      Carta di credito / debito
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted mt-1">
-                    Pagamento sicuro tramite Stripe
-                  </p>
-                  <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                    {["Visa", "Mastercard", "Amex", "Apple Pay", "Google Pay"].map(
-                      (m) => (
-                        <span
-                          key={m}
-                          className="px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800/50 border border-border text-[10px] font-medium text-muted"
-                        >
-                          {m}
-                        </span>
-                      )
-                    )}
-                  </div>
-                </div>
-              </label>
-
               {/* PayPal */}
               <label
                 className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
@@ -854,13 +814,11 @@ export default function CheckoutClient() {
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <CircleDollarSign className="w-4 h-4 text-[#0070ba]" />
-                    <span className="font-semibold text-foreground text-sm">
-                      PayPal
-                    </span>
+                    <span className="text-[#0070ba] font-bold text-sm">Pay</span>
+                    <span className="text-[#003087] font-bold text-sm -ml-1">Pal</span>
                   </div>
                   <p className="text-xs text-muted mt-1">
-                    Paga con il tuo conto PayPal
+                    Paga con il tuo conto PayPal o carta tramite PayPal
                   </p>
                 </div>
               </label>
@@ -942,15 +900,13 @@ export default function CheckoutClient() {
             {paying ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {paymentMethod === "stripe" || paymentMethod === "paypal"
-                  ? "Reindirizzamento..."
-                  : "Conferma in corso..."}
+                {paymentMethod === "paypal" ? "Reindirizzamento a PayPal..." : "Conferma in corso..."}
               </>
             ) : (
               <>
                 <Lock className="w-4 h-4" />
-                {paymentMethod === "stripe" || paymentMethod === "paypal"
-                  ? `Paga ${formatPrice(grandTotal)}`
+                {paymentMethod === "paypal"
+                  ? `Paga con PayPal — ${formatPrice(grandTotal)}`
                   : `Conferma Ordine — ${formatPrice(grandTotal)}`}
               </>
             )}
