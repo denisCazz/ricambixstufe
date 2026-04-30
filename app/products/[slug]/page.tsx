@@ -178,7 +178,7 @@ export default async function ProductDetailPage({
                   <div className="flex flex-wrap gap-2">
                     {compatibleStoves.map((s) => (
                       <span key={s.id} className="inline-flex items-center px-2.5 py-1 rounded-lg bg-background border border-border text-sm text-foreground">
-                        <LocalizedText it={s.nameIt} en={s.nameEn} fr={s.nameFr} es={s.nameEs} fallback={s.nameIt} />
+                        <LocalizedText it={s.nameIt} en={s.nameEn ?? undefined} fr={s.nameFr ?? undefined} es={s.nameEs ?? undefined} fallback={s.nameIt} />
                       </span>
                     ))}
                   </div>

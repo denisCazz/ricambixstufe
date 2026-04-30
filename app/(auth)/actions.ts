@@ -190,7 +190,7 @@ export async function resendVerificationEmail(email: string): Promise<{ success?
   return { success: true };
 }
 
-export async function requestPasswordReset(formData: FormData) {
+export async function requestPasswordReset(formData: FormData): Promise<{ success: boolean; error?: string }> {
   const email = normalizeEmail(formData.get("email") as string);
   const db = getDb();
 
