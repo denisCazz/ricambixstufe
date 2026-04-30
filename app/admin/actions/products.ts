@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { products } from "@/db/schema";
+import { products, productStoves } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 
 async function requireAdmin() {
@@ -40,11 +40,6 @@ export async function createProduct(formData: FormData) {
       slug,
       categoryId: parseInt(formData.get("category_id") as string, 10),
       price: String(parseFloat(formData.get("price") as string) || 0),
-      wholesalePrice:
-        formData.get("wholesale_price") != null &&
-        (formData.get("wholesale_price") as string) !== ""
-          ? String(parseFloat(formData.get("wholesale_price") as string))
-          : null,
       stockQuantity: parseInt(formData.get("stock_quantity") as string, 10) || 0,
       sku: (formData.get("sku") as string) || null,
       ean13: (formData.get("ean13") as string) || null,
@@ -63,8 +58,16 @@ export async function createProduct(formData: FormData) {
         : null,
       descriptionIt: (formData.get("description_it") as string) || null,
       descriptionEn: (formData.get("description_en") as string) || null,
+      descriptionFr: (formData.get("description_fr") as string) || null,
+      descriptionEs: (formData.get("description_es") as string) || null,
       descriptionShortIt: (formData.get("description_short_it") as string) || null,
       descriptionShortEn: (formData.get("description_short_en") as string) || null,
+      descriptionFr: (formData.get("description_fr") as string) || null,
+      descriptionEs: (formData.get("description_es") as string) || null,
+      descriptionShortIt: (formData.get("description_short_it") as string) || null,
+      descriptionShortEn: (formData.get("description_short_en") as string) || null,
+      descriptionShortFr: (formData.get("description_short_fr") as string) || null,
+      descriptionShortEs: (formData.get("description_short_es") as string) || null,
       imageUrl: (formData.get("image_url") as string) || null,
       metaTitle: (formData.get("meta_title") as string) || null,
       metaDescription: (formData.get("meta_description") as string) || null,
@@ -72,6 +75,19 @@ export async function createProduct(formData: FormData) {
     });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Errore" };
+  }
+
+  // Save compatible stoves: get the newly inserted product id
+  const stoveIds = formData.getAll("compatible_stove_ids").map(Number).filter(Boolean);
+  if (stoveIds.length > 0) {
+    const [inserted] = await db
+      .select({ id: products.id })
+      .from(products)
+      .where(eq(products.slug, slugify(formData.get("name_it") as string)))
+      .limit(1);
+    if (inserted) {
+      await db.insert(productStoves).values(stoveIds.map((sid) => ({ productId: inserted.id, stoveId: sid })));
+    }
   }
 
   revalidatePath("/admin/products");
@@ -97,11 +113,6 @@ export async function updateProduct(id: number, formData: FormData) {
         slug,
         categoryId: parseInt(formData.get("category_id") as string, 10),
         price: String(parseFloat(formData.get("price") as string) || 0),
-        wholesalePrice:
-          formData.get("wholesale_price") != null &&
-          (formData.get("wholesale_price") as string) !== ""
-            ? String(parseFloat(formData.get("wholesale_price") as string))
-            : null,
         stockQuantity: parseInt(formData.get("stock_quantity") as string, 10) || 0,
         sku: (formData.get("sku") as string) || null,
         ean13: (formData.get("ean13") as string) || null,
@@ -120,8 +131,12 @@ export async function updateProduct(id: number, formData: FormData) {
           : null,
         descriptionIt: (formData.get("description_it") as string) || null,
         descriptionEn: (formData.get("description_en") as string) || null,
+        descriptionFr: (formData.get("description_fr") as string) || null,
+        descriptionEs: (formData.get("description_es") as string) || null,
         descriptionShortIt: (formData.get("description_short_it") as string) || null,
         descriptionShortEn: (formData.get("description_short_en") as string) || null,
+        descriptionShortFr: (formData.get("description_short_fr") as string) || null,
+        descriptionShortEs: (formData.get("description_short_es") as string) || null,
         imageUrl: (formData.get("image_url") as string) || null,
         metaTitle: (formData.get("meta_title") as string) || null,
         metaDescription: (formData.get("meta_description") as string) || null,
@@ -131,6 +146,13 @@ export async function updateProduct(id: number, formData: FormData) {
       .where(eq(products.id, id));
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Errore" };
+  }
+
+  // Replace compatible stoves
+  const stoveIds = formData.getAll("compatible_stove_ids").map(Number).filter(Boolean);
+  await db.delete(productStoves).where(eq(productStoves.productId, id));
+  if (stoveIds.length > 0) {
+    await db.insert(productStoves).values(stoveIds.map((sid) => ({ productId: id, stoveId: sid })));
   }
 
   revalidatePath("/admin/products");

@@ -202,16 +202,18 @@ export default function CheckoutClient() {
     }
   }, [calcShipping, profileLoaded]);
 
-  const discountedTotal = dealerDiscount
-    ? totalPrice * (1 - dealerDiscount / 100)
+  // totalPrice is already discounted (discount applied in AddToCartButton)
+  const originalTotal = dealerDiscount
+    ? Math.round((totalPrice / (1 - dealerDiscount / 100)) * 100) / 100
     : totalPrice;
+  const dealerSaving = originalTotal - totalPrice;
 
   const shippingCost = shippingCalc?.shippingCost ?? 0;
   const codExtra = paymentMethod === "cod" ? COD_SURCHARGE : 0;
-  const baseTotal = discountedTotal + shippingCost + codExtra;
+  const baseTotal = totalPrice + shippingCost + codExtra;
   // If VIES exempt (EU company, not Italy), subtract 22% IVA from product prices
   const grandTotal = viesExempt
-    ? Math.round((discountedTotal / 1.22 + shippingCost + codExtra) * 100) / 100
+    ? Math.round((totalPrice / 1.22 + shippingCost + codExtra) * 100) / 100
     : baseTotal;
 
   // VIES validation handler
@@ -1002,16 +1004,16 @@ export default function CheckoutClient() {
               <div className="flex justify-between text-sm">
                 <span className="text-muted">{t("cart.subtotal")}</span>
                 <span className="font-medium text-foreground">
-                  {formatPrice(totalPrice)}
+                  {formatPrice(isDealer && dealerDiscount ? originalTotal : totalPrice)}
                 </span>
               </div>
-              {isDealer && dealerDiscount && (
+              {isDealer && dealerDiscount && dealerSaving > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-green-600">
                     Sconto dealer ({dealerDiscount}%)
                   </span>
                   <span className="font-medium text-green-600">
-                    -{formatPrice(totalPrice - discountedTotal)}
+                    -{formatPrice(dealerSaving)}
                   </span>
                 </div>
               )}

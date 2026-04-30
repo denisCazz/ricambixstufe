@@ -12,6 +12,13 @@ export type AuthUserPayload = {
   dealerDiscount: number | null;
 };
 
+export class EmailNotVerifiedError extends Error {
+  constructor() {
+    super("email_not_verified");
+    this.name = "EmailNotVerifiedError";
+  }
+}
+
 export async function validateCredentials(
   email: string,
   password: string
@@ -25,6 +32,7 @@ export async function validateCredentials(
       passwordHash: appUsers.passwordHash,
       name: appUsers.name,
       role: profiles.role,
+      emailVerifiedAt: appUsers.emailVerifiedAt,
     })
     .from(appUsers)
     .innerJoin(profiles, eq(profiles.id, appUsers.id))
@@ -35,6 +43,10 @@ export async function validateCredentials(
   if (!row?.passwordHash) return null;
   const ok = await bcrypt.compare(password, row.passwordHash);
   if (!ok) return null;
+
+  if (!row.emailVerifiedAt) {
+    throw new EmailNotVerifiedError();
+  }
 
   let dealerDiscount: number | null = null;
   if (row.role === "dealer") {

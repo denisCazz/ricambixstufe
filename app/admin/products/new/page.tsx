@@ -2,17 +2,20 @@ import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { ChevronLeft } from "lucide-react";
 import { getDb } from "@/db";
-import { categories } from "@/db/schema";
+import { categories, stoves } from "@/db/schema";
 import { createProduct } from "../../actions/products";
 import ProductForm from "../ProductForm";
 
 export default async function NewProductPage() {
   const db = getDb();
-  const catRows = await db
-    .select({ id: categories.id, nameIt: categories.nameIt, slug: categories.slug })
-    .from(categories)
-    .where(eq(categories.active, true))
-    .orderBy(asc(categories.sortOrder));
+  const [catRows, stoveRows] = await Promise.all([
+    db
+      .select({ id: categories.id, nameIt: categories.nameIt, slug: categories.slug })
+      .from(categories)
+      .where(eq(categories.active, true))
+      .orderBy(asc(categories.sortOrder)),
+    db.select({ id: stoves.id, nameIt: stoves.nameIt }).from(stoves).where(eq(stoves.active, true)).orderBy(asc(stoves.sortOrder)),
+  ]);
 
   const categoriesList = catRows.map((c) => ({
     id: c.id,
@@ -41,6 +44,7 @@ export default async function NewProductPage() {
 
       <ProductForm
         categories={categoriesList}
+        stoves={stoveRows}
         action={action}
         submitLabel="Crea Prodotto"
       />

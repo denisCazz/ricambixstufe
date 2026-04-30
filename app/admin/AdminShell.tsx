@@ -23,6 +23,7 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Ordini", icon: ShoppingCart },
   { href: "/admin/products", label: "Prodotti", icon: Package },
+  { href: "/admin/stufe", label: "Stufe", icon: Flame },
   { href: "/admin/users", label: "Utenti", icon: Users },
   { href: "/admin/dealers", label: "Dealer", icon: Briefcase },
   { href: "/admin/settings", label: "Impostazioni", icon: Settings },

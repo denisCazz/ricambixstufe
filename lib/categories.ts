@@ -1,4 +1,4 @@
-import { and, eq, asc } from "drizzle-orm";
+import { and, eq, asc, notInArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { categories, products } from "@/db/schema";
 
@@ -14,6 +14,10 @@ export interface CategoryWithCount {
   name_es?: string;
 }
 
+function stripColon(s: string | null | undefined): string {
+  return (s ?? "").trim().replace(/:+\s*$/, "");
+}
+
 function mapRow(row: {
   id: number;
   nameIt: string;
@@ -25,22 +29,25 @@ function mapRow(row: {
 }): CategoryWithCount {
   return {
     id: row.id,
-    name: row.nameIt,
+    name: stripColon(row.nameIt),
     slug: row.slug,
     icon: row.icon,
-    name_it: row.nameIt ?? undefined,
-    name_en: row.nameEn ?? undefined,
-    name_fr: row.nameFr ?? undefined,
-    name_es: row.nameEs ?? undefined,
+    name_it: stripColon(row.nameIt) || undefined,
+    name_en: stripColon(row.nameEn) || undefined,
+    name_fr: stripColon(row.nameFr) || undefined,
+    name_es: stripColon(row.nameEs) || undefined,
   };
 }
+
+// These slugs are full-product categories, not spare-parts filters
+const HIDDEN_CATEGORY_SLUGS = ["stufe-a-pellet", "porta-pellet-aspiracenere"];
 
 export async function getCategories(): Promise<CategoryWithCount[]> {
   const db = getDb();
   const data = await db
     .select()
     .from(categories)
-    .where(eq(categories.active, true))
+    .where(and(eq(categories.active, true), notInArray(categories.slug, HIDDEN_CATEGORY_SLUGS)))
     .orderBy(asc(categories.sortOrder));
   return data.map((row) => mapRow(row));
 }

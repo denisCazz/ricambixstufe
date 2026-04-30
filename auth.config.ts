@@ -15,13 +15,20 @@ export default {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const { validateCredentials } = await import(
+        const { validateCredentials, EmailNotVerifiedError } = await import(
           "@/lib/auth/validate-credentials"
         );
-        return validateCredentials(
-          String(credentials.email),
-          String(credentials.password)
-        );
+        try {
+          return await validateCredentials(
+            String(credentials.email),
+            String(credentials.password)
+          );
+        } catch (err) {
+          if (err instanceof EmailNotVerifiedError) {
+            throw new Error("email_not_verified");
+          }
+          return null;
+        }
       },
     }),
   ],

@@ -361,6 +361,47 @@ export async function sendDealerApprovedEmail({
   }
 }
 
+// ============================================================
+// EMAIL VERIFICATION
+// ============================================================
+
+export async function sendEmailVerificationEmail({
+  to,
+  verificationUrl,
+  name,
+}: {
+  to: string;
+  verificationUrl: string;
+  name?: string | null;
+}) {
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: "Conferma il tuo indirizzo email — RicambiXStufe",
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
+          <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px; border-radius: 12px 12px 0 0;">
+            <h1 style="margin: 0; color: white; font-size: 20px;">✉️ Conferma la tua email</h1>
+          </div>
+          <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+            <p>Ciao${name ? ` <strong>${name}</strong>` : ""},</p>
+            <p>Grazie per esserti registrato su RicambiXStufe! Clicca il pulsante qui sotto per confermare il tuo indirizzo email e attivare il tuo account.</p>
+            <p style="text-align: center; margin: 32px 0;">
+              <a href="${verificationUrl}" style="display: inline-block; padding: 14px 28px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">Conferma email</a>
+            </p>
+            <p style="font-size: 13px; color: #6b7280;">Il link è valido per 24 ore. Se non hai creato un account, ignora questa email.</p>
+            <p style="font-size: 12px; color: #9ca3af; word-break: break-all;">Oppure copia questo link nel browser: ${verificationUrl}</p>
+            <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">— Il team RicambiXStufe</p>
+          </div>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Failed to send email verification email:", error);
+  }
+}
+
 /** Notify dealer that their request has been rejected */
 export async function sendDealerRejectedEmail({
   dealerEmail,
@@ -391,5 +432,46 @@ export async function sendDealerRejectedEmail({
     });
   } catch (error) {
     console.error("Failed to send dealer rejected email:", error);
+  }
+}
+
+// ============================================================
+// PASSWORD RESET
+// ============================================================
+
+export async function sendPasswordResetEmail({
+  to,
+  resetUrl,
+  name,
+}: {
+  to: string;
+  resetUrl: string;
+  name?: string | null;
+}) {
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: "Reimposta la tua password — RicambiXStufe",
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
+          <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px; border-radius: 12px 12px 0 0;">
+            <h1 style="margin: 0; color: white; font-size: 20px;">🔑 Reimposta password</h1>
+          </div>
+          <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+            <p>Ciao${name ? ` <strong>${name}</strong>` : ""},</p>
+            <p>Hai richiesto di reimpostare la password del tuo account RicambiXStufe. Clicca il pulsante qui sotto per procedere.</p>
+            <p style="text-align: center; margin: 32px 0;">
+              <a href="${resetUrl}" style="display: inline-block; padding: 14px 28px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">Reimposta password</a>
+            </p>
+            <p style="font-size: 13px; color: #6b7280;">Il link è valido per 1 ora. Se non hai richiesto il reset, ignora questa email — la tua password rimane invariata.</p>
+            <p style="font-size: 12px; color: #9ca3af; word-break: break-all;">Oppure copia questo link nel browser: ${resetUrl}</p>
+            <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">— Il team RicambiXStufe</p>
+          </div>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Failed to send password reset email:", error);
   }
 }

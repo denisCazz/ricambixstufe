@@ -141,13 +141,9 @@ export async function POST(req: NextRequest) {
     const shippingCost = calculateShippingCost(totalWeight, zone);
     const codSurcharge = paymentMethod === "cod" ? COD_SURCHARGE : 0;
 
-    // Calculate totals
+    // Calculate totals (prices in cart are already discounted)
     const subtotal = items.reduce((sum, item) => {
-      let price = item.price;
-      if (dealerDiscount > 0) {
-        price = price * (1 - dealerDiscount / 100);
-      }
-      return sum + price * item.quantity;
+      return sum + item.price * item.quantity;
     }, 0);
 
     // Server-side VIES verification: only allow IVA exemption for non-IT EU companies

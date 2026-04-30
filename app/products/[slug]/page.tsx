@@ -5,7 +5,7 @@ import { getProductBySlug, getRelatedProducts } from "@/lib/products";
 import { getCategories } from "@/lib/categories";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { products } from "@/db/schema";
+import { products, productStoves, stoves } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 import Footer from "@/components/Footer";
 import ProductDetailClient from "./ProductDetailClient";
@@ -43,10 +43,15 @@ export default async function ProductDetailPage({
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const [related, user, categories] = await Promise.all([
+  const [related, user, categories, compatibleStoves] = await Promise.all([
     getRelatedProducts(product.id, product.categoryId, 4),
     getUser(),
     getCategories(),
+    getDb()
+      .select({ id: stoves.id, nameIt: stoves.nameIt, nameEn: stoves.nameEn, nameFr: stoves.nameFr, nameEs: stoves.nameEs })
+      .from(productStoves)
+      .innerJoin(stoves, eq(productStoves.stoveId, stoves.id))
+      .where(eq(productStoves.productId, product.id)),
   ]);
 
   return (
@@ -166,6 +171,19 @@ export default async function ProductDetailPage({
                   <TranslatedText k="product.warranty" />
                 </div>
               </div>
+
+              {compatibleStoves.length > 0 && (
+                <div className="mt-6 bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-800/40 rounded-xl p-4">
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Compatibile con</p>
+                  <div className="flex flex-wrap gap-2">
+                    {compatibleStoves.map((s) => (
+                      <span key={s.id} className="inline-flex items-center px-2.5 py-1 rounded-lg bg-background border border-border text-sm text-foreground">
+                        <LocalizedText it={s.nameIt} en={s.nameEn} fr={s.nameFr} es={s.nameEs} fallback={s.nameIt} />
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

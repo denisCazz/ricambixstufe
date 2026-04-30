@@ -10,6 +10,11 @@ interface Category {
   slug: string;
 }
 
+interface Stove {
+  id: number;
+  nameIt: string;
+}
+
 interface ProductImage {
   id: number;
   image_url: string;
@@ -25,7 +30,6 @@ interface ProductData {
   name_es: string | null;
   category_id: number;
   price: number;
-  wholesale_price: number | null;
   stock_quantity: number;
   sku: string | null;
   ean13: string | null;
@@ -36,8 +40,12 @@ interface ProductData {
   depth: number | null;
   description_it: string | null;
   description_en: string | null;
+  description_fr: string | null;
+  description_es: string | null;
   description_short_it: string | null;
   description_short_en: string | null;
+  description_short_fr: string | null;
+  description_short_es: string | null;
   image_url: string | null;
   meta_title: string | null;
   meta_description: string | null;
@@ -51,7 +59,6 @@ const emptyProduct: ProductData = {
   name_es: null,
   category_id: 0,
   price: 0,
-  wholesale_price: null,
   stock_quantity: 0,
   sku: null,
   ean13: null,
@@ -62,8 +69,12 @@ const emptyProduct: ProductData = {
   depth: null,
   description_it: null,
   description_en: null,
+  description_fr: null,
+  description_es: null,
   description_short_it: null,
   description_short_en: null,
+  description_short_fr: null,
+  description_short_es: null,
   image_url: null,
   meta_title: null,
   meta_description: null,
@@ -131,12 +142,16 @@ function Textarea({
 export default function ProductForm({
   product,
   categories,
+  stoves = [],
+  selectedStoveIds = [],
   action,
   submitLabel,
   productImages = [],
 }: {
   product?: ProductData;
   categories: Category[];
+  stoves?: Stove[];
+  selectedStoveIds?: number[];
   action: (prevState: { error?: string } | null, formData: FormData) => Promise<{ error?: string } | null>;
   submitLabel: string;
   productImages?: ProductImage[];
@@ -196,10 +211,6 @@ export default function ProductForm({
           <div>
             <Label htmlFor="price">Prezzo (€) *</Label>
             <Input name="price" type="number" step="0.01" defaultValue={p.price} required />
-          </div>
-          <div>
-            <Label htmlFor="wholesale_price">Prezzo ingrosso (€)</Label>
-            <Input name="wholesale_price" type="number" step="0.01" defaultValue={p.wholesale_price} />
           </div>
           <div>
             <Label htmlFor="stock_quantity">Quantità in stock *</Label>
@@ -263,8 +274,46 @@ export default function ProductForm({
             <Label htmlFor="description_en">Full description (EN)</Label>
             <Textarea name="description_en" defaultValue={p.description_en} rows={5} placeholder="Detailed product description" />
           </div>
+          <div>
+            <Label htmlFor="description_short_fr">Description courte (FR)</Label>
+            <Textarea name="description_short_fr" defaultValue={p.description_short_fr} rows={2} placeholder="Courte description pour les aperçus" />
+          </div>
+          <div>
+            <Label htmlFor="description_fr">Description complète (FR)</Label>
+            <Textarea name="description_fr" defaultValue={p.description_fr} rows={5} placeholder="Description détaillée du produit" />
+          </div>
+          <div>
+            <Label htmlFor="description_short_es">Descripción corta (ES)</Label>
+            <Textarea name="description_short_es" defaultValue={p.description_short_es} rows={2} placeholder="Descripción corta para vistas previas" />
+          </div>
+          <div>
+            <Label htmlFor="description_es">Descripción completa (ES)</Label>
+            <Textarea name="description_es" defaultValue={p.description_es} rows={5} placeholder="Descripción detallada del producto" />
+          </div>
         </div>
       </section>
+
+      {/* Compatible Stoves */}
+      {stoves.length > 0 && (
+        <section className="bg-surface border border-border rounded-2xl p-5">
+          <h2 className="text-lg font-semibold text-foreground mb-1">Compatibile con</h2>
+          <p className="text-sm text-muted mb-4">Seleziona le stufe compatibili con questo prodotto</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {stoves.map((s) => (
+              <label key={s.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-xl hover:bg-background transition-colors">
+                <input
+                  type="checkbox"
+                  name="compatible_stove_ids"
+                  value={s.id}
+                  defaultChecked={selectedStoveIds.includes(s.id)}
+                  className="w-4 h-4 rounded border-border text-accent focus:ring-accent/20"
+                />
+                <span className="text-sm text-foreground">{s.nameIt}</span>
+              </label>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Images */}
       <section className="bg-surface border border-border rounded-2xl p-5">

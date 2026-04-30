@@ -193,6 +193,26 @@ export const cartItems = pgTable("cart_items", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const stoves = pgTable("stoves", {
+  id: serial("id").primaryKey(),
+  nameIt: text("name_it").notNull(),
+  nameEn: text("name_en"),
+  nameFr: text("name_fr"),
+  nameEs: text("name_es"),
+  slug: text("slug").notNull().unique(),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const productStoves = pgTable("product_stoves", {
+  productId: integer("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  stoveId: integer("stove_id")
+    .notNull()
+    .references(() => stoves.id, { onDelete: "cascade" }),
+});
+
 export const productImages = pgTable("product_images", {
   id: serial("id").primaryKey(),
   productId: integer("product_id")
@@ -211,6 +231,16 @@ export const categoriesRelations = relations(categories, ({ many }) => ({
 export const productsRelations = relations(products, ({ one, many }) => ({
   category: one(categories, { fields: [products.categoryId], references: [categories.id] }),
   images: many(productImages),
+  compatibleStoves: many(productStoves),
+}));
+
+export const stovesRelations = relations(stoves, ({ many }) => ({
+  products: many(productStoves),
+}));
+
+export const productStovesRelations = relations(productStoves, ({ one }) => ({
+  product: one(products, { fields: [productStoves.productId], references: [products.id] }),
+  stove: one(stoves, { fields: [productStoves.stoveId], references: [stoves.id] }),
 }));
 
 export const appUsersRelations = relations(appUsers, ({ one }) => ({

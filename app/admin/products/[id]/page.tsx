@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import { ChevronLeft } from "lucide-react";
 import { getDb } from "@/db";
-import { products, categories, productImages } from "@/db/schema";
+import { products, categories, productImages, productStoves, stoves } from "@/db/schema";
 import { productToFormData, productImagesToForm } from "@/lib/mappers";
 import { updateProduct } from "@/app/admin/actions/products";
 import ProductForm from "@/app/admin/products/ProductForm";
@@ -18,7 +18,7 @@ export default async function EditProductPage({
   if (isNaN(productId)) notFound();
 
   const db = getDb();
-  const [productRow, catRows, imageRows] = await Promise.all([
+  const [productRow, catRows, imageRows, stoveRows, selectedStoveRows] = await Promise.all([
     db.select().from(products).where(eq(products.id, productId)).limit(1).then((r) => r[0]),
     db
       .select({ id: categories.id, nameIt: categories.nameIt, slug: categories.slug })
@@ -30,6 +30,8 @@ export default async function EditProductPage({
       .from(productImages)
       .where(eq(productImages.productId, productId))
       .orderBy(asc(productImages.sortOrder)),
+    db.select({ id: stoves.id, nameIt: stoves.nameIt }).from(stoves).where(eq(stoves.active, true)).orderBy(asc(stoves.sortOrder)),
+    db.select({ stoveId: productStoves.stoveId }).from(productStoves).where(eq(productStoves.productId, productId)),
   ]);
 
   if (!productRow) notFound();
@@ -41,6 +43,7 @@ export default async function EditProductPage({
     slug: c.slug,
   }));
   const initialImages = productImagesToForm(imageRows);
+  const selectedStoveIds = selectedStoveRows.map((r) => r.stoveId);
 
   async function action(_prev: { error?: string } | null, formData: FormData) {
     "use server";
@@ -66,6 +69,8 @@ export default async function EditProductPage({
       <ProductForm
         product={product}
         categories={categoriesList}
+        stoves={stoveRows}
+        selectedStoveIds={selectedStoveIds}
         productImages={initialImages}
         action={action}
         submitLabel="Salva Modifiche"
