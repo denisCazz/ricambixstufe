@@ -3,12 +3,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, User, ShoppingCart, Menu, X, LogOut, Settings, Shield, Loader2, Headphones, Globe, ChevronDown } from "lucide-react";
+import { Search, User, ShoppingCart, Menu, X, LogOut, Settings, Shield, Loader2, Headphones, Globe, ChevronDown, Flame } from "lucide-react";
 import type { AuthUser } from "@/lib/auth";
 import { logout } from "@/app/(auth)/actions";
 import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
-import { searchProducts, type SearchResult } from "@/app/actions/search";
+import { searchProducts, searchStoves, type SearchResult, type StoveSearchResult } from "@/app/actions/search";
 import { locales, type Locale } from "@/lib/i18n";
 
 const languageLabels: Record<Locale, string> = {
@@ -41,6 +41,7 @@ export default function Header({
   // Search state
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [stoveResults, setStoveResults] = useState<StoveSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -83,14 +84,19 @@ export default function Header({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (value.trim().length < 2) {
       setResults([]);
+      setStoveResults([]);
       setShowResults(false);
       return;
     }
     setSearching(true);
     setShowResults(true);
     debounceRef.current = setTimeout(async () => {
-      const res = await searchProducts(value);
+      const [res, stoves] = await Promise.all([
+        searchProducts(value),
+        searchStoves(value),
+      ]);
       setResults(res);
+      setStoveResults(stoves);
       setSearching(false);
     }, 300);
   }, []);
@@ -98,21 +104,51 @@ export default function Header({
   function handleResultClick() {
     setShowResults(false);
     setQuery("");
+    setStoveResults([]);
     setMobileSearch(false);
   }
 
+  const getStoveName = (s: StoveSearchResult) =>
+    (locale === "en" && s.nameEn) ||
+    (locale === "fr" && s.nameFr) ||
+    (locale === "es" && s.nameEs) ||
+    s.nameIt;
+
   const searchDropdown = (
     <div className="absolute left-0 right-0 top-full mt-1.5 bg-surface border border-border rounded-xl shadow-2xl overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+      {/* Pinned stove entries */}
+      {!searching && stoveResults.length > 0 && (
+        <div className="border-b border-border/50">
+          {stoveResults.map((s) => (
+            <Link
+              key={s.id}
+              href={`/stufe/${s.slug}`}
+              onClick={handleResultClick}
+              className="flex items-center gap-3 px-4 py-3 bg-orange-50/60 dark:bg-orange-950/20 hover:bg-orange-50 dark:hover:bg-orange-950/40 active:bg-orange-50 transition-colors border-b border-orange-100/60 dark:border-orange-900/30 last:border-0"
+            >
+              <div className="w-9 h-9 rounded-lg bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center shrink-0">
+                <Flame className="w-4 h-4 text-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{getStoveName(s)}</p>
+                <p className="text-xs text-accent">
+                  Vedi tutti i {s.productCount} ricambi compatibili &rarr;
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
       {searching ? (
         <div className="flex items-center justify-center gap-2 py-8 text-muted">
           <Loader2 className="w-4 h-4 animate-spin" />
           <span className="text-sm">Ricerca...</span>
         </div>
-      ) : results.length === 0 ? (
+      ) : results.length === 0 && stoveResults.length === 0 ? (
         <div className="py-8 text-center">
           <p className="text-sm text-muted">{t("search.no_results")} &ldquo;{query}&rdquo;</p>
         </div>
-      ) : (
+      ) : results.length > 0 ? (
         results.map((r) => (
           <Link
             key={r.id}
@@ -136,7 +172,7 @@ export default function Header({
             <span className="text-sm font-bold text-accent shrink-0">{formatPrice(r.price)}</span>
           </Link>
         ))
-      )}
+      ) : null}
     </div>
   );
 
