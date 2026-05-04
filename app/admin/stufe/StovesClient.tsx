@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Pencil, Trash2, Check, X, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { createStove, updateStove, deleteStove } from "@/app/admin/actions/stoves";
 
 type Stove = {
@@ -13,6 +13,10 @@ type Stove = {
   slug: string;
   active: boolean;
   sortOrder: number;
+  categoria: string | null;
+  potenza: string | null;
+  dimensioni: string | null;
+  peso: string | null;
 };
 
 function StoveRow({
@@ -23,6 +27,7 @@ function StoveRow({
   onDeleted: (id: number) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -46,29 +51,57 @@ function StoveRow({
   if (editing) {
     return (
       <tr className="border-b border-border bg-orange-50/40 dark:bg-orange-950/20">
-        <td colSpan={5} className="px-4 py-3">
-          <form onSubmit={handleUpdate} className="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
-            <div>
-              <label className="block text-xs text-muted mb-1">Nome IT *</label>
-              <input name="name_it" defaultValue={stove.nameIt} required
-                className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+        <td colSpan={6} className="px-4 py-4">
+          <form onSubmit={handleUpdate} className="space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div>
+                <label className="block text-xs text-muted mb-1">Nome IT *</label>
+                <input name="name_it" defaultValue={stove.nameIt} required
+                  className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">EN</label>
+                <input name="name_en" defaultValue={stove.nameEn ?? ""}
+                  className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">FR</label>
+                <input name="name_fr" defaultValue={stove.nameFr ?? ""}
+                  className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">ES</label>
+                <input name="name_es" defaultValue={stove.nameEs ?? ""}
+                  className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs text-muted mb-1">EN</label>
-              <input name="name_en" defaultValue={stove.nameEn ?? ""}
-                className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs text-muted mb-1">Categoria</label>
+                <input name="categoria" defaultValue={stove.categoria ?? ""}
+                  placeholder="es. Stufe a Pellet"
+                  className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">Potenza</label>
+                <input name="potenza" defaultValue={stove.potenza ?? ""}
+                  placeholder="es. 10,0-4,0 kW"
+                  className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">Dimensioni</label>
+                <input name="dimensioni" defaultValue={stove.dimensioni ?? ""}
+                  placeholder="es. L 61,4 x P 72,9 x H 130,5 cm"
+                  className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">Peso</label>
+                <input name="peso" defaultValue={stove.peso ?? ""}
+                  placeholder="es. 217 kg"
+                  className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs text-muted mb-1">FR</label>
-              <input name="name_fr" defaultValue={stove.nameFr ?? ""}
-                className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
-            </div>
-            <div>
-              <label className="block text-xs text-muted mb-1">ES</label>
-              <input name="name_es" defaultValue={stove.nameEs ?? ""}
-                className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
-            </div>
-            <div className="flex items-center gap-2 mt-1 col-span-2 md:col-span-4">
+            <div className="flex items-center gap-2">
               <button type="submit" disabled={isPending}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-accent text-white text-sm font-medium disabled:opacity-50">
                 {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
@@ -86,29 +119,79 @@ function StoveRow({
     );
   }
 
+  const hasDetails = stove.potenza || stove.dimensioni || stove.peso || stove.categoria;
+
   return (
-    <tr className="border-b border-border hover:bg-surface-hover/50 transition-colors">
-      <td className="px-4 py-3 text-sm font-medium text-foreground">{stove.nameIt}</td>
-      <td className="px-4 py-3 text-sm text-muted">{stove.nameEn || "—"}</td>
-      <td className="px-4 py-3 text-sm text-muted">{stove.nameFr || "—"} / {stove.nameEs || "—"}</td>
-      <td className="px-4 py-3">
-        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${stove.active ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400" : "bg-gray-100 dark:bg-gray-800 text-muted"}`}>
-          {stove.active ? "Attiva" : "Inattiva"}
-        </span>
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <button onClick={() => setEditing(true)}
-            className="p-1.5 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground transition-colors">
-            <Pencil className="w-4 h-4" />
-          </button>
-          <button onClick={handleDelete} disabled={isPending}
-            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 text-muted hover:text-red-600 transition-colors disabled:opacity-50">
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-          </button>
-        </div>
-      </td>
-    </tr>
+    <>
+      <tr className="border-b border-border hover:bg-surface-hover/50 transition-colors">
+        <td className="px-4 py-3 text-sm font-medium text-foreground">
+          <div className="flex items-center gap-2">
+            {stove.nameIt}
+            {hasDetails && (
+              <button
+                onClick={() => setExpanded((v) => !v)}
+                className="text-muted hover:text-foreground transition-colors"
+                title={expanded ? "Nascondi dettagli" : "Mostra dettagli"}
+              >
+                {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+            )}
+          </div>
+        </td>
+        <td className="px-4 py-3 text-sm text-muted">{stove.categoria || "—"}</td>
+        <td className="px-4 py-3 text-sm text-muted">{stove.potenza || "—"}</td>
+        <td className="px-4 py-3 text-sm text-muted">{stove.peso || "—"}</td>
+        <td className="px-4 py-3">
+          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${stove.active ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400" : "bg-gray-100 dark:bg-gray-800 text-muted"}`}>
+            {stove.active ? "Attiva" : "Inattiva"}
+          </span>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <button onClick={() => setEditing(true)}
+              className="p-1.5 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground transition-colors">
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button onClick={handleDelete} disabled={isPending}
+              className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 text-muted hover:text-red-600 transition-colors disabled:opacity-50">
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            </button>
+          </div>
+        </td>
+      </tr>
+      {expanded && hasDetails && (
+        <tr className="border-b border-border bg-stone-50/50 dark:bg-stone-800/20">
+          <td colSpan={6} className="px-4 py-3">
+            <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              {stove.categoria && (
+                <div>
+                  <dt className="text-xs text-muted mb-0.5">Categoria</dt>
+                  <dd className="font-medium text-foreground">{stove.categoria}</dd>
+                </div>
+              )}
+              {stove.potenza && (
+                <div>
+                  <dt className="text-xs text-muted mb-0.5">Potenza</dt>
+                  <dd className="font-medium text-foreground">{stove.potenza}</dd>
+                </div>
+              )}
+              {stove.dimensioni && (
+                <div>
+                  <dt className="text-xs text-muted mb-0.5">Dimensioni</dt>
+                  <dd className="font-medium text-foreground">{stove.dimensioni}</dd>
+                </div>
+              )}
+              {stove.peso && (
+                <div>
+                  <dt className="text-xs text-muted mb-0.5">Peso</dt>
+                  <dd className="font-medium text-foreground">{stove.peso}</dd>
+                </div>
+              )}
+            </dl>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
@@ -148,28 +231,52 @@ function AddRow({ onAdded }: { onAdded: (s: Stove) => void }) {
   return (
     <div className="p-4 bg-orange-50/40 dark:bg-orange-950/20 border-t border-border">
       <h3 className="text-sm font-semibold text-foreground mb-3">Nuova stufa</h3>
-      <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
-        <div>
-          <label className="block text-xs text-muted mb-1">Nome IT *</label>
-          <input name="name_it" required placeholder="es. Edilkamin Brice"
-            className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <label className="block text-xs text-muted mb-1">Nome IT *</label>
+            <input name="name_it" required placeholder="es. Edilkamin Brice"
+              className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1">EN</label>
+            <input name="name_en" placeholder="English name"
+              className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1">FR</label>
+            <input name="name_fr" placeholder="Nom français"
+              className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1">ES</label>
+            <input name="name_es" placeholder="Nombre español"
+              className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+          </div>
         </div>
-        <div>
-          <label className="block text-xs text-muted mb-1">EN</label>
-          <input name="name_en" placeholder="English name"
-            className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-muted mb-1">Categoria</label>
+            <input name="categoria" placeholder="es. Stufe a Pellet"
+              className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1">Potenza</label>
+            <input name="potenza" placeholder="es. 10,0-4,0 kW"
+              className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1">Dimensioni</label>
+            <input name="dimensioni" placeholder="es. L 61,4 x P 72,9 x H 130,5 cm"
+              className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1">Peso</label>
+            <input name="peso" placeholder="es. 217 kg"
+              className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
+          </div>
         </div>
-        <div>
-          <label className="block text-xs text-muted mb-1">FR</label>
-          <input name="name_fr" placeholder="Nom français"
-            className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
-        </div>
-        <div>
-          <label className="block text-xs text-muted mb-1">ES</label>
-          <input name="name_es" placeholder="Nombre español"
-            className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50" />
-        </div>
-        <div className="flex items-center gap-2 col-span-2 md:col-span-4">
+        <div className="flex items-center gap-2">
           <button type="submit" disabled={isPending}
             className="flex items-center gap-1 px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold disabled:opacity-50">
             {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
@@ -195,9 +302,10 @@ export default function StovesClient({ initialStoves }: { initialStoves: Stove[]
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-background">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wide">Nome (IT)</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wide">EN</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wide">FR / ES</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wide">Modello</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wide">Categoria</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wide">Potenza</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wide">Peso</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wide">Stato</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wide">Azioni</th>
             </tr>
@@ -205,7 +313,7 @@ export default function StovesClient({ initialStoves }: { initialStoves: Stove[]
           <tbody>
             {stoveList.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted">
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted">
                   Nessuna stufa aggiunta. Clicca &ldquo;Aggiungi stufa&rdquo; per iniziare.
                 </td>
               </tr>

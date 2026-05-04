@@ -17,6 +17,7 @@ export interface Product {
   description_en?: string;
   description_fr?: string;
   description_es?: string;
+  compatibleStoveIds?: number[];
 }
 
 export const products: Product[] = [

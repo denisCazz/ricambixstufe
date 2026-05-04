@@ -11,18 +11,24 @@ import FireBackground from "@/components/FireBackground";
 import type { Product } from "@/data/products";
 import type { Category } from "@/data/categories";
 import type { AuthUser } from "@/lib/auth";
+import type { StoveFilter } from "@/lib/types";
+
+export type { StoveFilter };
 
 export default function HomeClient({
   products,
   categories,
   user,
+  stoves = [],
 }: {
   products: Product[];
   categories: Category[];
   user: AuthUser | null;
+  stoves?: StoveFilter[];
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeStoveId, setActiveStoveId] = useState<number | null>(null);
 
   return (
     <div className="min-h-screen flex flex-col relative">
@@ -37,7 +43,7 @@ export default function HomeClient({
         <div className="lg:hidden mb-4">
           <CategoryPills
             activeCategory={activeCategory}
-            onSelect={setActiveCategory}
+            onSelect={(slug) => { setActiveCategory(slug); setActiveStoveId(null); }}
             categories={categories}
           />
         </div>
@@ -46,11 +52,14 @@ export default function HomeClient({
             open={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
             activeCategory={activeCategory}
-            onSelect={setActiveCategory}
+            onSelect={(slug) => { setActiveCategory(slug); setActiveStoveId(null); }}
             categories={categories}
             products={products}
+            stoves={stoves}
+            activeStoveId={activeStoveId}
+            onSelectStove={(id) => { setActiveStoveId(id); setActiveCategory(null); }}
           />
-          <ProductGrid activeCategory={activeCategory} products={products} />
+          <ProductGrid activeCategory={activeCategory} activeStoveId={activeStoveId} products={products} />
         </div>
       </main>
 

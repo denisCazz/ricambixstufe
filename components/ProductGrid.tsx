@@ -11,22 +11,28 @@ const PAGE_SIZE = 9;
 
 export default function ProductGrid({
   activeCategory,
+  activeStoveId,
   products,
 }: {
   activeCategory: string | null;
+  activeStoveId?: number | null;
   products: Product[];
 }) {
   const { t } = useLocale();
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  // Reset visible count when category changes
+  // Reset visible count when filters change
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [activeCategory]);
+  }, [activeCategory, activeStoveId]);
 
-  const filtered = activeCategory
+  let filtered = activeCategory
     ? products.filter((p) => p.categorySlug === activeCategory)
     : products;
+
+  if (activeStoveId != null) {
+    filtered = filtered.filter((p) => p.compatibleStoveIds?.includes(activeStoveId));
+  }
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;

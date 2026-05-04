@@ -9,10 +9,12 @@ export default function ProductActions({
   productId,
   active,
   productName,
+  currentPage = 1,
 }: {
   productId: number;
   active: boolean;
   productName: string;
+  currentPage?: number;
 }) {
   const [isPending, startTransition] = useTransition();
 
@@ -34,7 +36,7 @@ export default function ProductActions({
   return (
     <div className={`flex items-center justify-end gap-1 ${isPending ? "opacity-50 pointer-events-none" : ""}`}>
       <Link
-        href={`/admin/products/${productId}`}
+        href={`/admin/products/${productId}?returnPage=${currentPage}`}
         className="p-1.5 rounded-lg hover:bg-surface-hover transition-colors"
         title="Modifica"
       >

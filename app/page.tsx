@@ -2,15 +2,35 @@ import HomeClient from "./HomeClient";
 import { getProducts } from "@/lib/products";
 import { getCategories } from "@/lib/categories";
 import { getUser } from "@/lib/auth";
+import { getDb } from "@/db";
+import { stoves, productStoves } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [{ products: dbProducts }, dbCategories, user] = await Promise.all([
+  const db = getDb();
+  const [{ products: dbProducts }, dbCategories, user, dbStoves, dbProductStoves] = await Promise.all([
     getProducts(),
     getCategories(),
     getUser(),
+    db.select({ id: stoves.id, nameIt: stoves.nameIt, nameEn: stoves.nameEn, nameFr: stoves.nameFr, nameEs: stoves.nameEs }).from(stoves).where(eq(stoves.active, true)),
+    db.select({ productId: productStoves.productId, stoveId: productStoves.stoveId }).from(productStoves),
   ]);
+
+  // Build stoveId → productIds map for counting
+  const productStoveMap: Record<number, number[]> = {};
+  for (const ps of dbProductStoves) {
+    if (!productStoveMap[ps.stoveId]) productStoveMap[ps.stoveId] = [];
+    productStoveMap[ps.stoveId].push(ps.productId);
+  }
+
+  // Build productId → stoveIds map
+  const productToStoves: Record<number, number[]> = {};
+  for (const ps of dbProductStoves) {
+    if (!productToStoves[ps.productId]) productToStoves[ps.productId] = [];
+    productToStoves[ps.productId].push(ps.stoveId);
+  }
 
   // Map to the shape components expect
   const products = dbProducts.map((p) => ({
@@ -32,6 +52,7 @@ export default async function HomePage() {
     description_en: p.descriptionShort_en || p.description_en,
     description_fr: p.descriptionShort_fr || p.description_fr,
     description_es: p.descriptionShort_es || p.description_es,
+    compatibleStoveIds: productToStoves[p.id] || [],
   }));
 
   const categories = dbCategories.map((c) => ({
@@ -45,5 +66,14 @@ export default async function HomePage() {
     name_es: c.name_es,
   }));
 
-  return <HomeClient products={products} categories={categories} user={user} />;
+  const stoveList = dbStoves.map((s) => ({
+    id: s.id,
+    nameIt: s.nameIt,
+    nameEn: s.nameEn,
+    nameFr: s.nameFr,
+    nameEs: s.nameEs,
+    productCount: (productStoveMap[s.id] || []).length,
+  }));
+
+  return <HomeClient products={products} categories={categories} user={user} stoves={stoveList} />;
 }

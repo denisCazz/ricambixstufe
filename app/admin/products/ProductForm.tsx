@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Save } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
+import StovesMultiSelect from "@/components/admin/StovesMultiSelect";
 
 interface Category {
   id: number;
@@ -147,6 +148,7 @@ export default function ProductForm({
   action,
   submitLabel,
   productImages = [],
+  returnPage,
 }: {
   product?: ProductData;
   categories: Category[];
@@ -155,12 +157,16 @@ export default function ProductForm({
   action: (prevState: { error?: string } | null, formData: FormData) => Promise<{ error?: string } | null>;
   submitLabel: string;
   productImages?: ProductImage[];
+  returnPage?: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, null);
   const p = product || emptyProduct;
 
   return (
     <form action={formAction} className="space-y-8">
+      {returnPage && (
+        <input type="hidden" name="return_page" value={returnPage} />
+      )}
       {state?.error && (
         <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 text-sm">
           {state.error}
@@ -254,6 +260,15 @@ export default function ProductForm({
         </div>
       </section>
 
+      {/* Compatible Stoves */}
+      {stoves.length > 0 && (
+        <section className="bg-surface border border-border rounded-2xl p-5">
+          <h2 className="text-lg font-semibold text-foreground mb-1">Modelli compatibili</h2>
+          <p className="text-sm text-muted mb-4">Seleziona le stufe compatibili con questo prodotto</p>
+          <StovesMultiSelect stoves={stoves} selectedStoveIds={selectedStoveIds} />
+        </section>
+      )}
+
       {/* Descriptions */}
       <section className="bg-surface border border-border rounded-2xl p-5">
         <h2 className="text-lg font-semibold text-foreground mb-4">Descrizioni</h2>
@@ -292,28 +307,6 @@ export default function ProductForm({
           </div>
         </div>
       </section>
-
-      {/* Compatible Stoves */}
-      {stoves.length > 0 && (
-        <section className="bg-surface border border-border rounded-2xl p-5">
-          <h2 className="text-lg font-semibold text-foreground mb-1">Compatibile con</h2>
-          <p className="text-sm text-muted mb-4">Seleziona le stufe compatibili con questo prodotto</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-            {stoves.map((s) => (
-              <label key={s.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-xl hover:bg-background transition-colors">
-                <input
-                  type="checkbox"
-                  name="compatible_stove_ids"
-                  value={s.id}
-                  defaultChecked={selectedStoveIds.includes(s.id)}
-                  className="w-4 h-4 rounded border-border text-accent focus:ring-accent/20"
-                />
-                <span className="text-sm text-foreground">{s.nameIt}</span>
-              </label>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Images */}
       <section className="bg-surface border border-border rounded-2xl p-5">

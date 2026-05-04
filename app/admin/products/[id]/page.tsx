@@ -10,10 +10,13 @@ import ProductForm from "@/app/admin/products/ProductForm";
 
 export default async function EditProductPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ returnPage?: string }>;
 }) {
   const { id } = await params;
+  const { returnPage } = await searchParams;
   const productId = parseInt(id, 10);
   if (isNaN(productId)) notFound();
 
@@ -74,6 +77,7 @@ export default async function EditProductPage({
         productImages={initialImages}
         action={action}
         submitLabel="Salva Modifiche"
+        returnPage={returnPage}
       />
     </div>
   );

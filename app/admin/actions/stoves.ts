@@ -40,6 +40,10 @@ export async function createStove(formData: FormData): Promise<{ error?: string 
       slug,
       active: formData.get("active") !== "false",
       sortOrder: parseInt(formData.get("sort_order") as string, 10) || 0,
+      categoria: (formData.get("categoria") as string) || null,
+      potenza: (formData.get("potenza") as string) || null,
+      dimensioni: (formData.get("dimensioni") as string) || null,
+      peso: (formData.get("peso") as string) || null,
     });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Errore" };
@@ -63,6 +67,10 @@ export async function updateStove(id: number, formData: FormData): Promise<{ err
         nameEs: (formData.get("name_es") as string) || null,
         active: formData.get("active") !== "false",
         sortOrder: parseInt(formData.get("sort_order") as string, 10) || 0,
+        categoria: (formData.get("categoria") as string) || null,
+        potenza: (formData.get("potenza") as string) || null,
+        dimensioni: (formData.get("dimensioni") as string) || null,
+        peso: (formData.get("peso") as string) || null,
       })
       .where(eq(stoves.id, id));
   } catch (e) {

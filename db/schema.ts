@@ -202,6 +202,10 @@ export const stoves = pgTable("stoves", {
   slug: text("slug").notNull().unique(),
   active: boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+  categoria: text("categoria"),
+  potenza: text("potenza"),
+  dimensioni: text("dimensioni"),
+  peso: text("peso"),
 });
 
 export const productStoves = pgTable("product_stoves", {

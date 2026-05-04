@@ -242,6 +242,7 @@ export default async function AdminProductsPage({
                         productId={product.id}
                         active={product.active}
                         productName={product.nameIt}
+                        currentPage={page}
                       />
                     </td>
                   </tr>
