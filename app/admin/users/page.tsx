@@ -8,10 +8,11 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { getDb } from "@/db";
-import { profiles } from "@/db/schema";
+import { profiles, appUsers } from "@/db/schema";
 import { Search } from "lucide-react";
 import UserRoleSelect from "./UserRoleSelect";
 import CreateUserModal from "./CreateUserModal";
+import VerifyEmailButton from "./VerifyEmailButton";
 import type { UserRole } from "@/lib/types";
 
 const PAGE_SIZE = 30;
@@ -52,15 +53,37 @@ export default async function AdminUsersPage({
 
   const userRows = whereClause
     ? await db
-        .select()
+        .select({
+          id: profiles.id,
+          email: profiles.email,
+          firstName: profiles.firstName,
+          lastName: profiles.lastName,
+          role: profiles.role,
+          company: profiles.company,
+          phone: profiles.phone,
+          createdAt: profiles.createdAt,
+          emailVerifiedAt: appUsers.emailVerifiedAt,
+        })
         .from(profiles)
+        .leftJoin(appUsers, eq(appUsers.id, profiles.id))
         .where(whereClause)
         .orderBy(desc(profiles.createdAt))
         .limit(PAGE_SIZE)
         .offset(offset)
     : await db
-        .select()
+        .select({
+          id: profiles.id,
+          email: profiles.email,
+          firstName: profiles.firstName,
+          lastName: profiles.lastName,
+          role: profiles.role,
+          company: profiles.company,
+          phone: profiles.phone,
+          createdAt: profiles.createdAt,
+          emailVerifiedAt: appUsers.emailVerifiedAt,
+        })
         .from(profiles)
+        .leftJoin(appUsers, eq(appUsers.id, profiles.id))
         .orderBy(desc(profiles.createdAt))
         .limit(PAGE_SIZE)
         .offset(offset);
@@ -77,6 +100,7 @@ export default async function AdminUsersPage({
     company: u.company,
     phone: u.phone,
     created_at: u.createdAt.toISOString(),
+    emailVerified: !!u.emailVerifiedAt,
   }));
 
   return (
@@ -125,6 +149,7 @@ export default async function AdminUsersPage({
                 <th className="text-left py-3 px-4 hidden md:table-cell">Nome</th>
                 <th className="text-left py-3 px-4 hidden lg:table-cell">Azienda</th>
                 <th className="text-left py-3 px-4">Ruolo</th>
+                <th className="text-left py-3 px-4">Email verificata</th>
                 <th className="text-left py-3 px-4 hidden sm:table-cell">Data</th>
               </tr>
             </thead>
@@ -146,6 +171,15 @@ export default async function AdminUsersPage({
                       userId={u.id}
                       currentRole={u.role as UserRole}
                     />
+                  </td>
+                  <td className="py-3 px-4">
+                    {u.emailVerified ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
+                        ✓ Sì
+                      </span>
+                    ) : (
+                      <VerifyEmailButton userId={u.id} />
+                    )}
                   </td>
                   <td className="py-3 px-4 text-muted text-xs hidden sm:table-cell">
                     {u.created_at.slice(0, 10)}

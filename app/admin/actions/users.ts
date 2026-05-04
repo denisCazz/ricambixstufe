@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { profiles } from "@/db/schema";
+import { appUsers, profiles } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 import type { UserRole } from "@/lib/types";
 
@@ -13,6 +13,20 @@ async function requireAdmin() {
     throw new Error("Non autorizzato");
   }
   return user;
+}
+
+export async function verifyUserEmail(userId: string) {
+  await requireAdmin();
+  const db = getDb();
+  try {
+    await db
+      .update(appUsers)
+      .set({ emailVerifiedAt: new Date(), updatedAt: new Date() })
+      .where(eq(appUsers.id, userId));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Errore" };
+  }
+  revalidatePath("/admin/users");
 }
 
 export async function updateUserRole(userId: string, role: UserRole) {

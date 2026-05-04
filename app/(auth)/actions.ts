@@ -39,7 +39,14 @@ export async function login(formData: FormData) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    if (message.includes("email_not_verified")) {
+    const causeMessage =
+      err instanceof Error && err.cause instanceof Error
+        ? err.cause.message
+        : "";
+    if (
+      message.includes("email_not_verified") ||
+      causeMessage.includes("email_not_verified")
+    ) {
       return { error: "email_not_verified" as const };
     }
     return { error: "Email o password non validi" };

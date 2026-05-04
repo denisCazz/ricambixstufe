@@ -15,7 +15,7 @@ export default {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const { validateCredentials, EmailNotVerifiedError } = await import(
+        const { validateCredentials } = await import(
           "@/lib/auth/validate-credentials"
         );
         try {
@@ -24,7 +24,9 @@ export default {
             String(credentials.password)
           );
         } catch (err) {
-          if (err instanceof EmailNotVerifiedError) {
+          const name = err instanceof Error ? err.name : "";
+          const msg = err instanceof Error ? err.message : "";
+          if (name === "EmailNotVerifiedError" || msg === "email_not_verified") {
             throw new Error("email_not_verified");
           }
           return null;
