@@ -254,9 +254,24 @@ export async function getRelatedProducts(
     )
     .limit(limitN);
 
+  const ids = data.map((r) => r.id);
+  const imgMap = new Map<number, ProductImage[]>();
+  if (ids.length) {
+    const imgs = await db
+      .select()
+      .from(productImages)
+      .where(inArray(productImages.productId, ids));
+    for (const i of imgs) {
+      const list = imgMap.get(i.productId) || [];
+      list.push({ id: i.id, image_url: i.imageUrl, sort_order: i.sortOrder, alt_text: i.altText });
+      imgMap.set(i.productId, list);
+    }
+    for (const list of imgMap.values()) list.sort((a, b) => a.sort_order - b.sort_order);
+  }
+
   return data.map((row) => {
     const { catName, catSlug, ...pr } = row;
-    return mapProduct(pr as unknown as PRow, catName, catSlug, []);
+    return mapProduct(pr as unknown as PRow, catName, catSlug, imgMap.get(row.id) || []);
   });
 }
 
