@@ -19,33 +19,38 @@ export default function Footer() {
 
   return (
     <footer id="contatti" className="border-t border-border bg-surface">
-      <div className="max-w-7xl mx-auto px-4 py-14 lg:py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-8">
-          {/* Company info */}
-          <div>
-            <div className="mb-5">
-              <Link href="/">
-                <Image
-                  src="/logo_con_scritte.png"
-                  alt="RicambiXStufe"
-                  width={300}
-                  height={75}
-                  className="h-25 sm:h-30 w-auto object-contain"
-                />
-              </Link>
-            </div>
-            <p className="text-sm text-muted leading-relaxed mb-5">
+      <div className="max-w-7xl mx-auto px-4 py-10 lg:py-12">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+
+          {/* Colonna 1: Logo */}
+          <div className="col-span-2 lg:col-span-1 flex flex-col items-start">
+            <Link href="/" className="mb-4 block">
+              <Image
+                src="/logo_con_scritte.png"
+                alt="RicambiXStufe"
+                width={200}
+                height={55}
+                className="h-14 w-auto object-contain"
+              />
+            </Link>
+            <p className="text-xs text-muted leading-relaxed">
               {t("footer.description")}
             </p>
-            <div className="space-y-2.5 text-sm text-muted">
+          </div>
+
+          {/* Colonna 2: Contatti */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-muted mb-3">
+              Contatti
+            </h4>
+            <div className="space-y-2 text-xs text-muted">
               <div className="flex items-start gap-2">
                 <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-medium text-foreground">ELETTROSERVICE snc</span>
                   <br />
-                  Viale Istria 1 | 31015 Conegliano (TV)
-                  <br />
-                  REA nr. TV 297485
+                  Viale Istria 1<br />
+                  31015 Conegliano (TV)
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -54,29 +59,29 @@ export default function Footer() {
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 shrink-0" />
-                <a href="mailto:info@ricambixstufe.it" className="hover:text-accent transition-colors">info@ricambixstufe.it</a>
+                <a href="mailto:info@ricambixstufe.it" className="hover:text-accent transition-colors break-all">info@ricambixstufe.it</a>
               </div>
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=ELETTROSERVICE+snc+Viale+Istria+1+Conegliano+TV"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-red-600 text-white text-[10px] font-semibold hover:shadow-md hover:shadow-orange-500/25 transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
+              >
+                <MapPin className="w-3 h-3" />
+                {t("footer.find_us")}
+              </a>
             </div>
-            <a
-              href="https://www.google.com/maps/search/?api=1&query=ELETTROSERVICE+snc+Viale+Istria+1+Conegliano+TV"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 mt-4 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white text-xs font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-            >
-              <MapPin className="w-4 h-4" />
-              {t("footer.find_us")}
-            </a>
           </div>
 
-          {/* Info links */}
+          {/* Colonna 3: Link utili */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-muted mb-5">
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-muted mb-3">
               {t("footer.info")}
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-1.5">
               {infoLinkKeys.map((link) => (
                 <li key={link.key}>
-                  <Link href={link.href} className="text-sm text-muted hover:text-accent transition-colors duration-200">
+                  <Link href={link.href} className="text-xs text-muted hover:text-accent transition-colors duration-200">
                     {t(link.key)}
                   </Link>
                 </li>
@@ -84,56 +89,53 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Payment methods */}
+          {/* Colonna 4: Pagamenti e marchi */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-muted mb-5">
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-muted mb-3">
               {t("footer.payments")}
             </h4>
-            <div className="flex items-center gap-3 flex-wrap">
-              <Image src="/logo_eva_calor.png" alt="Eva Calor" width={80} height={40} className="object-contain" />
-              <Image src="/punto_fuoco.png" alt="Punto Fuoco" width={80} height={40} className="object-contain" />
-            </div>
-            <div className="mt-4 flex items-center gap-2 flex-wrap">
-              {["Stripe", "Visa", "Mastercard", "Amex", "Apple Pay", "Google Pay"].map((m) => (
+            <div className="flex flex-col gap-1 mb-4">
+              {["PayPal", "Contrassegno", "Bonifico bancario"].map((m) => (
                 <span
                   key={m}
-                  className="px-2.5 py-1 rounded-md bg-stone-50 dark:bg-stone-800/50 border border-border text-[10px] font-medium text-muted"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted"
                 >
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent/60 shrink-0" />
                   {m}
                 </span>
               ))}
             </div>
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-muted mb-3">
+              Marchi
+            </h4>
+            <div className="flex items-center gap-3 flex-wrap">
+              <Image src="/logo_eva_calor.png" alt="Eva Calor" width={65} height={32} className="object-contain" />
+              <Image src="/punto_fuoco.png" alt="Punto Fuoco" width={65} height={32} className="object-contain" />
+            </div>
           </div>
+
         </div>
       </div>
 
       <div className="border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-xs text-muted">
             &copy; {new Date().getFullYear()} Ricambi X Stufe — ELETTROSERVICE snc. {t("footer.rights")}.
           </p>
           <div className="flex items-center gap-3">
+            <span className="text-xs text-muted/60">
+              Sito realizzato da{" "}
+              <a
+                href="https://www.bitora.it"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-foreground/70 hover:text-accent transition-colors"
+              >
+                Bitora.it
+              </a>
+            </span>
             <ThemeToggle />
-            <p className="text-xs text-muted/60">
-              P.IVA 03771060260
-            </p>
           </div>
-        </div>
-      </div>
-
-      <div className="border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 py-3 text-center">
-          <p className="text-xs text-muted/60">
-            Sito realizzato da{" "}
-            <a
-              href="https://www.bitora.it"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-foreground/70 hover:text-accent transition-colors"
-            >
-              Bitora.it
-            </a>
-          </p>
         </div>
       </div>
     </footer>
