@@ -8,11 +8,13 @@ const nextConfig: NextConfig = {
     cpus: 2,
   },
   images: {
+    formats: ["image/avif", "image/webp"],
+    qualities: [75, 85, 90, 95],
     remotePatterns: [
       {
         protocol: "https",
         hostname: "www.ricambixstufe.it",
-        pathname: "/ricambixstufe/**",
+        pathname: "/**",
       },
       // Cloudflare R2 - dominio custom
       ...(process.env.R2_PUBLIC_URL

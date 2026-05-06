@@ -45,6 +45,7 @@ export default function ProductImageCarousel({
             alt={img.alt_text || productName}
             fill
             sizes="(max-width: 1024px) 100vw, 50vw"
+            quality={90}
             className="object-contain p-8"
             priority
           />
@@ -151,6 +152,7 @@ export default function ProductImageCarousel({
               alt={img.alt_text || productName}
               fill
               sizes="90vw"
+              quality={95}
               className="object-contain"
               priority
             />

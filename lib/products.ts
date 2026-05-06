@@ -98,7 +98,7 @@ function mapProduct(
     category: categoryName,
     categorySlug,
     categoryId: pr.categoryId,
-    image: pr.imageUrl || (images[0]?.image_url ?? null),
+    image: images[0]?.image_url ?? null,
     images: images || [],
     sku: pr.sku,
     ean13: pr.ean13,

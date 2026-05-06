@@ -63,6 +63,7 @@ export default function ProductCard({
               alt={localizedName}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              quality={85}
               className="object-contain p-4 transition-transform duration-500 group-hover:scale-110"
               onError={() => setImgError(true)}
             />

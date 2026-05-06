@@ -8,6 +8,7 @@ import {
   eq,
   ilike,
   or,
+  sql,
   type SQL,
 } from "drizzle-orm";
 import { getDb } from "@/db";
@@ -64,6 +65,7 @@ export default async function AdminProductsPage({
           stockQuantity: products.stockQuantity,
           active: products.active,
           imageUrl: products.imageUrl,
+          firstImageUrl: sql<string | null>`(SELECT image_url FROM product_images WHERE product_id = products.id ORDER BY sort_order ASC, id ASC LIMIT 1)`,
           sku: products.sku,
           categoryId: products.categoryId,
           catName: categories.nameIt,
@@ -83,6 +85,7 @@ export default async function AdminProductsPage({
           stockQuantity: products.stockQuantity,
           active: products.active,
           imageUrl: products.imageUrl,
+          firstImageUrl: sql<string | null>`(SELECT image_url FROM product_images WHERE product_id = products.id ORDER BY sort_order ASC, id ASC LIMIT 1)`,
           sku: products.sku,
           categoryId: products.categoryId,
           catName: categories.nameIt,
@@ -181,9 +184,9 @@ export default async function AdminProductsPage({
                   >
                     <td className="py-3 px-4">
                       <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-stone-800 border border-border overflow-hidden relative">
-                        {product.imageUrl ? (
+                        {(product.firstImageUrl || product.imageUrl) ? (
                           <Image
-                            src={product.imageUrl}
+                            src={(product.firstImageUrl || product.imageUrl)!}
                             alt=""
                             fill
                             sizes="40px"
