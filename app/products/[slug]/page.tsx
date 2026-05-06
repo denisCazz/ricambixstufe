@@ -168,7 +168,7 @@ export default async function ProductDetailPage({
                 </div>
                 <div className="flex items-center gap-3 text-sm text-muted">
                   <span className="w-2 h-2 rounded-full bg-accent" />
-                  <TranslatedText k="product.warranty" />
+                  <TranslatedText k={product.categorySlug === "resistenze-accensione" ? "product.warranty_ignition" : "product.warranty"} />
                 </div>
               </div>
 
