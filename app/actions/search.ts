@@ -1,6 +1,6 @@
 "use server";
 
-import { and, or, ilike, eq, asc, getTableColumns, exists } from "drizzle-orm";
+import { and, or, ilike, eq, asc, getTableColumns, exists, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { products, categories, stoves, productStoves } from "@/db/schema";
 
@@ -25,6 +25,7 @@ export async function searchProducts(query: string): Promise<SearchResult[]> {
       slug: p.slug,
       price: p.price,
       imageUrl: p.imageUrl,
+      firstImageUrl: sql<string | null>`(SELECT image_url FROM product_images WHERE product_id = products.id ORDER BY sort_order ASC, id ASC LIMIT 1)`,
       catName: categories.nameIt,
     })
     .from(products)
@@ -64,7 +65,7 @@ export async function searchProducts(query: string): Promise<SearchResult[]> {
     name: row.nameIt,
     slug: row.slug,
     price: Number(row.price),
-    image: row.imageUrl,
+    image: row.firstImageUrl ?? row.imageUrl ?? null,
     category: row.catName,
   }));
 }
