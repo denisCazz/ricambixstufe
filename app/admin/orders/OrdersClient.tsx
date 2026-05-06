@@ -13,6 +13,7 @@ import {
   XCircle,
   Link2,
 } from "lucide-react";
+import ExportExcelButton from "@/components/admin/ExportExcelButton";
 import {
   updateOrderStatus,
   updateTrackingNumber,
@@ -153,12 +154,18 @@ export default function OrdersClient({
             {filtered.length} ordini trovati
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <Link2 className="w-4 h-4 text-muted" />
-          <span className="text-muted">URL Danea:</span>
-          <code className="bg-surface px-2 py-1 rounded text-xs border border-border break-all max-w-xs">
-            {daneaUrl}
-          </code>
+        <div className="flex flex-wrap items-center gap-3">
+          <ExportExcelButton
+            href={`/api/admin/export/orders${filterStatus !== "all" ? `?status=${filterStatus}` : ""}`}
+            label="Scarica Excel"
+          />
+          <div className="flex items-center gap-2 text-sm">
+            <Link2 className="w-4 h-4 text-muted" />
+            <span className="text-muted">URL Danea:</span>
+            <code className="bg-surface px-2 py-1 rounded text-xs border border-border break-all max-w-xs">
+              {daneaUrl}
+            </code>
+          </div>
         </div>
       </div>
 

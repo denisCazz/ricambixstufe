@@ -13,7 +13,7 @@ import {
   Menu,
   X,
   LogOut,
-  ChevronLeft,
+  ExternalLink,
   Settings,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
@@ -38,6 +38,13 @@ export default function AdminShell({
 }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h >= 5 && h < 12) return "Buongiorno";
+    if (h >= 12 && h < 18) return "Buon pomeriggio";
+    return "Buona sera";
+  })();
 
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
@@ -102,23 +109,40 @@ export default function AdminShell({
           </nav>
 
           {/* User info + back to shop */}
-          <div className="p-4 border-t border-border space-y-2">
-            <Link
-              href="/"
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-muted hover:bg-surface-hover hover:text-foreground transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Torna al sito
-            </Link>
-            <form action={logout}>
-              <button
-                type="submit"
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-muted hover:bg-surface-hover hover:text-foreground transition-colors"
+          <div className="p-4 border-t border-border">
+            {/* User card */}
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/40 mb-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-red-600 flex items-center justify-center ring-2 ring-orange-300/40 dark:ring-orange-500/30 shrink-0">
+                <span className="text-[13px] font-bold text-white leading-none">
+                  {(user.firstName?.[0] || user.email[0]).toUpperCase()}
+                </span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold text-foreground truncate">
+                  {[user.firstName, user.lastName].filter(Boolean).join(" ") || user.email.split("@")[0]}
+                </div>
+                <div className="text-[11px] text-muted truncate">{user.email}</div>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Link
+                href="/"
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-foreground bg-orange-50 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-950/50 text-accent transition-colors"
               >
-                <LogOut className="w-4 h-4" />
-                Esci ({user.email})
-              </button>
-            </form>
+                <ExternalLink className="w-4 h-4 text-accent" />
+                <span className="text-accent">Torna al sito</span>
+              </Link>
+              <form action={logout}>
+                <button
+                  type="submit"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Esci dall&apos;account
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </aside>
@@ -133,12 +157,13 @@ export default function AdminShell({
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex-1" />
-          <div className="text-sm text-muted">
-            <span className="hidden sm:inline">{user.email} · </span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/40 text-accent text-xs font-medium">
-              Admin
-            </span>
+          <div className="flex-1 flex justify-center">
+            <div className="text-sm text-muted">
+              <span>{greeting}, </span>
+              <span className="font-semibold text-foreground">
+                {user.firstName || user.email.split("@")[0]}
+              </span>
+            </div>
           </div>
         </header>
 

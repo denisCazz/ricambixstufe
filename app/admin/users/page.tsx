@@ -14,6 +14,7 @@ import UserRoleSelect from "./UserRoleSelect";
 import CreateUserModal from "./CreateUserModal";
 import VerifyEmailButton from "./VerifyEmailButton";
 import type { UserRole } from "@/lib/types";
+import ExportExcelButton from "@/components/admin/ExportExcelButton";
 
 const PAGE_SIZE = 30;
 
@@ -107,7 +108,13 @@ export default async function AdminUsersPage({
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-foreground">Utenti</h1>
-        <CreateUserModal />
+        <div className="flex items-center gap-3">
+          <ExportExcelButton
+            href={`/api/admin/export/users${search || roleFilter ? `?q=${encodeURIComponent(search)}&role=${encodeURIComponent(roleFilter)}` : ""}`}
+            label="Scarica Excel"
+          />
+          <CreateUserModal />
+        </div>
       </div>
       <div className="bg-surface border border-border rounded-2xl p-4 mb-4">
         <form className="flex flex-col sm:flex-row gap-3">

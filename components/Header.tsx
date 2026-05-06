@@ -3,13 +3,20 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, User, ShoppingCart, Menu, X, LogOut, Settings, Shield, Loader2, Headphones, Globe, ChevronDown, Flame } from "lucide-react";
+import { Search, User, ShoppingCart, Menu, X, LogOut, Shield, Loader2, Headphones, ChevronDown, Flame } from "lucide-react";
 import type { AuthUser } from "@/lib/auth";
 import { logout } from "@/app/(auth)/actions";
 import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { searchProducts, searchStoves, type SearchResult, type StoveSearchResult } from "@/app/actions/search";
 import { locales, type Locale } from "@/lib/i18n";
+
+const languageFlags: Record<Locale, string> = {
+  it: "https://flagcdn.com/w20/it.png",
+  en: "https://flagcdn.com/w20/gb.png",
+  fr: "https://flagcdn.com/w20/fr.png",
+  es: "https://flagcdn.com/w20/es.png",
+};
 
 const languageLabels: Record<Locale, string> = {
   it: "IT",
@@ -216,11 +223,11 @@ export default function Header({
             <div className="relative hidden md:block" ref={langRef}>
               <button
                 onClick={() => { setLangOpen(!langOpen); setCurrOpen(false); }}
-                className="flex items-center gap-0.5 p-2 rounded-lg hover:bg-surface-hover active:bg-surface-hover transition-colors text-xs font-semibold text-muted hover:text-foreground uppercase"
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-surface-hover active:bg-surface-hover transition-colors text-sm font-medium text-muted hover:text-foreground"
                 aria-label="Lingua"
               >
-                <Globe className="w-4 h-4" />
-                <span className="ml-0.5">{locale}</span>
+                <img src={languageFlags[locale]} alt={locale} className="w-5 h-3.5 object-cover rounded-sm shadow-sm" />
+                <span>{languageLabels[locale]}</span>
                 <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${langOpen ? "rotate-180" : ""}`} />
               </button>
               {langOpen && (
@@ -229,10 +236,11 @@ export default function Header({
                     <button
                       key={l}
                       onClick={() => { setLocale(l); setLangOpen(false); }}
-                      className={`w-full text-left px-3.5 py-2.5 text-xs hover:bg-surface-hover active:bg-surface-hover transition-colors ${
+                      className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm hover:bg-surface-hover active:bg-surface-hover transition-colors ${
                         locale === l ? "text-accent font-semibold bg-orange-50 dark:bg-orange-950/40" : "text-foreground"
                       }`}
                     >
+                      <img src={languageFlags[l]} alt={l} className="w-5 h-3.5 object-cover rounded-sm shadow-sm shrink-0" />
                       {languageLabels[l]}
                     </button>
                   ))}
@@ -244,11 +252,11 @@ export default function Header({
             <div className="relative hidden md:block" ref={currRef}>
               <button
                 onClick={() => { setCurrOpen(!currOpen); setLangOpen(false); }}
-                className="flex items-center gap-0.5 p-2 rounded-lg hover:bg-surface-hover active:bg-surface-hover transition-colors text-xs font-bold text-muted hover:text-foreground"
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-surface-hover active:bg-surface-hover transition-colors"
                 aria-label="Valuta"
               >
-                {currency.symbol}
-                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${currOpen ? "rotate-180" : ""}`} />
+                <span className="text-base font-bold text-emerald-500 dark:text-emerald-400 leading-none">{currency.symbol}</span>
+                <ChevronDown className={`w-3 h-3 text-muted transition-transform duration-200 ${currOpen ? "rotate-180" : ""}`} />
               </button>
               {currOpen && (
                 <div className="absolute left-0 top-full mt-1.5 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50 min-w-[90px]">
@@ -301,60 +309,109 @@ export default function Header({
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => { setUserMenuOpen(!userMenuOpen); }}
-                  className="flex items-center gap-1.5 p-2 rounded-xl hover:bg-surface-hover active:bg-surface-hover transition-colors"
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-xl transition-all duration-200 hover:bg-surface-hover active:bg-surface-hover ${userMenuOpen ? "bg-surface-hover" : ""}`}
                   aria-label="Menu utente"
                 >
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
-                    <span className="text-[11px] font-bold text-white leading-none">
-                      {(user.firstName?.[0] || user.email[0]).toUpperCase()}
-                    </span>
+                  <div className="relative">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-red-600 flex items-center justify-center ring-2 ring-orange-300/40 dark:ring-orange-500/30 shadow-sm">
+                      <span className="text-[13px] font-bold text-white leading-none">
+                        {(user.firstName?.[0] || user.email[0]).toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 border-2 border-surface rounded-full" />
                   </div>
                   <span className="hidden sm:block text-sm font-medium text-foreground max-w-[100px] truncate">
                     {user.firstName || user.email.split("@")[0]}
                   </span>
+                  <ChevronDown className={`hidden sm:block w-3.5 h-3.5 text-muted transition-transform duration-200 ${userMenuOpen ? "rotate-180" : ""}`} />
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50">
-                    <div className="px-4 py-3 border-b border-border bg-stone-50/50 dark:bg-stone-800/30">
-                      <div className="text-sm font-medium text-foreground truncate">
-                        {[user.firstName, user.lastName].filter(Boolean).join(" ") || user.email}
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden z-50">
+                    {/* Profile header */}
+                    <div className="px-4 pt-4 pb-3 border-b border-border/60">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-600 flex items-center justify-center ring-2 ring-orange-300/40 dark:ring-orange-500/30 shrink-0">
+                          <span className="text-base font-bold text-white leading-none">
+                            {(user.firstName?.[0] || user.email[0]).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-foreground truncate">
+                            {[user.firstName, user.lastName].filter(Boolean).join(" ") || user.email.split("@")[0]}
+                          </div>
+                          <div className="text-xs text-muted truncate">{user.email}</div>
+                        </div>
                       </div>
-                      <div className="text-xs text-muted truncate">{user.email}</div>
+                      {user.role === "admin" && (
+                        <span className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/40 text-accent text-[11px] font-semibold">
+                          <Shield className="w-3 h-3" />
+                          Amministratore
+                        </span>
+                      )}
                     </div>
-                    {user.role === "admin" && (
+
+                    {/* Menu items */}
+                    <div className="py-1.5">
+                      {user.role === "admin" && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-surface-hover active:bg-surface-hover transition-colors"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center">
+                            <Shield className="w-3.5 h-3.5 text-accent" />
+                          </div>
+                          {t("auth.admin")}
+                        </Link>
+                      )}
                       <Link
-                        href="/admin"
+                        href="/account"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-surface-hover active:bg-surface-hover transition-colors"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-surface-hover active:bg-surface-hover transition-colors"
                       >
-                        <Shield className="w-4 h-4 text-accent" />
-                        {t("auth.admin")}
+                        <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-stone-800 flex items-center justify-center">
+                          <User className="w-3.5 h-3.5 text-muted" />
+                        </div>
+                        {t("auth.account")}
                       </Link>
-                    )}
-                    <Link
-                      href="/account"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-surface-hover active:bg-surface-hover transition-colors"
-                    >
-                      <Settings className="w-4 h-4 text-muted" />
-                      {t("auth.account")}
-                    </Link>
-                    <form action={logout}>
-                      <button
-                        type="submit"
-                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 active:bg-red-50 transition-colors"
+                      <Link
+                        href="/account/orders"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-surface-hover active:bg-surface-hover transition-colors"
                       >
-                        <LogOut className="w-4 h-4" />
-                        {t("auth.logout")}
-                      </button>
-                    </form>
+                        <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-stone-800 flex items-center justify-center">
+                          <ShoppingCart className="w-3.5 h-3.5 text-muted" />
+                        </div>
+                        I miei ordini
+                      </Link>
+                    </div>
+
+                    {/* Logout */}
+                    <div className="border-t border-border/60 p-1.5">
+                      <form action={logout}>
+                        <button
+                          type="submit"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 active:bg-red-50 transition-colors"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-950/40 flex items-center justify-center">
+                            <LogOut className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+                          </div>
+                          {t("auth.logout")}
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 )}
               </div>
             ) : (
-              <Link href="/login" className="p-2 rounded-xl hover:bg-surface-hover active:bg-surface-hover transition-colors" aria-label="Account">
-                <User className="w-5 h-5 text-foreground" />
+              <Link
+                href="/login"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-foreground hover:text-accent hover:bg-surface-hover active:bg-surface-hover transition-colors"
+                aria-label="Accedi"
+              >
+                <User className="w-4.5 h-4.5" />
+                <span className="hidden sm:inline">Accedi</span>
               </Link>
             )}
 

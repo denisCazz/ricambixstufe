@@ -15,6 +15,7 @@ import { getDb } from "@/db";
 import { products, categories } from "@/db/schema";
 import { Plus, Search } from "lucide-react";
 import ProductActions from "./ProductActions";
+import ExportExcelButton from "@/components/admin/ExportExcelButton";
 
 const PAGE_SIZE = 20;
 
@@ -118,13 +119,19 @@ export default async function AdminProductsPage({
           <h1 className="text-2xl font-bold text-foreground">Prodotti</h1>
           <p className="text-sm text-muted mt-1">{totalCount} prodotti totali</p>
         </div>
-        <Link
-          href="/admin/products/new"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Nuovo Prodotto
-        </Link>
+        <div className="flex items-center gap-3 shrink-0">
+          <ExportExcelButton
+            href={`/api/admin/export/products${search || categoryFilter ? `?q=${encodeURIComponent(search)}&category=${encodeURIComponent(categoryFilter)}` : ""}`}
+            label="Scarica Excel"
+          />
+          <Link
+            href="/admin/products/new"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Nuovo Prodotto
+          </Link>
+        </div>
       </div>
 
       <div className="bg-surface border border-border rounded-2xl p-4 mb-4">

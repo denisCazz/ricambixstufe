@@ -2,6 +2,7 @@ import { desc, eq, getTableColumns } from "drizzle-orm";
 import { getDb } from "@/db";
 import { dealerProfiles, profiles } from "@/db/schema";
 import DealerActions from "./DealerActions";
+import ExportExcelButton from "@/components/admin/ExportExcelButton";
 
 export default async function AdminDealersPage() {
   const db = getDb();
@@ -52,11 +53,14 @@ export default async function AdminDealersPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Dealer</h1>
-        <p className="text-sm text-muted mt-1">
-          {pending.length} in attesa · {approved.length} approvati · {rejected.length} rifiutati
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dealer</h1>
+          <p className="text-sm text-muted mt-1">
+            {pending.length} in attesa · {approved.length} approvati · {rejected.length} rifiutati
+          </p>
+        </div>
+        <ExportExcelButton href="/api/admin/export/dealers" label="Scarica Excel" />
       </div>
 
       {pending.length > 0 && (
