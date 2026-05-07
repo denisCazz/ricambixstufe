@@ -89,7 +89,7 @@ export default async function StovePage({
     price: Number(r.price),
     category: catName,
     categorySlug: catSlug,
-    image: r.imageUrl,
+    image: imgMap.get(r.id)?.[0]?.image_url ?? null,
     weight: r.weight ? Number(r.weight) : null,
     stockQuantity: r.stockQuantity,
     name_it: r.nameIt ?? undefined,
