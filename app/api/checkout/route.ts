@@ -210,7 +210,13 @@ export async function POST(req: NextRequest) {
       "Regno Unito": "GB",
       Svizzera: "CH",
     };
-    const countryCode = countryMap[shippingInfo.country] || "IT";
+    const countryCode = countryMap[shippingInfo.country];
+    if (!countryCode) {
+      return NextResponse.json(
+        { error: "Paese non supportato" },
+        { status: 400 }
+      );
+    }
 
     // Build shipping & billing address objects
     const shippingAddress = {
@@ -254,6 +260,9 @@ export async function POST(req: NextRequest) {
         dealerDiscount,
         subtotal: Math.round(taxAdjustedSubtotal * 100) / 100,
         shippingCost,
+        taxAmount: isViesExempt
+          ? Math.round((subtotal - taxAdjustedSubtotal) * 100) / 100
+          : 0,
         total,
         shippingAddress,
         billingAddress,
@@ -314,7 +323,9 @@ export async function POST(req: NextRequest) {
               : "cod_pending",
           subtotal: String(subtotalRounded),
           shippingCost: String(shippingCost),
-          taxAmount: "0",
+          taxAmount: isViesExempt
+            ? String(Math.round((subtotal - taxAdjustedSubtotal) * 100) / 100)
+            : "0",
           total: String(total),
           shippingAddress,
           billingAddress,
@@ -390,7 +401,7 @@ export async function POST(req: NextRequest) {
         line_total: Number(r.lineTotal),
       })),
       subtotal: Math.round(subtotal * 100) / 100,
-      shippingCost: shippingCost + codSurcharge,
+      shippingCost: shippingCost,
       total,
       paymentMethod: dbPaymentMethod,
       shippingAddress,

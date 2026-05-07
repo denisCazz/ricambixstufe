@@ -286,5 +286,8 @@ export function applyDealerDiscount(
   price: number,
   discountPercent: number
 ): number {
-  return price * (1 - discountPercent / 100);
+  const safeDiscount = typeof discountPercent === "number" && isFinite(discountPercent)
+    ? Math.max(0, Math.min(100, discountPercent))
+    : 0;
+  return price * (1 - safeDiscount / 100);
 }

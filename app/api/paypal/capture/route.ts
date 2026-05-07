@@ -24,6 +24,7 @@ interface OrderPayload {
   dealerDiscount: number;
   subtotal: number;
   shippingCost: number;
+  taxAmount?: number;
   total: number;
   shippingAddress: Record<string, string>;
   billingAddress: Record<string, string>;
@@ -86,7 +87,7 @@ export async function GET(req: NextRequest) {
         paymentStatus: `paypal:${captureId}`,
         subtotal: String(payload.subtotal),
         shippingCost: String(payload.shippingCost),
-        taxAmount: "0",
+        taxAmount: String(typeof payload.taxAmount === "number" ? payload.taxAmount : 0),
         total: String(payload.total),
         shippingAddress: payload.shippingAddress,
         billingAddress: payload.billingAddress,
