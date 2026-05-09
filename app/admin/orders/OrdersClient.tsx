@@ -97,6 +97,10 @@ export default function OrdersClient({
     typeof window !== "undefined"
       ? `${window.location.origin}/api/danea/orders`
       : "/api/danea/orders";
+  const daneaProductsUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/api/danea/products`
+      : "/api/danea/products";
 
   function handleStatusChange(orderId: number, newStatus: string) {
     startTransition(async () => {
@@ -159,12 +163,20 @@ export default function OrdersClient({
             href={`/api/admin/export/orders${filterStatus !== "all" ? `?status=${filterStatus}` : ""}`}
             label="Scarica Excel"
           />
-          <div className="flex items-center gap-2 text-sm">
-            <Link2 className="w-4 h-4 text-muted" />
-            <span className="text-muted">URL Danea:</span>
-            <code className="bg-surface px-2 py-1 rounded text-xs border border-border break-all max-w-xs">
-              {daneaUrl}
-            </code>
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 text-sm">
+            <div className="flex items-center gap-2">
+              <Link2 className="w-4 h-4 text-muted shrink-0" />
+              <span className="text-muted shrink-0">URL ordini Danea:</span>
+              <code className="bg-surface px-2 py-1 rounded text-xs border border-border break-all max-w-xs">
+                {daneaUrl}
+              </code>
+            </div>
+            <div className="flex items-center gap-2 sm:ml-2">
+              <span className="text-muted shrink-0">URL catalogo Danea:</span>
+              <code className="bg-surface px-2 py-1 rounded text-xs border border-border break-all max-w-xs">
+                {daneaProductsUrl}
+              </code>
+            </div>
           </div>
         </div>
       </div>

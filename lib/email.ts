@@ -5,9 +5,23 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "RicambiXStufe <onboarding@resend.dev>";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "info@ricambixstufe.it";
 
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function parseEmailList(env: string | undefined): string[] {
   if (!env?.trim()) return [];
-  return env.split(",").map((e) => e.trim()).filter(Boolean);
+  return env
+    .split(",")
+    .map((e) => e.trim())
+    .filter((e) => e && EMAIL_RE.test(e));
 }
 
 const EMAIL_CC = parseEmailList(process.env.EMAIL_CC);
@@ -70,7 +84,7 @@ function buildItemsTable(items: OrderItem[]): string {
       (item) => `
       <tr>
         <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">
-          ${item.product_name}${item.product_sku ? ` <span style="color:#9ca3af">(${item.product_sku})</span>` : ""}
+          ${escapeHtml(item.product_name)}${item.product_sku ? ` <span style="color:#9ca3af">(${escapeHtml(item.product_sku)})</span>` : ""}
         </td>
         <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-size: 14px;">${item.quantity}</td>
         <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 14px;">${formatEur(item.unit_price)}</td>
@@ -119,7 +133,7 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
 
   const billingHtml = data.billingInfo?.company
     ? `<p style="margin: 8px 0 0; font-size: 13px; color: #6b7280;">
-        Fatturazione: ${data.billingInfo.company}${data.billingInfo.vat_number ? ` — P.IVA ${data.billingInfo.vat_number}` : ""}${data.billingInfo.sdi_code ? ` — SDI ${data.billingInfo.sdi_code}` : ""}
+        Fatturazione: ${escapeHtml(data.billingInfo.company)}${data.billingInfo.vat_number ? ` — P.IVA ${escapeHtml(data.billingInfo.vat_number)}` : ""}${data.billingInfo.sdi_code ? ` — SDI ${escapeHtml(data.billingInfo.sdi_code)}` : ""}
       </p>`
     : "";
 
@@ -138,7 +152,7 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
           </div>
 
           <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-            <p>Ciao <strong>${data.customerName}</strong>,</p>
+            <p>Ciao <strong>${escapeHtml(data.customerName)}</strong>,</p>
             <p>Grazie per il tuo ordine! Ecco il riepilogo:</p>
 
             ${buildItemsTable(data.items)}
@@ -151,7 +165,7 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
 
             <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
               <p style="margin: 0; font-size: 13px; color: #6b7280;"><strong>Pagamento:</strong> ${paymentLabel}</p>
-              <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;"><strong>Spedizione:</strong> ${addr?.name || ""}, ${addr?.address || ""}, ${addr?.zip || ""} ${addr?.city || ""} ${addr?.province || ""} ${addr?.country || ""}</p>
+              <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;"><strong>Spedizione:</strong> ${escapeHtml(addr?.name || "")}, ${escapeHtml(addr?.address || "")}, ${escapeHtml(addr?.zip || "")} ${escapeHtml(addr?.city || "")} ${escapeHtml(addr?.province || "")} ${escapeHtml(addr?.country || "")}</p>
               ${billingHtml}
             </div>
 
@@ -204,7 +218,7 @@ export async function sendOrderStatusUpdateEmail({
     status === "shipped" && trackingNumber
       ? `<div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 10px; padding: 16px; margin: 16px 0;">
           <p style="margin: 0; font-size: 14px; color: #5b21b6; font-weight: 600;">📬 Numero di tracking</p>
-          <p style="margin: 8px 0 0; font-size: 20px; font-weight: 700; color: #4c1d95; letter-spacing: 1px;">${trackingNumber}</p>
+          <p style="margin: 8px 0 0; font-size: 20px; font-weight: 700; color: #4c1d95; letter-spacing: 1px;">${escapeHtml(trackingNumber)}</p>
           <p style="margin: 6px 0 0; font-size: 12px; color: #7c3aed;">Usa questo codice sul sito del corriere per seguire la spedizione.</p>
         </div>`
       : "";
@@ -224,7 +238,7 @@ export async function sendOrderStatusUpdateEmail({
           </div>
 
           <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-            <p style="margin: 0 0 12px;">Ciao <strong>${customerName}</strong>,</p>
+            <p style="margin: 0 0 12px;">Ciao <strong>${escapeHtml(customerName)}</strong>,</p>
 
             <div style="background: #f9fafb; border-left: 4px solid ${cfg.color}; border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 16px 0;">
               <p style="margin: 0; font-size: 15px; color: #374151;">${cfg.message}</p>
@@ -266,7 +280,7 @@ export async function sendNewOrderAdminNotification(data: OrderEmailData) {
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #b45309;">Nuovo ordine #${data.orderId}</h2>
           <table style="width: 100%; border-collapse: collapse; margin: 12px 0;">
-            <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Cliente</td><td style="padding: 6px 0; font-size: 14px;">${data.customerName} (${data.customerEmail})</td></tr>
+            <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Cliente</td><td style="padding: 6px 0; font-size: 14px;">${escapeHtml(data.customerName)} (${escapeHtml(data.customerEmail)})</td></tr>
             <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Pagamento</td><td style="padding: 6px 0; font-size: 14px;">${paymentLabel}</td></tr>
             <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Totale</td><td style="padding: 6px 0; font-size: 14px; font-weight: 700; color: #b45309;">${formatEur(data.total)}</td></tr>
           </table>
@@ -307,11 +321,11 @@ export async function sendDealerRegistrationNotification({
           <h2 style="color: #b45309;">Nuova richiesta dealer</h2>
           <p>Un nuovo rivenditore si è registrato e attende approvazione.</p>
           <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Azienda</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${companyName}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">P.IVA</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${vatNumber}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Nome</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${dealerName}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Email</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${dealerEmail}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Telefono</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${phone || "—"}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Azienda</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(companyName)}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">P.IVA</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(vatNumber)}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Nome</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(dealerName)}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Email</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(dealerEmail)}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Telefono</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${phone ? escapeHtml(phone) : "—"}</td></tr>
           </table>
           <p>Accedi al <a href="https://ricambixstufe.it/admin/dealers" style="color: #b45309;">pannello admin</a> per approvare o rifiutare la richiesta.</p>
         </div>
@@ -343,7 +357,7 @@ export async function sendDealerApprovedEmail({
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #16a34a;">Richiesta approvata! ✓</h2>
           <p>Ciao,</p>
-          <p>La tua richiesta come rivenditore per <strong>${companyName}</strong> è stata <strong>approvata</strong>.</p>
+          <p>La tua richiesta come rivenditore per <strong>${escapeHtml(companyName)}</strong> è stata <strong>approvata</strong>.</p>
           <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
             <p style="margin: 0; font-size: 14px; color: #166534;">Il tuo sconto riservato</p>
             <p style="margin: 8px 0 0; font-size: 36px; font-weight: 700; color: #16a34a;">${discountPercent}%</p>
@@ -385,7 +399,7 @@ export async function sendEmailVerificationEmail({
             <h1 style="margin: 0; color: white; font-size: 20px;">✉️ Conferma la tua email</h1>
           </div>
           <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-            <p>Ciao${name ? ` <strong>${name}</strong>` : ""},</p>
+            <p>Ciao${name ? ` <strong>${escapeHtml(name)}</strong>` : ""},</p>
             <p>Grazie per esserti registrato su RicambiXStufe! Clicca il pulsante qui sotto per confermare il tuo indirizzo email e attivare il tuo account.</p>
             <p style="text-align: center; margin: 32px 0;">
               <a href="${verificationUrl}" style="display: inline-block; padding: 14px 28px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">Conferma email</a>
@@ -423,8 +437,8 @@ export async function sendDealerRejectedEmail({
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #dc2626;">Richiesta non approvata</h2>
           <p>Ciao,</p>
-          <p>La tua richiesta come rivenditore per <strong>${companyName}</strong> non è stata approvata.</p>
-          ${reason ? `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin: 20px 0;"><p style="margin: 0; color: #991b1b;"><strong>Motivo:</strong> ${reason}</p></div>` : ""}
+          <p>La tua richiesta come rivenditore per <strong>${escapeHtml(companyName)}</strong> non è stata approvata.</p>
+          ${reason ? `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin: 20px 0;"><p style="margin: 0; color: #991b1b;"><strong>Motivo:</strong> ${escapeHtml(reason)}</p></div>` : ""}
           <p>Per qualsiasi domanda, contattaci a <a href="mailto:info@ricambixstufe.it" style="color: #b45309;">info@ricambixstufe.it</a> o al numero <strong>0423 720 404</strong>.</p>
           <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">— Il team RicambiXStufe</p>
         </div>
@@ -459,7 +473,7 @@ export async function sendPasswordResetEmail({
             <h1 style="margin: 0; color: white; font-size: 20px;">🔑 Reimposta password</h1>
           </div>
           <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-            <p>Ciao${name ? ` <strong>${name}</strong>` : ""},</p>
+            <p>Ciao${name ? ` <strong>${escapeHtml(name)}</strong>` : ""},</p>
             <p>Hai richiesto di reimpostare la password del tuo account RicambiXStufe. Clicca il pulsante qui sotto per procedere.</p>
             <p style="text-align: center; margin: 32px 0;">
               <a href="${resetUrl}" style="display: inline-block; padding: 14px 28px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">Reimposta password</a>
