@@ -15,6 +15,8 @@ import {
   LogOut,
   ExternalLink,
   Settings,
+  Cable,
+  LifeBuoy,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import type { AuthUser } from "@/lib/auth";
@@ -27,6 +29,8 @@ const navItems = [
   { href: "/admin/users", label: "Utenti", icon: Users },
   { href: "/admin/dealers", label: "Dealer", icon: Briefcase },
   { href: "/admin/settings", label: "Impostazioni", icon: Settings },
+  { href: "/admin/danea", label: "Danea", icon: Cable },
+  { href: "/admin/support", label: "Supporto", icon: LifeBuoy },
 ];
 
 export default function AdminShell({

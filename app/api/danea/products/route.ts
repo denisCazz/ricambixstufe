@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/db";
+import { daneaImportLogs } from "@/db/schema";
 import { syncEasyfattCatalog } from "@/lib/danea-import";
 
 /**
@@ -87,7 +88,20 @@ export async function POST(req: NextRequest) {
   }
 
   const db = getDb();
+  const xmlBytes = Buffer.byteLength(xml, "utf8");
   const result = await syncEasyfattCatalog(db, xml);
+
+  try {
+    await db.insert(daneaImportLogs).values({
+      success: result.ok,
+      mode: result.ok ? result.mode : null,
+      message: result.ok ? null : result.message,
+      stats: result.ok ? result.stats : null,
+      xmlBytes,
+    });
+  } catch (e) {
+    console.error("[danea-products] danea_import_logs insert failed", e);
+  }
 
   if (!result.ok) {
     return new NextResponse(result.message, {
