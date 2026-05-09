@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "db:clone-qa": "bash scripts/clone-db-to-qa-docker.sh",
+    "db:recreate-qa": "FORCE_RECREATE=1 bash scripts/clone-db-to-qa-docker.sh",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
