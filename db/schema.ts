@@ -228,6 +228,28 @@ export const productImages = pgTable("product_images", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Log import catalogo Easyfatt (POST /api/danea/products). */
+export const daneaImportLogs = pgTable(
+  "danea_import_logs",
+  {
+    id: serial("id").primaryKey(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    success: boolean("success").notNull(),
+    source: text("source").notNull().default("catalog"),
+    mode: text("mode"),
+    message: text("message"),
+    stats: jsonb("stats").$type<{
+      created: number;
+      updated: number;
+      deactivatedFull: number;
+      deactivatedDeleted: number;
+      skipped: number;
+    } | null>(),
+    xmlBytes: integer("xml_bytes"),
+  },
+  (t) => [index("idx_danea_import_logs_created").on(t.createdAt)]
+);
+
 export const categoriesRelations = relations(categories, ({ many }) => ({
   products: many(products),
 }));

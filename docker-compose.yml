@@ -21,6 +21,7 @@ services:
       args:
         DATABASE_URL: ${DATABASE_URL}
         AUTH_SECRET: ${AUTH_SECRET}
+        NEXT_PUBLIC_APP_ENVIRONMENT: ${NEXT_PUBLIC_APP_ENVIRONMENT:-}
     container_name: ricambixstufe
     restart: unless-stopped
     depends_on:

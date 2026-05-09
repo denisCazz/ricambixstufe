@@ -102,6 +102,7 @@ export interface DaneaImportStats {
 export interface DaneaImportResult {
   ok: true;
   stats: DaneaImportStats;
+  mode: "full" | "incremental" | "legacy";
 }
 
 export interface DaneaImportError {
@@ -373,7 +374,7 @@ export async function syncEasyfattCatalog(
       stats.deactivatedFull = fullRows.length;
     }
 
-    return { ok: true, stats };
+    return { ok: true, stats, mode };
   } catch (e) {
     const msg =
       e instanceof Error ? e.message : "Errore durante import catalogo";

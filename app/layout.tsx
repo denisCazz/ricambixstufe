@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AppProviders from "@/components/AppProviders";
+import EnvBanner from "@/components/EnvBanner";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -86,6 +87,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} antialiased`}>
+        <EnvBanner />
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
