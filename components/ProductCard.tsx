@@ -38,7 +38,7 @@ export default function ProductCard({
     if (outOfStock) return;
     addItem({
       id: product.id,
-      name: product.name,
+      name: localizedName,
       slug: product.slug,
       price: discountedPrice,
       image: product.image,
@@ -87,7 +87,7 @@ export default function ProductCard({
           {/* Out of stock badge */}
           {product.stockQuantity !== undefined && product.stockQuantity <= 0 && (
             <span className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-red-600 text-white text-[11px] font-bold uppercase shadow-sm z-10">
-              Esaurito
+              {t("product.out_of_stock")}
             </span>
           )}
 
@@ -137,7 +137,9 @@ export default function ProductCard({
           }`}
         >
           <ShoppingCart className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">{outOfStock ? "Esaurito" : t("product.add")}</span>
+          <span className="hidden sm:inline">
+            {outOfStock ? t("product.out_of_stock") : t("product.add")}
+          </span>
         </button>
       </div>
 

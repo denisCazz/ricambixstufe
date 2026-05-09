@@ -14,6 +14,10 @@ export default function AddToCartButton({
   product: {
     id: number;
     name: string;
+    name_it?: string;
+    name_en?: string;
+    name_fr?: string;
+    name_es?: string;
     slug: string;
     price: number;
     image: string | null;
@@ -23,12 +27,23 @@ export default function AddToCartButton({
   showBuyNow?: boolean;
 }) {
   const { addItem } = useCart();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { dealerDiscount } = useUser();
   const router = useRouter();
   const [added, setAdded] = useState(false);
 
   const outOfStock = product.stockQuantity !== undefined && product.stockQuantity <= 0;
+
+  const localizedName =
+    (locale !== "it" &&
+      (product[
+        `name_${locale}` as keyof Pick<
+          typeof product,
+          "name_it" | "name_en" | "name_fr" | "name_es"
+        >
+      ] as string | undefined)) ||
+    product.name_it ||
+    product.name;
 
   const finalPrice = dealerDiscount
     ? product.price * (1 - dealerDiscount / 100)
@@ -36,14 +51,14 @@ export default function AddToCartButton({
 
   function handleAddToCart() {
     if (outOfStock) return;
-    addItem({ ...product, price: finalPrice });
+    addItem({ ...product, name: localizedName, price: finalPrice });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }
 
   function handleBuyNow() {
     if (outOfStock) return;
-    addItem({ ...product, price: finalPrice });
+    addItem({ ...product, name: localizedName, price: finalPrice });
     router.push("/checkout");
   }
 
@@ -53,7 +68,7 @@ export default function AddToCartButton({
         disabled
         className="flex-1 py-3 px-6 rounded-xl bg-stone-200 dark:bg-stone-800 text-stone-500 dark:text-stone-400 font-semibold cursor-not-allowed flex items-center justify-center gap-2"
       >
-        Esaurito
+        {t("product.out_of_stock")}
       </button>
     );
   }

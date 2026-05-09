@@ -1,12 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { CartProvider } from "@/lib/cart-context";
-import { LocaleProvider } from "@/lib/locale-context";
-import { UserProvider } from "@/lib/user-context";
-import { ThemeProvider } from "@/lib/theme-context";
-import CartDrawer from "@/components/CartDrawer";
-import ScrollToTop from "@/components/ScrollToTop";
+import AppProviders from "@/components/AppProviders";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -91,17 +86,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} antialiased`}>
-        <ThemeProvider>
-          <LocaleProvider>
-            <UserProvider>
-              <CartProvider>
-                {children}
-                <CartDrawer />
-                <ScrollToTop />
-              </CartProvider>
-            </UserProvider>
-          </LocaleProvider>
-        </ThemeProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

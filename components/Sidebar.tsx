@@ -106,7 +106,7 @@ export default function Sidebar({
           className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted hover:bg-surface-hover hover:text-foreground transition-all"
         >
           <Flame className="w-4 h-4 text-accent/70 shrink-0" />
-          <span className="flex-1 text-left font-semibold text-foreground">Filtra per stufa</span>
+          <span className="flex-1 text-left font-semibold text-foreground">{t("sidebar.filter_by_stove")}</span>
           {activeStoveId != null && (
             <span className="w-2 h-2 rounded-full bg-accent shrink-0" />
           )}
@@ -118,7 +118,7 @@ export default function Sidebar({
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted/50 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Cerca stufa..."
+                placeholder={t("sidebar.search_stove_placeholder")}
                 value={stoveSearch}
                 onChange={(e) => setStoveSearch(e.target.value)}
                 className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted/50 focus:outline-none focus:border-accent/50"
@@ -130,7 +130,7 @@ export default function Sidebar({
                 className="w-full flex items-center gap-2 px-3 py-1.5 mb-1 rounded-lg text-xs text-accent font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
               >
                 <X className="w-3 h-3" />
-                Rimuovi filtro stufa
+                {t("sidebar.clear_stove_filter")}
               </button>
             )}
             <div className="max-h-52 overflow-y-auto space-y-0.5 pr-0.5">
@@ -159,7 +159,7 @@ export default function Sidebar({
                 );
               })}
               {filteredStoves.length === 0 && (
-                <p className="text-xs text-muted px-3 py-2">Nessuna stufa trovata</p>
+                <p className="text-xs text-muted px-3 py-2">{t("sidebar.no_stove_found")}</p>
               )}
             </div>
           </div>

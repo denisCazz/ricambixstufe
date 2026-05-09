@@ -512,7 +512,7 @@ export default function CheckoutClient() {
       {profile && (
         <div className="mb-6 flex items-center gap-2 px-4 py-3 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400">
           <User className="w-4 h-4" />
-          Dati precompilati dal tuo profilo. Puoi modificarli se necessario.
+          {t("checkout.prefilled")}
         </div>
       )}
 
@@ -537,7 +537,7 @@ export default function CheckoutClient() {
             {!profileLoaded ? (
               <div className="flex items-center justify-center py-8 text-muted">
                 <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                Caricamento...
+                {t("checkout.loading")}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -620,7 +620,7 @@ export default function CheckoutClient() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground/70 mb-1.5">
-                    Provincia
+                    {t("checkout.province")}
                   </label>
                   <input
                     type="text"
@@ -672,7 +672,7 @@ export default function CheckoutClient() {
               <div className="flex items-center gap-2">
                 <Building2 className="w-5 h-5 text-accent" />
                 <h2 className="text-lg font-bold text-foreground">
-                  Dati di fatturazione
+                  {t("checkout.billing_title")}
                 </h2>
               </div>
             </div>
@@ -685,7 +685,7 @@ export default function CheckoutClient() {
                 className="w-4 h-4 rounded border-border text-accent focus:ring-accent/30"
               />
               <span className="text-sm text-foreground">
-                Desidero fattura intestata ad azienda
+                {t("checkout.billing_invoice_toggle")}
               </span>
             </label>
 
@@ -693,7 +693,7 @@ export default function CheckoutClient() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border">
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-foreground/70 mb-1.5 mt-4">
-                    Ragione Sociale *
+                    {t("checkout.billing_company_name")} *
                   </label>
                   <input
                     required={isCompany}
@@ -705,7 +705,7 @@ export default function CheckoutClient() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground/70 mb-1.5">
-                    Partita IVA *
+                    {t("checkout.billing_vat")} *
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -729,7 +729,7 @@ export default function CheckoutClient() {
                         {viesStatus === "loading" ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                          "Verifica VIES"
+                          t("checkout.billing_vies_check")
                         )}
                       </button>
                     )}
@@ -739,43 +739,45 @@ export default function CheckoutClient() {
                     <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-xs text-green-700 dark:text-green-400">
                       <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                       <div>
-                        <span className="font-semibold">VIES valido — IVA esente</span>
+                        <span className="font-semibold">
+                          {t("checkout.billing_vies_valid")}
+                        </span>
                         {viesCompanyName && <span className="ml-1">({viesCompanyName})</span>}
                       </div>
                     </div>
                   )}
                   {viesStatus === "invalid" && (
                     <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-                      Partita IVA non valida nel sistema VIES. IVA 22% applicata.
+                      {t("checkout.billing_vies_invalid")}
                     </p>
                   )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground/70 mb-1.5">
-                    Codice Fiscale
+                    {t("checkout.billing_fiscal_code")}
                   </label>
                   <input
                     type="text"
                     name="fiscal_code"
-                    placeholder="Opzionale"
+                    placeholder={t("checkout.optional")}
                     className={inputClass}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground/70 mb-1.5">
-                    Codice SDI
+                    {t("checkout.billing_sdi")}
                   </label>
                   <input
                     type="text"
                     name="sdi_code"
-                    placeholder="Es. 0000000"
+                    placeholder={t("checkout.billing_sdi_placeholder")}
                     maxLength={7}
                     className={inputClass}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground/70 mb-1.5">
-                    PEC
+                    {t("checkout.billing_pec")}
                   </label>
                   <input
                     type="email"
@@ -820,7 +822,7 @@ export default function CheckoutClient() {
                     <span className="text-[#003087] font-bold text-sm -ml-1">Pal</span>
                   </div>
                   <p className="text-xs text-muted mt-1">
-                    Paga con il tuo conto PayPal o carta tramite PayPal
+                    {t("checkout.payment.paypal_description")}
                   </p>
                 </div>
               </label>
@@ -845,15 +847,14 @@ export default function CheckoutClient() {
                   <div className="flex items-center gap-2">
                     <Banknote className="w-4 h-4 text-green-600" />
                     <span className="font-semibold text-foreground text-sm">
-                      Bonifico bancario
+                      {t("checkout.payment.bank_transfer")}
                     </span>
                   </div>
                   <p className="text-xs text-muted mt-1">
                     IBAN: {BANK_IBAN}
                   </p>
                   <p className="text-xs text-muted">
-                    L&apos;ordine verrà elaborato dopo la ricezione del
-                    pagamento (1-2 giorni lavorativi)
+                    {t("checkout.payment.bank_transfer_note")}
                   </p>
                 </div>
               </label>
@@ -878,15 +879,15 @@ export default function CheckoutClient() {
                   <div className="flex items-center gap-2">
                     <Truck className="w-4 h-4 text-amber-600" />
                     <span className="font-semibold text-foreground text-sm">
-                      Contrassegno
+                      {t("checkout.payment.cod")}
                     </span>
                     <span className="text-xs font-medium text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-full">
                       +{formatPrice(COD_SURCHARGE)}
                     </span>
                   </div>
                   <p className="text-xs text-muted mt-1">
-                    Pagamento in contanti alla consegna. Supplemento di{" "}
-                    {formatPrice(COD_SURCHARGE)}
+                    {t("checkout.payment.cod_description")
+                      .replace("{amount}", formatPrice(COD_SURCHARGE))}
                   </p>
                 </div>
               </label>
@@ -902,14 +903,16 @@ export default function CheckoutClient() {
             {paying ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {paymentMethod === "paypal" ? "Reindirizzamento a PayPal..." : "Conferma in corso..."}
+                {paymentMethod === "paypal"
+                  ? t("checkout.submitting_paypal")
+                  : t("checkout.submitting")}
               </>
             ) : (
               <>
                 <Lock className="w-4 h-4" />
                 {paymentMethod === "paypal"
-                  ? `Paga con PayPal — ${formatPrice(grandTotal)}`
-                  : `Conferma Ordine — ${formatPrice(grandTotal)}`}
+                  ? t("checkout.pay_with_paypal").replace("{total}", formatPrice(grandTotal))
+                  : t("checkout.confirm_order_total").replace("{total}", formatPrice(grandTotal))}
               </>
             )}
           </button>
@@ -1010,7 +1013,7 @@ export default function CheckoutClient() {
               {isDealer && dealerDiscount && dealerSaving > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-green-600">
-                    Sconto dealer ({dealerDiscount}%)
+                    {t("checkout.dealer_discount").replace("{percent}", String(dealerDiscount))}
                   </span>
                   <span className="font-medium text-green-600">
                     -{formatPrice(dealerSaving)}
@@ -1034,7 +1037,7 @@ export default function CheckoutClient() {
               {paymentMethod === "cod" && (
                 <div className="flex justify-between text-sm">
                   <span className="text-amber-600">
-                    Supplemento contrassegno
+                    {t("checkout.cod_surcharge")}
                   </span>
                   <span className="font-medium text-amber-600">
                     +{formatPrice(COD_SURCHARGE)}
@@ -1044,7 +1047,7 @@ export default function CheckoutClient() {
               {viesExempt && (
                 <div className="flex justify-between text-sm">
                   <span className="text-green-600">
-                    Esenzione IVA (VIES)
+                    {t("checkout.vies_exemption")}
                   </span>
                   <span className="font-medium text-green-600">
                     -{formatPrice(baseTotal - grandTotal)}
@@ -1060,7 +1063,7 @@ export default function CheckoutClient() {
                 </span>
               </div>
               <p className="text-[11px] text-muted">
-                {viesExempt ? "IVA esente — Cessione intracomunitaria" : "IVA inclusa"}
+                {viesExempt ? t("checkout.vat_exempt_note") : t("checkout.vat_included_note")}
               </p>
             </div>
           </div>

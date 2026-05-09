@@ -264,7 +264,7 @@ export async function POST(req: NextRequest) {
             dealerDiscount > 0 ? item.price * (1 - dealerDiscount / 100) : item.price;
           return {
             productId: item.id,
-            productName: product?.nameIt || item.name,
+            productName: item.name || product?.nameIt || "Prodotto",
             productSku: product?.sku || null,
             quantity: item.quantity,
             unitPrice: item.price,
@@ -348,7 +348,7 @@ export async function POST(req: NextRequest) {
       return {
         orderId: orderId,
         productId: item.id,
-        productName: product?.nameIt || item.name,
+        productName: item.name || product?.nameIt || "Prodotto",
         productSku: product?.sku || null,
         quantity: item.quantity,
         unitPrice: String(item.price),
