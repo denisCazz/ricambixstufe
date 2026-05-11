@@ -81,7 +81,7 @@ export default function ProductCard({
           )}
 
           <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-surface/90 backdrop-blur-md text-[11px] font-medium text-muted border border-border/50 shadow-sm z-10">
-            {product.category}
+            {t(`cat.${product.categorySlug}`) || product.category}
           </span>
 
           {/* Out of stock badge */}

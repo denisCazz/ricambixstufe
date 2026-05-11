@@ -180,17 +180,17 @@ export default function RegisterPage() {
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border-2 border-blue-200 dark:border-blue-800 rounded-2xl p-6 text-center shadow-sm">
           <div className="flex items-center justify-center gap-2 mb-3">
             <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h3 className="text-base font-bold text-blue-900 dark:text-blue-200">Sei un Centro Assistenza?</h3>
+            <h3 className="text-base font-bold text-blue-900 dark:text-blue-200">{t("dealer_box.title")}</h3>
           </div>
           <p className="text-sm text-blue-700/80 dark:text-blue-300/80 mb-5 leading-relaxed">
-            I centri di assistenza e i rivenditori autorizzati hanno accesso a prezzi riservati e un&apos;area dedicata.
+            {t("dealer_box.description")}
           </p>
           <Link
             href="/register/dealer"
             className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors text-sm"
           >
             <Briefcase className="w-4 h-4" />
-            Registrati come rivenditore
+            {t("dealer_box.register_cta")}
           </Link>
         </div>
         </div>{/* end right column */}
