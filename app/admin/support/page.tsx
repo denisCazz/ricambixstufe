@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ExternalLink, Phone, Clock } from "lucide-react";
 
-const CONTATTI_URL = "https://bitora.it/contatti";
+const CONTATTI_URL = "https://bitora.it/contattaci";
 const PHONE_DISPLAY = "+39 351 497 9670";
 const PHONE_TEL = "+393514979670";
 
@@ -32,7 +32,7 @@ export default function AdminSupportPage() {
               rel="noopener noreferrer"
               className="text-accent hover:underline inline-flex items-center gap-1 mt-1"
             >
-              bitora.it/contatti
+              bitora.it/contattaci
               <ExternalLink className="w-3.5 h-3.5 opacity-70" />
             </Link>
           </div>
