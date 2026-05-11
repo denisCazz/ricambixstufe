@@ -4,6 +4,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "RicambiXStufe <onboarding@resend.dev>";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "info@ricambixstufe.it";
+/** Recipient for order and dealer notifications (business operational email) */
+const ORDERS_EMAIL = process.env.ORDERS_EMAIL || ADMIN_EMAIL;
 
 function escapeHtml(unsafe: string): string {
   return unsafe
@@ -273,7 +275,7 @@ export async function sendNewOrderAdminNotification(data: OrderEmailData) {
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
-      to: ADMIN_EMAIL,
+      to: ORDERS_EMAIL,
       ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
       subject: `Nuovo ordine #${data.orderId} — ${formatEur(data.total)}`,
       html: `
@@ -313,7 +315,7 @@ export async function sendDealerRegistrationNotification({
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
-      to: ADMIN_EMAIL,
+      to: ORDERS_EMAIL,
       ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
       subject: `Nuova richiesta dealer: ${companyName}`,
       html: `
