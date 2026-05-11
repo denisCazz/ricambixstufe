@@ -383,7 +383,7 @@ export default function Header({
                         <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-stone-800 flex items-center justify-center">
                           <ShoppingCart className="w-3.5 h-3.5 text-muted" />
                         </div>
-                        I miei ordini
+                        {t("account.orders")}
                       </Link>
                     </div>
 
@@ -408,10 +408,10 @@ export default function Header({
               <Link
                 href="/login"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-foreground hover:text-accent hover:bg-surface-hover active:bg-surface-hover transition-colors"
-                aria-label="Accedi"
+                aria-label={t("auth.login")}
               >
                 <User className="w-4.5 h-4.5" />
-                <span className="hidden sm:inline">Accedi</span>
+                <span className="hidden sm:inline">{t("auth.login")}</span>
               </Link>
             )}
 
