@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, Link2 } from "lucide-react";
-import type { DaneaLogRow } from "@/app/admin/actions/danea";
+import type { DaneaLogRow, DaneaOrdersExportLogRow } from "@/app/admin/actions/danea";
 
 function CopyField({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
@@ -39,9 +39,11 @@ function fmtStats(s: NonNullable<DaneaLogRow["stats"]>) {
 export default function DaneaClient({
   baseUrl,
   initialLogs,
+  initialOrdersLogs,
 }: {
   baseUrl: string;
   initialLogs: DaneaLogRow[];
+  initialOrdersLogs: DaneaOrdersExportLogRow[];
 }) {
   const ordersUrl = `${baseUrl}/api/danea/orders`;
   const productsUrl = `${baseUrl}/api/danea/products`;
@@ -67,6 +69,63 @@ export default function DaneaClient({
           <CopyField label="Import ordini (GET, XML)" value={ordersUrl} />
           <CopyField label="Aggiornamento catalogo (POST multipart file)" value={productsUrl} />
         </div>
+      </section>
+
+      <section>
+        <h2 className="text-sm font-semibold mb-3">Ultimi export ordini</h2>
+        {initialOrdersLogs.length === 0 ? (
+          <p className="text-sm text-muted rounded-lg border border-dashed border-border px-4 py-8 text-center">
+            Nessun log ancora. Comparirà qui dopo la prima sincronizzazione ordini da Easyfatt.
+          </p>
+        ) : (
+          <div className="rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-stone-100 dark:bg-stone-800/80 text-muted text-xs uppercase tracking-wide">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Data</th>
+                    <th className="px-3 py-2 font-medium">Esito</th>
+                    <th className="px-3 py-2 font-medium">Ordini</th>
+                    <th className="px-3 py-2 font-medium">Filtro date</th>
+                    <th className="px-3 py-2 font-medium">ID ordini</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {initialOrdersLogs.map((row) => (
+                    <tr key={row.id} className="hover:bg-surface-hover/50">
+                      <td className="px-3 py-2 whitespace-nowrap text-xs">
+                        {new Date(row.createdAt).toLocaleString("it-IT", {
+                          dateStyle: "short",
+                          timeStyle: "medium",
+                        })}
+                      </td>
+                      <td className="px-3 py-2">
+                        {row.success ? (
+                          <span className="text-green-700 dark:text-green-400 font-medium">OK</span>
+                        ) : (
+                          <span className="text-red-600 dark:text-red-400 font-medium">Errore</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-xs font-medium">
+                        {row.orderCount}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-muted whitespace-nowrap">
+                        {row.firstdate || row.lastdate
+                          ? `${row.firstdate ?? "—"} → ${row.lastdate ?? "—"}`
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-muted max-w-xs truncate">
+                        {row.orderIds && row.orderIds.length > 0
+                          ? row.orderIds.join(", ")
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </section>
 
       <section>
