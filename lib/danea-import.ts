@@ -4,7 +4,7 @@
  */
 
 import { XMLParser } from "fast-xml-parser";
-import { and, eq, inArray, isNotNull, notInArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { getDb } from "@/db";
 import { categories, products } from "@/db/schema";
 
@@ -278,8 +278,7 @@ export async function syncEasyfattCatalog(
     return { ok: false, message: msg };
   }
 
-  const { mode, toUpsert, toDeleteCodes } = bundle;
-  const isFull = mode === "full" || mode === "legacy";
+  const { mode, toUpsert } = bundle;
 
   const stats: DaneaImportStats = {
     created: 0,
@@ -289,17 +288,7 @@ export async function syncEasyfattCatalog(
     skipped: 0,
   };
 
-  const importedSkus: string[] = [];
-
   try {
-    if (toDeleteCodes.length > 0) {
-      const delRows = await db
-        .update(products)
-        .set({ active: false, updatedAt: new Date() })
-        .where(inArray(products.sku, toDeleteCodes))
-        .returning({ id: products.id });
-      stats.deactivatedDeleted = delRows.length;
-    }
 
     for (const raw of toUpsert) {
       const n = normalizeProduct(raw);
@@ -308,71 +297,34 @@ export async function syncEasyfattCatalog(
         continue;
       }
 
-      importedSkus.push(n.code);
-
-      const categoryId = await upsertCategoryId(db, n.categoryDisplayName);
-
       const existing = await db
-        .select({ id: products.id, slug: products.slug })
+        .select({ id: products.id })
         .from(products)
         .where(eq(products.sku, n.code))
         .limit(1);
 
-      const baseValues = {
-        categoryId,
-        sku: n.code,
-        ean13: n.barcode ?? null,
-        nameIt: n.nameIt,
-        descriptionIt: n.descriptionIt ?? null,
-        price: n.price,
-        wholesalePrice: n.wholesalePrice ?? null,
-        stockQuantity: n.stockQuantity,
-        weight: n.weight ?? null,
-        width: n.width ?? null,
-        height: n.height ?? null,
-        depth: n.depth ?? null,
-        brand: n.brand ?? null,
-        active: true,
-        updatedAt: new Date(),
-      };
-
       if (!existing.length) {
-        const baseSlug = slugify(`${n.nameIt}-${n.code}`);
-        let slug = baseSlug || `p-${n.code}`;
-        const clash = await db
-          .select({ id: products.id })
-          .from(products)
-          .where(eq(products.slug, slug))
-          .limit(1);
-        if (clash.length) {
-          slug = `${slug}-${n.code}`;
-        }
-
-        await db.insert(products).values({
-          ...baseValues,
-          slug,
-        });
-        stats.created++;
-      } else {
-        await db
-          .update(products)
-          .set({
-            ...baseValues,
-          })
-          .where(eq(products.id, existing[0].id));
-        stats.updated++;
+        // Prodotto non presente nel catalogo: ignorato.
+        // I prodotti vengono caricati manualmente dagli amministratori.
+        stats.skipped++;
+        continue;
       }
+
+      // Aggiorna solo prezzo, prezzo ingrosso e quantità disponibile.
+      await db
+        .update(products)
+        .set({
+          price: n.price,
+          wholesalePrice: n.wholesalePrice ?? null,
+          stockQuantity: n.stockQuantity,
+          updatedAt: new Date(),
+        })
+        .where(eq(products.id, existing[0].id));
+      stats.updated++;
     }
 
-    if (isFull && importedSkus.length > 0) {
-      const skuSet = [...new Set(importedSkus)];
-      const fullRows = await db
-        .update(products)
-        .set({ active: false, updatedAt: new Date() })
-        .where(and(isNotNull(products.sku), notInArray(products.sku, skuSet)))
-        .returning({ id: products.id });
-      stats.deactivatedFull = fullRows.length;
-    }
+    // La disattivazione automatica in modalità "full" è disabilitata:
+    // la gestione dei prodotti avviene manualmente.
 
     return { ok: true, stats, mode };
   } catch (e) {

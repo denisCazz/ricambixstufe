@@ -1,7 +1,9 @@
 import { headers } from "next/headers";
 import {
   getDaneaImportLogs,
+  getDaneaOrdersExportLogs,
   type DaneaLogRow,
+  type DaneaOrdersExportLogRow,
 } from "@/app/admin/actions/danea";
 import DaneaClient from "./DaneaClient";
 
@@ -26,11 +28,17 @@ async function getBaseUrl(): Promise<string> {
 export default async function AdminDaneaPage() {
   const baseUrl = await getBaseUrl();
   let logs: DaneaLogRow[] = [];
+  let ordersLogs: DaneaOrdersExportLogRow[] = [];
   try {
     logs = await getDaneaImportLogs(80);
   } catch {
     logs = [];
   }
+  try {
+    ordersLogs = await getDaneaOrdersExportLogs(60);
+  } catch {
+    ordersLogs = [];
+  }
 
-  return <DaneaClient baseUrl={baseUrl} initialLogs={logs} />;
+  return <DaneaClient baseUrl={baseUrl} initialLogs={logs} initialOrdersLogs={ordersLogs} />;
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, asc, eq, inArray, gte, lte } from "drizzle-orm";
 import { getDb } from "@/db";
-import { orders, orderItems, profiles } from "@/db/schema";
+import { orders, orderItems, profiles, daneaOrdersExportLogs } from "@/db/schema";
 
 interface ShippingAddress {
   name?: string;
@@ -105,7 +105,9 @@ export async function GET(req: NextRequest) {
   const db = getDb();
   const conds = [
     eq(orders.daneaExported, false),
+    // Escludi solo gli ordini annullati
     inArray(orders.status, [
+      "pending",
       "confirmed",
       "processing",
       "shipped",
@@ -114,13 +116,15 @@ export async function GET(req: NextRequest) {
   ];
 
   if (firstdate) {
+    // Danea manda date locali (IT = UTC+2): tratta come inizio giornata italiana
     conds.push(
-      gte(orders.createdAt, new Date(`${firstdate}T00:00:00.000Z`))
+      gte(orders.createdAt, new Date(`${firstdate}T00:00:00+02:00`))
     );
   }
   if (lastdate) {
+    // Fine giornata italiana
     conds.push(
-      lte(orders.createdAt, new Date(`${lastdate}T23:59:59.999Z`))
+      lte(orders.createdAt, new Date(`${lastdate}T23:59:59+02:00`))
     );
   }
   if (firstnum) {
@@ -229,13 +233,33 @@ export async function GET(req: NextRequest) {
   // --- Build XML ---
   const xml = buildEasyfattXml(mapped, profileMap);
 
-  // --- Mark orders as exported ---
-  if (mapped.length > 0) {
-    const orderIds = mapped.map((o) => o.id);
+  // --- Mark orders as exported (+ auto-confirm pending) ---
+  const exportedIds = mapped.map((o) => o.id);
+  const pendingIds = mapped.filter((o) => o.status === "pending").map((o) => o.id);
+  if (exportedIds.length > 0) {
     await db
       .update(orders)
       .set({ daneaExported: true, updatedAt: new Date() })
-      .where(inArray(orders.id, orderIds));
+      .where(inArray(orders.id, exportedIds));
+  }
+  if (pendingIds.length > 0) {
+    await db
+      .update(orders)
+      .set({ status: "confirmed", updatedAt: new Date() })
+      .where(inArray(orders.id, pendingIds));
+  }
+
+  // --- Write export log ---
+  try {
+    await db.insert(daneaOrdersExportLogs).values({
+      success: true,
+      orderCount: exportedIds.length,
+      orderIds: exportedIds,
+      firstdate: firstdate ?? null,
+      lastdate: lastdate ?? null,
+    });
+  } catch (e) {
+    console.error("[danea-orders] export log insert failed", e);
   }
 
   return new NextResponse(xml, {
