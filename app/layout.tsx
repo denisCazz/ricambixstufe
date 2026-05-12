@@ -85,6 +85,11 @@ export default function RootLayout({
             __html: `(function(){try{var t=localStorage.getItem('ricambixstufe_theme');var d=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark')}catch(e){}})()`,
           }}
         />
+        <script
+          defer
+          src="https://umami.bitora.it/script.js"
+          data-website-id="68ffa1b9-4b3c-4f7b-9962-0e592c4e7ad9"
+        />
       </head>
       <body className={`${inter.variable} antialiased`}>
         <EnvBanner />
