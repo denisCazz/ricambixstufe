@@ -11,7 +11,7 @@ import {
   COD_SURCHARGE,
 } from "@/lib/shipping";
 import { sendOrderConfirmationEmail, sendNewOrderAdminNotification } from "@/lib/email";
-import { validateVAT } from "@/lib/vies";
+import { isValidItalianPartitaIva, italianVatIncludedOnProducts } from "@/lib/italian-vat";
 
 interface LineItem {
   id: number;
@@ -19,6 +19,8 @@ interface LineItem {
   price: number;
   quantity: number;
   image: string | null;
+  lineKey?: string;
+  lineNotes?: string | null;
 }
 
 interface BillingInfo {
@@ -30,10 +32,16 @@ interface BillingInfo {
   viesExempt?: boolean;
 }
 
+function lineItemDisplayName(item: LineItem, nameIt: string): string {
+  const base = (item.name || nameIt || "Prodotto").trim();
+  const note = item.lineNotes?.trim();
+  return note ? `${base}\n${note}` : base;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { items, shippingInfo, billingInfo, paymentMethod, viesExempt } = body as {
+    const { items, shippingInfo, billingInfo, paymentMethod } = body as {
       items: LineItem[];
       shippingInfo: {
         name: string;
@@ -48,7 +56,6 @@ export async function POST(req: NextRequest) {
       };
       billingInfo?: BillingInfo;
       paymentMethod: "bank_transfer" | "cod" | "paypal";
-      viesExempt?: boolean;
     };
 
     if (!items?.length) {
@@ -120,9 +127,16 @@ export async function POST(req: NextRequest) {
       .where(inArray(products.id, productIds));
 
     if (stockProducts.length) {
+      const requestedByProduct = new Map<number, number>();
+      for (const item of items) {
+        requestedByProduct.set(
+          item.id,
+          (requestedByProduct.get(item.id) || 0) + item.quantity
+        );
+      }
       const outOfStock = stockProducts.filter((p) => {
-        const requested = items.find((i) => i.id === p.id);
-        return requested && p.stockQuantity < requested.quantity;
+        const requested = requestedByProduct.get(p.id) ?? 0;
+        return requested > 0 && p.stockQuantity < requested;
       });
 
       if (outOfStock.length > 0) {
@@ -146,35 +160,30 @@ export async function POST(req: NextRequest) {
       return sum + item.price * item.quantity;
     }, 0);
 
-    // Server-side VIES verification: only allow IVA exemption for non-IT EU companies
-    let isViesExempt = false;
-    if (viesExempt && billingInfo?.vatNumber && shippingInfo.country !== "Italia") {
-      const euCountryMap: Record<string, string> = {
-        Austria: "AT", Belgio: "BE", Bulgaria: "BG", Croazia: "HR",
-        Danimarca: "DK", Estonia: "EE", Finlandia: "FI", Francia: "FR",
-        Germania: "DE", Grecia: "EL", Irlanda: "IE", Lettonia: "LV",
-        Lituania: "LT", Lussemburgo: "LU", Malta: "MT", "Paesi Bassi": "NL",
-        Polonia: "PL", Portogallo: "PT", "Repubblica Ceca": "CZ", Romania: "RO",
-        Slovacchia: "SK", Slovenia: "SI", Spagna: "ES", Svezia: "SE",
-        Ungheria: "HU",
-      };
-      const cc = euCountryMap[shippingInfo.country];
-      if (cc) {
-        const cleanVat = billingInfo.vatNumber.replace(/^[A-Z]{2}/i, "").trim();
-        try {
-          const result = await validateVAT(cc, cleanVat);
-          isViesExempt = result.valid;
-        } catch {
-          // VIES unavailable, fallback to IVA included
-          isViesExempt = false;
-        }
+    const companyName = billingInfo?.company?.trim();
+    if (companyName && shippingInfo.country === "Italia") {
+      const vat = billingInfo?.vatNumber?.trim() || "";
+      if (!isValidItalianPartitaIva(vat)) {
+        return NextResponse.json(
+          {
+            error:
+              "Per fattura azienda in Italia inserisci una Partita IVA italiana valida (11 cifre).",
+          },
+          { status: 400 }
+        );
       }
     }
 
-    // If VIES exempt, remove 22% IVA from product prices
-    const taxAdjustedSubtotal = isViesExempt
-      ? Math.round((subtotal / 1.22) * 100) / 100
-      : subtotal;
+    const italianVatOnProducts = italianVatIncludedOnProducts(
+      shippingInfo.country,
+      billingInfo?.vatNumber
+    );
+
+    const taxAdjustedSubtotal = italianVatOnProducts
+      ? subtotal
+      : Math.round((subtotal / 1.22) * 100) / 100;
+
+    const excludeItalianProductVat = !italianVatOnProducts;
 
     const total =
       Math.round((taxAdjustedSubtotal + shippingCost + codSurcharge) * 100) / 100;
@@ -240,7 +249,7 @@ export async function POST(req: NextRequest) {
       ...(billingInfo?.fiscalCode
         ? { fiscal_code: billingInfo.fiscalCode }
         : {}),
-      ...(isViesExempt ? { vies_exempt: true } : {}),
+      ...(excludeItalianProductVat ? { vies_exempt: true } : {}),
     };
 
     // --- Handle PayPal (no DB insert yet — create order only after capture) ---
@@ -260,7 +269,7 @@ export async function POST(req: NextRequest) {
         dealerDiscount,
         subtotal: Math.round(taxAdjustedSubtotal * 100) / 100,
         shippingCost,
-        taxAmount: isViesExempt
+        taxAmount: excludeItalianProductVat
           ? Math.round((subtotal - taxAdjustedSubtotal) * 100) / 100
           : 0,
         total,
@@ -273,7 +282,7 @@ export async function POST(req: NextRequest) {
             dealerDiscount > 0 ? item.price * (1 - dealerDiscount / 100) : item.price;
           return {
             productId: item.id,
-            productName: item.name || product?.nameIt || "Prodotto",
+            productName: lineItemDisplayName(item, product?.nameIt || "Prodotto"),
             productSku: product?.sku || null,
             quantity: item.quantity,
             unitPrice: item.price,
@@ -323,7 +332,7 @@ export async function POST(req: NextRequest) {
               : "cod_pending",
           subtotal: String(subtotalRounded),
           shippingCost: String(shippingCost),
-          taxAmount: isViesExempt
+          taxAmount: excludeItalianProductVat
             ? String(Math.round((subtotal - taxAdjustedSubtotal) * 100) / 100)
             : "0",
           total: String(total),
@@ -359,7 +368,7 @@ export async function POST(req: NextRequest) {
       return {
         orderId: orderId,
         productId: item.id,
-        productName: item.name || product?.nameIt || "Prodotto",
+        productName: lineItemDisplayName(item, product?.nameIt || "Prodotto"),
         productSku: product?.sku || null,
         quantity: item.quantity,
         unitPrice: String(item.price),

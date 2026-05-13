@@ -6,6 +6,7 @@ import Image from "next/image";
 import { registerDealer } from "../../(auth)/actions";
 import { Eye, EyeOff, Building2, AlertCircle, ArrowLeft } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
+import { isValidItalianPartitaIva } from "@/lib/italian-vat";
 
 export default function DealerRegisterPage() {
   const { t } = useLocale();
@@ -30,6 +31,18 @@ export default function DealerRegisterPage() {
 
     if (password.length < 8) {
       setError(t("register.password_min_length"));
+      setLoading(false);
+      return;
+    }
+
+    const vatRaw = ((formData.get("vatNumber") as string) || "").trim();
+    if (!vatRaw) {
+      setError(t("dealer.vat_required"));
+      setLoading(false);
+      return;
+    }
+    if (!isValidItalianPartitaIva(vatRaw)) {
+      setError(t("dealer.vat_invalid"));
       setLoading(false);
       return;
     }
@@ -130,10 +143,11 @@ export default function DealerRegisterPage() {
                 name="vatNumber"
                 type="text"
                 required
-                pattern="[A-Z]{0,2}[0-9]{11}"
+                maxLength={13}
+                autoComplete="off"
                 title={t("dealer.vat_hint")}
                 className="w-full px-4 py-2.5 rounded-lg border border-[var(--color-muted)]/40 bg-[var(--color-background)] text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)] transition"
-                placeholder="IT12345678901"
+                placeholder="IT02450960261"
               />
             </div>
 

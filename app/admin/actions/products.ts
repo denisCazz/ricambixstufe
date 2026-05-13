@@ -154,11 +154,7 @@ export async function updateProduct(id: number, formData: FormData) {
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${id}`);
   revalidatePath("/");
-  const returnPage = formData.get("return_page") as string | null;
-  const redirectUrl = returnPage && parseInt(returnPage, 10) > 1
-    ? `/admin/products?page=${returnPage}`
-    : "/admin/products";
-  redirect(redirectUrl);
+  redirect(`/admin/products/${id}`);
 }
 
 export async function toggleProductActive(id: number, active: boolean) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -17,9 +17,10 @@ import {
   Building2,
   Banknote,
 } from "lucide-react";
-import { useCart } from "@/lib/cart-context";
+import { useCart, cartLineId } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { useUser } from "@/lib/user-context";
+import { italianVatIncludedOnProducts, isValidItalianPartitaIva } from "@/lib/italian-vat";
 
 const COUNTRIES = [
   "Italia",
@@ -132,10 +133,10 @@ export default function CheckoutClient() {
   const [shippingCalc, setShippingCalc] = useState<ShippingCalc | null>(null);
   const [shippingLoading, setShippingLoading] = useState(false);
 
-  // VIES VAT exemption state
+  // VIES lookup (optional): mostra ragione sociale UE; il totale IVA usa paese / P.IVA italiana
   const [viesStatus, setViesStatus] = useState<"idle" | "loading" | "valid" | "invalid">("idle");
   const [viesCompanyName, setViesCompanyName] = useState<string | null>(null);
-  const [viesExempt, setViesExempt] = useState(false);
+  const [vatDraft, setVatDraft] = useState("");
 
   // Track country/province for shipping calculation
   const [selectedCountry, setSelectedCountry] = useState("Italia");
@@ -198,9 +199,24 @@ export default function CheckoutClient() {
 
   useEffect(() => {
     if (profileLoaded) {
+      setVatDraft(profile?.vat_number ?? "");
+    }
+  }, [profileLoaded, profile?.vat_number]);
+
+  useEffect(() => {
+    if (profileLoaded) {
       calcShipping();
     }
   }, [calcShipping, profileLoaded]);
+
+  const italianVatIncluded = useMemo(
+    () =>
+      italianVatIncludedOnProducts(
+        selectedCountry,
+        isCompany ? vatDraft : undefined
+      ),
+    [selectedCountry, isCompany, vatDraft]
+  );
 
   // totalPrice is already discounted (discount applied in AddToCartButton)
   const originalTotal = dealerDiscount
@@ -211,16 +227,15 @@ export default function CheckoutClient() {
   const shippingCost = shippingCalc?.shippingCost ?? 0;
   const codExtra = paymentMethod === "cod" ? COD_SURCHARGE : 0;
   const baseTotal = totalPrice + shippingCost + codExtra;
-  // If VIES exempt (EU company, not Italy), subtract 22% IVA from product prices
-  const grandTotal = viesExempt
-    ? Math.round((totalPrice / 1.22 + shippingCost + codExtra) * 100) / 100
-    : baseTotal;
+  const productsNetIt = Math.round((totalPrice / 1.22) * 100) / 100;
+  const grandTotal = italianVatIncluded
+    ? Math.round(baseTotal * 100) / 100
+    : Math.round((productsNetIt + shippingCost + codExtra) * 100) / 100;
 
   // VIES validation handler
   async function checkVies(vatNumberValue: string) {
     if (!vatNumberValue || selectedCountry === "Italia") {
       setViesStatus("idle");
-      setViesExempt(false);
       setViesCompanyName(null);
       return;
     }
@@ -239,7 +254,6 @@ export default function CheckoutClient() {
     const cc = countryCodeMap[selectedCountry];
     if (!cc) {
       setViesStatus("idle");
-      setViesExempt(false);
       return;
     }
 
@@ -257,24 +271,19 @@ export default function CheckoutClient() {
       const data = await res.json();
       if (data.valid) {
         setViesStatus("valid");
-        setViesExempt(true);
         setViesCompanyName(data.name);
       } else {
         setViesStatus("invalid");
-        setViesExempt(false);
         setViesCompanyName(null);
       }
     } catch {
       setViesStatus("idle");
-      setViesExempt(false);
     }
   }
 
-  // Reset VIES when switching to Italy or toggling company off
   useEffect(() => {
     if (selectedCountry === "Italia" || !isCompany) {
       setViesStatus("idle");
-      setViesExempt(false);
       setViesCompanyName(null);
     }
   }, [selectedCountry, isCompany]);
@@ -419,6 +428,16 @@ export default function CheckoutClient() {
         }
       : undefined;
 
+    const companyTrim = billingInfo?.company?.trim();
+    if (companyTrim && shippingInfo.country === "Italia") {
+      const vat = (billingInfo?.vatNumber || "").trim();
+      if (!isValidItalianPartitaIva(vat)) {
+        setError(t("checkout.vat_italy_company_required"));
+        setPaying(false);
+        return;
+      }
+    }
+
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -430,11 +449,12 @@ export default function CheckoutClient() {
             price: i.price,
             quantity: i.quantity,
             image: i.image,
+            lineKey: i.lineKey,
+            lineNotes: i.lineNotes ?? null,
           })),
           shippingInfo,
           billingInfo,
           paymentMethod,
-          viesExempt,
         }),
       });
 
@@ -712,7 +732,8 @@ export default function CheckoutClient() {
                       required={isCompany}
                       type="text"
                       name="vat_number"
-                      defaultValue={defaults.vatNumber}
+                      value={vatDraft}
+                      onChange={(e) => setVatDraft(e.target.value)}
                       placeholder="IT01234567890"
                       className={`${inputClass} flex-1`}
                     />
@@ -720,8 +741,7 @@ export default function CheckoutClient() {
                       <button
                         type="button"
                         onClick={() => {
-                          const input = document.querySelector('input[name="vat_number"]') as HTMLInputElement;
-                          if (input) checkVies(input.value);
+                          checkVies(vatDraft);
                         }}
                         disabled={viesStatus === "loading"}
                         className="px-3 py-2 rounded-xl border border-border bg-surface text-xs font-semibold hover:bg-accent/5 hover:border-accent/30 transition-all shrink-0 disabled:opacity-50"
@@ -935,7 +955,7 @@ export default function CheckoutClient() {
             <div className="space-y-3 mb-5 max-h-[45vh] overflow-y-auto">
               {items.map((item) => (
                 <div
-                  key={item.id}
+                  key={cartLineId(item)}
                   className="flex gap-3 p-3 rounded-xl bg-stone-50/60 dark:bg-stone-800/40 border border-border/50"
                 >
                   <Link
@@ -962,6 +982,9 @@ export default function CheckoutClient() {
                     <p className="text-sm font-medium text-foreground line-clamp-1">
                       {item.name}
                     </p>
+                    {item.lineNotes && (
+                      <p className="text-xs text-muted mt-0.5 line-clamp-2">{item.lineNotes}</p>
+                    )}
                     <p className="text-sm font-bold text-accent mt-0.5">
                       {formatPrice(item.price)}
                     </p>
@@ -970,8 +993,8 @@ export default function CheckoutClient() {
                         <button
                           type="button"
                           onClick={() => {
-                            if (item.quantity <= 1) removeItem(item.id);
-                            else updateQuantity(item.id, item.quantity - 1);
+                            if (item.quantity <= 1) removeItem(item.id, item.lineKey);
+                            else updateQuantity(item.id, item.quantity - 1, item.lineKey);
                           }}
                           className="w-7 h-7 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                         >
@@ -983,7 +1006,7 @@ export default function CheckoutClient() {
                         <button
                           type="button"
                           onClick={() =>
-                            updateQuantity(item.id, item.quantity + 1)
+                            updateQuantity(item.id, item.quantity + 1, item.lineKey)
                           }
                           className="w-7 h-7 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                         >
@@ -992,7 +1015,7 @@ export default function CheckoutClient() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeItem(item.id, item.lineKey)}
                         className="p-1 rounded text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1044,13 +1067,13 @@ export default function CheckoutClient() {
                   </span>
                 </div>
               )}
-              {viesExempt && (
+              {!italianVatIncluded && (
                 <div className="flex justify-between text-sm">
                   <span className="text-green-600">
-                    {t("checkout.vies_exemption")}
+                    {t("checkout.vat_deduction_products")}
                   </span>
                   <span className="font-medium text-green-600">
-                    -{formatPrice(baseTotal - grandTotal)}
+                    −{formatPrice(Math.round((totalPrice - productsNetIt) * 100) / 100)}
                   </span>
                 </div>
               )}
@@ -1063,7 +1086,9 @@ export default function CheckoutClient() {
                 </span>
               </div>
               <p className="text-[11px] text-muted">
-                {viesExempt ? t("checkout.vat_exempt_note") : t("checkout.vat_included_note")}
+                {italianVatIncluded
+                  ? t("checkout.vat_included_note")
+                  : t("checkout.vat_net_products_note")}
               </p>
             </div>
           </div>
