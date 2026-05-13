@@ -10,6 +10,8 @@ import { getUser } from "@/lib/auth";
 import Footer from "@/components/Footer";
 import ProductDetailClient from "./ProductDetailClient";
 import AddToCartButton from "@/components/AddToCartButton";
+import ElectronicBoardCartSection from "@/components/ElectronicBoardCartSection";
+import { productNeedsBoardProgrammingOption } from "@/lib/product-board-options";
 import PriceDisplay from "@/components/PriceDisplay";
 import TranslatedText from "@/components/TranslatedText";
 import LocalizedText from "@/components/LocalizedText";
@@ -143,22 +145,45 @@ export default async function ProductDetailPage({
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <AddToCartButton
-                  showBuyNow
-                  product={{
-                    id: product.id,
-                    name: product.name,
-                    name_it: product.name_it,
-                    name_en: product.name_en,
-                    name_fr: product.name_fr,
-                    name_es: product.name_es,
-                    slug: product.slug,
-                    price: product.price,
-                    image: product.image,
-                    weight: product.weight,
-                    stockQuantity: product.stockQuantity,
-                  }}
-                />
+                {productNeedsBoardProgrammingOption({
+                  categorySlug: product.categorySlug,
+                  name_it: product.name_it || product.name,
+                }) ? (
+                  <ElectronicBoardCartSection
+                    showBuyNow
+                    compatibleStoves={compatibleStoves}
+                    product={{
+                      id: product.id,
+                      name: product.name,
+                      name_it: product.name_it,
+                      name_en: product.name_en,
+                      name_fr: product.name_fr,
+                      name_es: product.name_es,
+                      slug: product.slug,
+                      price: product.price,
+                      image: product.image,
+                      weight: product.weight,
+                      stockQuantity: product.stockQuantity,
+                    }}
+                  />
+                ) : (
+                  <AddToCartButton
+                    showBuyNow
+                    product={{
+                      id: product.id,
+                      name: product.name,
+                      name_it: product.name_it,
+                      name_en: product.name_en,
+                      name_fr: product.name_fr,
+                      name_es: product.name_es,
+                      slug: product.slug,
+                      price: product.price,
+                      image: product.image,
+                      weight: product.weight,
+                      stockQuantity: product.stockQuantity,
+                    }}
+                  />
+                )}
               </div>
 
               <div className="mt-8 space-y-3">

@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { appUsers, profiles, dealerProfiles } from "@/db/schema";
 import { sendDealerRegistrationNotification, sendEmailVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
 import { signPayload, verifyPayload } from "@/lib/signed-payload";
+import { isValidItalianPartitaIva } from "@/lib/italian-vat";
 
 const SALT = 10;
 
@@ -104,14 +105,21 @@ export async function logout() {
   redirect("/");
 }
 
-export async function registerDealer(formData: FormData) {
+export async function registerDealer(formData: FormData): Promise<{ error: string } | void> {
   const email = normalizeEmail(formData.get("email") as string);
   const password = formData.get("password") as string;
   const firstName = (formData.get("firstName") as string) || "";
   const lastName = (formData.get("lastName") as string) || "";
   const companyName = (formData.get("companyName") as string) || "";
-  const vatNumber = (formData.get("vatNumber") as string) || "";
+  const vatNumber = ((formData.get("vatNumber") as string) || "").trim();
   const phone = (formData.get("phone") as string) || "";
+
+  if (!vatNumber) {
+    return { error: "La Partita IVA è obbligatoria per la registrazione rivenditore." };
+  }
+  if (!isValidItalianPartitaIva(vatNumber)) {
+    return { error: "Partita IVA italiana non valida. Inserisci 11 cifre con codice di controllo corretto (es. IT02450960261)." };
+  }
 
   const db = getDb();
   const existing = await db

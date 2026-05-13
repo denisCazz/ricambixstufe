@@ -10,13 +10,32 @@ export interface CartItem {
   image: string | null;
   quantity: number;
   weight?: number | null;
+  /** Same product, different options (es. scheda programmata vs vergine) */
+  lineKey?: string;
+  /** Nota ordine (mostrata in checkout e ordine) */
+  lineNotes?: string | null;
+}
+
+export function normalizeCartLineKey(lineKey?: string | null): string {
+  return lineKey ?? "";
+}
+
+export function cartLineId(item: Pick<CartItem, "id" | "lineKey">): string {
+  return `${item.id}::${normalizeCartLineKey(item.lineKey)}`;
+}
+
+function sameLine(
+  a: Pick<CartItem, "id" | "lineKey">,
+  b: Pick<CartItem, "id" | "lineKey">
+): boolean {
+  return a.id === b.id && normalizeCartLineKey(a.lineKey) === normalizeCartLineKey(b.lineKey);
 }
 
 interface CartContextType {
   items: CartItem[];
   addItem: (product: Omit<CartItem, "quantity">, quantity?: number) => void;
-  removeItem: (id: number) => void;
-  updateQuantity: (id: number, quantity: number) => void;
+  removeItem: (id: number, lineKey?: string) => void;
+  updateQuantity: (id: number, quantity: number, lineKey?: string) => void;
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
@@ -63,23 +82,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback((product: Omit<CartItem, "quantity">, quantity = 1) => {
     setItems((prev) => {
-      const existing = prev.find((i) => i.id === product.id);
+      const existing = prev.find((i) => sameLine(i, product));
       if (existing) {
         return prev.map((i) =>
-          i.id === product.id ? { ...i, quantity: i.quantity + quantity } : i
+          sameLine(i, product) ? { ...i, quantity: i.quantity + quantity } : i
         );
       }
       return [...prev, { ...product, quantity }];
     });
   }, []);
 
-  const removeItem = useCallback((id: number) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  const removeItem = useCallback((id: number, lineKey?: string) => {
+    setItems((prev) =>
+      prev.filter((i) => !sameLine(i, { id, lineKey }))
+    );
   }, []);
 
-  const updateQuantity = useCallback((id: number, quantity: number) => {
+  const updateQuantity = useCallback((id: number, quantity: number, lineKey?: string) => {
     if (quantity < 1) return;
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, quantity } : i)));
+    setItems((prev) =>
+      prev.map((i) => (sameLine(i, { id, lineKey }) ? { ...i, quantity } : i))
+    );
   }, []);
 
   const clearCart = useCallback(() => {

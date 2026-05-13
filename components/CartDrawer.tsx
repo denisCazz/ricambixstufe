@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
-import { useCart } from "@/lib/cart-context";
+import { useCart, cartLineId } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 
 export default function CartDrawer() {
@@ -77,7 +77,7 @@ export default function CartDrawer() {
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               {items.map((item) => (
                 <div
-                  key={item.id}
+                  key={cartLineId(item)}
                   className="flex gap-3 bg-stone-50/60 dark:bg-stone-800/40 rounded-xl p-3 border border-border/50"
                 >
                   {/* Thumbnail */}
@@ -112,6 +112,9 @@ export default function CartDrawer() {
                     >
                       {item.name}
                     </Link>
+                    {item.lineNotes && (
+                      <p className="text-xs text-muted mt-0.5 line-clamp-2">{item.lineNotes}</p>
+                    )}
                     <div className="text-accent font-bold text-sm mt-1">
                       {formatPrice(item.price)}
                     </div>
@@ -122,9 +125,9 @@ export default function CartDrawer() {
                         <button
                           onClick={() => {
                             if (item.quantity <= 1) {
-                              removeItem(item.id);
+                              removeItem(item.id, item.lineKey);
                             } else {
-                              updateQuantity(item.id, item.quantity - 1);
+                              updateQuantity(item.id, item.quantity - 1, item.lineKey);
                             }
                           }}
                           className="w-8 h-8 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
@@ -136,7 +139,7 @@ export default function CartDrawer() {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity + 1, item.lineKey)}
                           className="w-8 h-8 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                           aria-label="Aumenta quantità"
                         >
@@ -145,7 +148,7 @@ export default function CartDrawer() {
                       </div>
 
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeItem(item.id, item.lineKey)}
                         className="p-1.5 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                         aria-label="Rimuovi prodotto"
                       >

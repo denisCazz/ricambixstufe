@@ -81,7 +81,7 @@ export default function DealerActions({ dealer }: { dealer: DealerData }) {
   // ── IDLE: show action buttons ──
   if (mode === "idle") {
     return (
-      <div className={`flex items-center gap-1.5 ${wrap}`}>
+      <div className={`flex flex-wrap items-center gap-1.5 ${wrap}`}>
         {dealer.status === "pending" && (
           <>
             <button
@@ -120,7 +120,7 @@ export default function DealerActions({ dealer }: { dealer: DealerData }) {
   // ── APPROVE ──
   if (mode === "approve") {
     return (
-      <div className={`flex items-center gap-2 ${wrap}`}>
+      <div className={`flex flex-wrap items-center gap-2 ${wrap}`}>
         <label className="text-xs text-muted whitespace-nowrap">Sconto %</label>
         <input
           type="number"
@@ -149,7 +149,7 @@ export default function DealerActions({ dealer }: { dealer: DealerData }) {
   // ── REJECT ──
   if (mode === "reject") {
     return (
-      <div className={`flex items-center gap-2 ${wrap}`}>
+      <div className={`flex flex-wrap items-center gap-2 ${wrap}`}>
         <input
           type="text"
           value={reason}
@@ -176,7 +176,7 @@ export default function DealerActions({ dealer }: { dealer: DealerData }) {
   // ── DELETE ──
   if (mode === "delete") {
     return (
-      <div className={`flex items-center gap-2 ${wrap}`}>
+      <div className={`flex flex-wrap items-center gap-2 ${wrap}`}>
         <span className="text-xs text-red-600 font-medium">Eliminare questo dealer?</span>
         <button
           onClick={handleDelete}
@@ -196,7 +196,7 @@ export default function DealerActions({ dealer }: { dealer: DealerData }) {
 
   // ── EDIT ──
   return (
-    <div className={`w-full mt-4 border-t border-border pt-4 space-y-3 ${wrap}`}>
+    <div className={`w-full min-w-0 space-y-3 ${wrap}`}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-muted mb-1">Ragione sociale</label>

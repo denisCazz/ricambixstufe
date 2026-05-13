@@ -77,8 +77,9 @@ export default async function AdminDealersPage() {
                   key={dealer.id}
                   className="bg-surface border-2 border-yellow-200 dark:border-yellow-800 rounded-2xl p-5"
                 >
-                  <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                    <div className="flex-1 min-w-0">
+                  {/* Colonna unica: il form Modifica è w-full; affiancarlo in flex-row stretta causava overflow/sovrapposizione */}
+                  <div className="flex flex-col gap-4">
+                    <div className="min-w-0">
                       <h3 className="font-semibold text-foreground text-base">
                         {dealer.company_name}
                       </h3>
@@ -98,16 +99,18 @@ export default async function AdminDealersPage() {
                         </div>
                       </div>
                     </div>
-                    <DealerActions
-                      dealer={{
-                        id: dealer.id,
-                        company_name: dealer.company_name,
-                        vat_number: dealer.vat_number,
-                        status: dealer.status,
-                        discount_percent: dealer.discount_percent,
-                        profiles: profile,
-                      }}
-                    />
+                    <div className="w-full min-w-0 shrink-0">
+                      <DealerActions
+                        dealer={{
+                          id: dealer.id,
+                          company_name: dealer.company_name,
+                          vat_number: dealer.vat_number,
+                          status: dealer.status,
+                          discount_percent: dealer.discount_percent,
+                          profiles: profile,
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               );
@@ -162,7 +165,7 @@ export default async function AdminDealersPage() {
                     <td className="py-3 px-4 text-muted tabular-nums hidden lg:table-cell">
                       {new Date(dealer.created_at).toLocaleDateString("it-IT")}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 align-top min-w-[16rem] max-w-md">
                       <DealerActions
                         dealer={{
                           id: dealer.id,
