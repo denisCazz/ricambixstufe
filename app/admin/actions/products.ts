@@ -86,9 +86,10 @@ export async function createProduct(formData: FormData) {
     }
   }
 
+  const categoryId = formData.get("category_id") as string;
   revalidatePath("/admin/products");
   revalidatePath("/");
-  redirect("/admin/products");
+  redirect(categoryId ? `/admin/products?category=${categoryId}` : "/admin/products");
 }
 
 export async function updateProduct(id: number, formData: FormData) {
@@ -151,10 +152,11 @@ export async function updateProduct(id: number, formData: FormData) {
     await db.insert(productStoves).values(stoveIds.map((sid) => ({ productId: id, stoveId: sid })));
   }
 
+  const categoryId = formData.get("category_id") as string;
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${id}`);
   revalidatePath("/");
-  redirect(`/admin/products/${id}`);
+  redirect(categoryId ? `/admin/products?category=${categoryId}` : "/admin/products");
 }
 
 export async function toggleProductActive(id: number, active: boolean) {
