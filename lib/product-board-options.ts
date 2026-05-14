@@ -8,5 +8,9 @@ export function productNeedsBoardProgrammingOption(p: {
 }): boolean {
   if (p.categorySlug !== ELECTRONIC_BOARDS_CATEGORY_SLUG) return false;
   const n = p.name_it.toUpperCase();
-  return /\bSCHEDA\b/.test(n) || /\bCENTRALINA\b/.test(n);
+  // Solo SCHEDA e CENTRALINA richiedono la scelta; connettori, sensori, ecc. no
+  return (
+    (n.includes("SCHEDA") || n.includes("CENTRALINA")) &&
+    !n.includes("CONNETTORE")
+  );
 }

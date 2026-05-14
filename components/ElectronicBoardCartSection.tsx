@@ -42,10 +42,9 @@ export default function ElectronicBoardCartSection({
   const router = useRouter();
   const [added, setAdded] = useState(false);
   const hasStoves = compatibleStoves.length > 0;
-  const [variant, setVariant] = useState<"programmed" | "virgin">(
-    () => (compatibleStoves.length > 0 ? "programmed" : "virgin")
-  );
+  const [variant, setVariant] = useState<"programmed" | "virgin">("programmed");
   const [stoveId, setStoveId] = useState<number | "">("");
+  const [stoveText, setStoveText] = useState("");
 
   const outOfStock = product.stockQuantity !== undefined && product.stockQuantity <= 0;
 
@@ -78,22 +77,30 @@ export default function ElectronicBoardCartSection({
   }
 
   function buildLine(): { lineKey: string; lineNotes: string } | null {
-    if (variant === "virgin" || !hasStoves) {
+    if (variant === "virgin") {
       return {
         lineKey: "board:virgin",
         lineNotes: t("product.board_option_notes_virgin"),
       };
     }
-    if (!stoveId) return null;
-    const s = compatibleStoves.find((x) => x.id === stoveId);
-    if (!s) return null;
-    return {
-      lineKey: `board:prog:${stoveId}`,
-      lineNotes: t("product.board_option_notes_programmed").replace(
-        "{stove}",
-        stoveLabel(s)
-      ),
-    };
+    // variant === "programmed"
+    if (hasStoves) {
+      if (!stoveId) return null;
+      const s = compatibleStoves.find((x) => x.id === stoveId);
+      if (!s) return null;
+      return {
+        lineKey: `board:prog:${stoveId}`,
+        lineNotes: t("product.board_option_notes_programmed").replace("{stove}", stoveLabel(s)),
+      };
+    } else {
+      // no stoves list: free text
+      const label = stoveText.trim();
+      if (!label) return null;
+      return {
+        lineKey: `board:prog:custom`,
+        lineNotes: t("product.board_option_notes_programmed").replace("{stove}", label),
+      };
+    }
   }
 
   function handleAddToCart() {
@@ -125,8 +132,11 @@ export default function ElectronicBoardCartSection({
     router.push("/checkout");
   }
 
-  const needsStove = hasStoves && variant === "programmed";
-  const canAdd = !needsStove || stoveId !== "";
+  const needsStove = variant === "programmed" && hasStoves;
+  const needsStoveText = variant === "programmed" && !hasStoves;
+  const canAdd =
+    variant === "virgin" ||
+    (hasStoves ? stoveId !== "" : stoveText.trim() !== "");
 
   if (outOfStock) {
     return (
@@ -145,7 +155,6 @@ export default function ElectronicBoardCartSection({
       <div className="rounded-xl border border-border bg-surface p-4 space-y-3">
         <p className="text-sm font-semibold text-foreground">{t("product.board_option_title")}</p>
         <div className="space-y-2">
-          {hasStoves && (
           <label className="flex items-start gap-2 cursor-pointer text-sm">
             <input
               type="radio"
@@ -159,8 +168,7 @@ export default function ElectronicBoardCartSection({
               <span className="block text-muted text-xs mt-0.5">{t("product.board_option_programmed_hint")}</span>
             </span>
           </label>
-          )}
-          {hasStoves && variant === "programmed" && (
+          {variant === "programmed" && hasStoves && (
             <div className="pl-6 pt-1">
               <label htmlFor="board_stove" className="block text-xs font-medium text-muted mb-1">
                 {t("product.board_option_stove_label")}
@@ -180,6 +188,21 @@ export default function ElectronicBoardCartSection({
               </select>
             </div>
           )}
+          {variant === "programmed" && !hasStoves && (
+            <div className="pl-6 pt-1">
+              <label htmlFor="board_stove_text" className="block text-xs font-medium text-muted mb-1">
+                {t("product.board_option_stove_label")}
+              </label>
+              <input
+                id="board_stove_text"
+                type="text"
+                value={stoveText}
+                onChange={(e) => setStoveText(e.target.value)}
+                placeholder={t("product.board_option_stove_placeholder")}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted"
+              />
+            </div>
+          )}
           <label className="flex items-start gap-2 cursor-pointer text-sm">
             <input
               type="radio"
@@ -189,6 +212,7 @@ export default function ElectronicBoardCartSection({
               onChange={() => {
                 setVariant("virgin");
                 setStoveId("");
+                setStoveText("");
               }}
             />
             <span>
@@ -197,12 +221,12 @@ export default function ElectronicBoardCartSection({
             </span>
           </label>
         </div>
-        {needsStove && !stoveId && (
+        {(needsStove && !stoveId) || (needsStoveText && !stoveText.trim()) ? (
           <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400">
             <AlertCircle className="w-4 h-4 shrink-0" />
             {t("product.board_option_stove_required")}
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">

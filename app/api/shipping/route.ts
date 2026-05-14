@@ -5,7 +5,7 @@ import { products } from "@/db/schema";
 import {
   calculateShippingCost,
   getShippingZone,
-  COD_SURCHARGE,
+  getShippingConfig,
 } from "@/lib/shipping";
 
 /**
@@ -44,9 +44,10 @@ export async function POST(req: NextRequest) {
       return sum + weight * item.quantity;
     }, 0);
 
-    const zone = getShippingZone(country, province);
-    const shippingCost = calculateShippingCost(totalWeight, zone);
-    return NextResponse.json({ shippingCost, zone, codSurcharge: COD_SURCHARGE });
+    const config = await getShippingConfig();
+    const zone = getShippingZone(country, province, config);
+    const shippingCost = calculateShippingCost(totalWeight, zone, config);
+    return NextResponse.json({ shippingCost, zone, codSurcharge: config.codSurcharge });
   } catch (e) {
     console.error(e);
     return NextResponse.json(

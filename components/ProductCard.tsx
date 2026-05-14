@@ -4,11 +4,12 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ShoppingCart, Eye } from "lucide-react";
+import { ShoppingCart, Eye, X } from "lucide-react";
 import { type Product } from "@/data/products";
 import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { useUser } from "@/lib/user-context";
+import { productNeedsBoardProgrammingOption } from "@/lib/product-board-options";
 
 export default function ProductCard({
   product,
@@ -21,6 +22,12 @@ export default function ProductCard({
   const { addItem } = useCart();
   const { formatPrice, t, locale } = useLocale();
   const { dealerDiscount } = useUser();
+  const [showBoardModal, setShowBoardModal] = useState(false);
+  const [boardVariant, setBoardVariant] = useState<"programmed" | "virgin">("programmed");
+  const [boardStoveText, setBoardStoveText] = useState("");
+  const [boardStoves, setBoardStoves] = useState<{ id: number; nameIt: string; nameEn: string | null }[]>([]);
+  const [boardStovesLoading, setBoardStovesLoading] = useState(false);
+  const [boardStoveId, setBoardStoveId] = useState<number | "">("");
 
   // Locale-aware name & description
   const localizedName = (locale !== "it" && product[`name_${locale}` as keyof typeof product] as string) || product.name;
@@ -32,10 +39,12 @@ export default function ProductCard({
 
   const outOfStock = product.stockQuantity !== undefined && product.stockQuantity <= 0;
 
-  function handleAddToCart(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (outOfStock) return;
+  const needsBoardOption = productNeedsBoardProgrammingOption({
+    categorySlug: product.categorySlug,
+    name_it: product.name,
+  });
+
+  function doAddToCart(lineKey?: string, lineNotes?: string) {
     addItem({
       id: product.id,
       name: localizedName,
@@ -43,7 +52,56 @@ export default function ProductCard({
       price: discountedPrice,
       image: product.image,
       weight: product.weight,
+      lineKey,
+      lineNotes,
     });
+  }
+
+  function handleAddToCart(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (outOfStock) return;
+    if (needsBoardOption) {
+      setBoardVariant("programmed");
+      setBoardStoveText("");
+      setBoardStoveId("");
+      setBoardStoves([]);
+      setShowBoardModal(true);
+      setBoardStovesLoading(true);
+      fetch(`/api/stoves?productId=${product.id}`)
+        .then((r) => r.json())
+        .then((data) => setBoardStoves(Array.isArray(data) ? data : []))
+        .catch(() => setBoardStoves([]))
+        .finally(() => setBoardStovesLoading(false));
+      return;
+    }
+    doAddToCart();
+  }
+
+  function handleBoardConfirm() {
+    const hasStoves = boardStoves.length > 0;
+    if (boardVariant === "programmed") {
+      if (hasStoves && boardStoveId === "") return;
+      if (!hasStoves && !boardStoveText.trim()) return;
+    }
+    let lineKey: string;
+    let lineNotes: string;
+    if (boardVariant === "virgin") {
+      lineKey = "board:virgin";
+      lineNotes = t("product.board_option_notes_virgin");
+    } else if (hasStoves) {
+      const stove = boardStoves.find((s) => s.id === boardStoveId);
+      const stoveName = stove?.nameIt ?? String(boardStoveId);
+      lineKey = `board:prog:${boardStoveId}`;
+      lineNotes = t("product.board_option_notes_programmed").replace("{stove}", stoveName);
+    } else {
+      lineKey = "board:prog:custom";
+      lineNotes = t("product.board_option_notes_programmed").replace("{stove}", boardStoveText.trim());
+    }
+    doAddToCart(lineKey, lineNotes);
+    setShowBoardModal(false);
+    setBoardStoveText("");
+    setBoardStoveId("");
   }
 
   return (
@@ -153,6 +211,100 @@ export default function ProductCard({
           {t("product.details")}
         </Link>
       </div>
+
+      {/* Board programming modal */}
+      {showBoardModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowBoardModal(false)}
+        >
+          <div
+            className="bg-surface rounded-2xl border border-border shadow-xl w-full max-w-sm p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-foreground">{t("product.board_option_title")}</p>
+              <button
+                type="button"
+                onClick={() => setShowBoardModal(false)}
+                className="text-muted hover:text-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted line-clamp-2">{localizedName}</p>
+            <div className="space-y-2">
+              <label className="flex items-start gap-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="card_board_variant"
+                  className="mt-1"
+                  checked={boardVariant === "programmed"}
+                  onChange={() => setBoardVariant("programmed")}
+                />
+                <span>
+                  <span className="font-medium text-foreground">{t("product.board_option_programmed")}</span>
+                  <span className="block text-muted text-xs mt-0.5">{t("product.board_option_programmed_hint")}</span>
+                </span>
+              </label>
+              {boardVariant === "programmed" && (
+                <div className="pl-6">
+                  {boardStovesLoading ? (
+                    <p className="text-xs text-muted animate-pulse">{t("common.loading") || "Caricamento..."}</p>
+                  ) : boardStoves.length > 0 ? (
+                    <select
+                      value={boardStoveId}
+                      onChange={(e) => setBoardStoveId(e.target.value === "" ? "" : Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground"
+                      autoFocus
+                    >
+                      <option value="">{t("product.board_option_stove_placeholder")}</option>
+                      {boardStoves.map((s) => (
+                        <option key={s.id} value={s.id}>{s.nameIt}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={boardStoveText}
+                      onChange={(e) => setBoardStoveText(e.target.value)}
+                      placeholder={t("product.board_option_stove_placeholder")}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted"
+                      autoFocus
+                    />
+                  )}
+                </div>
+              )}
+              <label className="flex items-start gap-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="card_board_variant"
+                  className="mt-1"
+                  checked={boardVariant === "virgin"}
+                  onChange={() => { setBoardVariant("virgin"); setBoardStoveText(""); }}
+                />
+                <span>
+                  <span className="font-medium text-foreground">{t("product.board_option_virgin")}</span>
+                  <span className="block text-muted text-xs mt-0.5">{t("product.board_option_virgin_hint")}</span>
+                </span>
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={handleBoardConfirm}
+              disabled={
+                boardVariant === "programmed" &&
+                (boardStovesLoading ||
+                  (boardStoves.length > 0 ? boardStoveId === "" : !boardStoveText.trim()))
+              }
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none hover:shadow-lg hover:shadow-orange-500/25 transition-all"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {t("product.add_to_cart")}
+            </button>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

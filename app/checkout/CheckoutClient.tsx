@@ -640,21 +640,6 @@ export default function CheckoutClient() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground/70 mb-1.5">
-                    {t("checkout.province")}
-                  </label>
-                  <input
-                    type="text"
-                    name="province"
-                    autoComplete="address-level1"
-                    defaultValue={defaults.province}
-                    onChange={(e) => setSelectedProvince(e.target.value.toUpperCase().slice(0, 2))}
-                    maxLength={2}
-                    className={inputClass + " uppercase"}
-                    placeholder="TV"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground/70 mb-1.5">
                     {t("checkout.country")} *
                   </label>
                   <select
@@ -662,7 +647,10 @@ export default function CheckoutClient() {
                     name="country"
                     defaultValue={defaults.country}
                     autoComplete="country-name"
-                    onChange={(e) => setSelectedCountry(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedCountry(e.target.value);
+                      if (e.target.value !== "Italia") setSelectedProvince("");
+                    }}
                     className={inputClass}
                   >
                     {COUNTRIES.map((c) => (
@@ -672,6 +660,23 @@ export default function CheckoutClient() {
                     ))}
                   </select>
                 </div>
+                {selectedCountry === "Italia" && (
+                  <div>
+                    <label className="block text-sm font-medium text-foreground/70 mb-1.5">
+                      {t("checkout.province")}
+                    </label>
+                    <input
+                      type="text"
+                      name="province"
+                      autoComplete="address-level1"
+                      value={selectedProvince}
+                      onChange={(e) => setSelectedProvince(e.target.value.toUpperCase().slice(0, 2))}
+                      maxLength={2}
+                      className={inputClass + " uppercase"}
+                      placeholder="TV"
+                    />
+                  </div>
+                )}
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-foreground/70 mb-1.5">
                     {t("checkout.notes")}

@@ -1,8 +1,8 @@
 "use server";
 
-import { desc, eq, and, inArray, type SQL } from "drizzle-orm";
+import { desc, eq, and, inArray, sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/db";
-import { orders, orderItems, profiles } from "@/db/schema";
+import { orders, orderItems, profiles, products } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import type { OrderStatus } from "@/lib/types";
@@ -117,6 +117,20 @@ export async function updateOrderStatus(orderId: number, status: string) {
 
   // Fetch order + customer info before updating (needed for email)
   const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+
+  // If cancelling, restore stock for all order items
+  if (status === "cancelled" && order && order.status !== "cancelled") {
+    const items = await db
+      .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId));
+    for (const item of items) {
+      await db
+        .update(products)
+        .set({ stockQuantity: sql`${products.stockQuantity} + ${item.quantity}`, updatedAt: new Date() })
+        .where(eq(products.id, item.productId));
+    }
+  }
 
   await db
     .update(orders)
