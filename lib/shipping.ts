@@ -1,47 +1,114 @@
 /**
  * Shipping cost calculation for RicambiXStufe.
  *
- * Zones:
- *   - Italy (standard): €8.50+IVA ≤10kg, €12.50+IVA 10–30kg
- *   - Islands & Calabria: €12.50+IVA ≤10kg, €16.50+IVA 10–30kg
- *   - Europe: €20 ≤10kg, €30 10–30kg
+ * Rates are stored in the `app_settings` table (key = "shipping").
+ * Falls back to hardcoded defaults if the DB record is missing.
  *
- * Contrassegno (COD) surcharge: +€7.00
- * IBAN for bank transfers: IT76S0708461620000000920491
+ * Zones:
+ *   - italy            : standard Italian mainland provinces
+ *   - islands_calabria : Sicily, Sardinia + Calabria (surcharge)
+ *   - europe           : all non-Italian countries
+ *
+ * Contrassegno (COD) surcharge: configurable (default €7.00)
  */
 
-// Provinces classified as islands + Calabria (surcharge zone)
-const ISLANDS_CALABRIA_PROVINCES = new Set([
-  // Sicilia
-  "AG", "CL", "CT", "EN", "ME", "PA", "RG", "SR", "TP",
-  // Sardegna
-  "CA", "CI", "MD", "NU", "OG", "OT", "OR", "SS", "SU", "VS",
-  // Calabria
-  "CS", "CZ", "KR", "RC", "VV",
-]);
+import { getDb } from "@/db";
+import { appSettings } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ShippingZone = "italy" | "islands_calabria" | "europe";
 
-// Net rates (without IVA) for Italy zones; flat rates for Europe
-// [rate ≤10kg, rate 10–30kg]
-const SHIPPING_RATES: Record<ShippingZone, [number, number]> = {
-  italy: [8.5, 12.5],
-  islands_calabria: [12.5, 16.5],
-  europe: [20.0, 30.0],
+export type ShippingTier = {
+  maxKg: number;  // inclusive upper bound (kg)
+  rate: number;   // net rate in EUR
 };
 
-const IVA_RATE = 0.22;
+export type ZoneConfig = {
+  label: string;
+  tiers: ShippingTier[];
+  includesIva: boolean;
+};
 
-export const COD_SURCHARGE = 7.0;
-export const BANK_IBAN = "IT76S0708461620000000920491";
-export const BANK_INTESTATARIO = "Ricambi X Stufe";
+export type ShippingConfig = {
+  zones: Record<ShippingZone, ZoneConfig>;
+  codSurcharge: number;
+  ivaRate: number;
+  islandsCalabriaProvincia: string[];
+};
 
-/** Determine the shipping zone from country + province */
+// ─── Hardcoded defaults ───────────────────────────────────────────────────────
+
+export const DEFAULT_SHIPPING_CONFIG: ShippingConfig = {
+  zones: {
+    italy: {
+      label: "Italia",
+      tiers: [{ maxKg: 10, rate: 8.5 }, { maxKg: 30, rate: 12.5 }],
+      includesIva: true,
+    },
+    islands_calabria: {
+      label: "Isole e Calabria",
+      tiers: [{ maxKg: 10, rate: 12.5 }, { maxKg: 30, rate: 16.5 }],
+      includesIva: true,
+    },
+    europe: {
+      label: "Europa",
+      tiers: [{ maxKg: 10, rate: 20.0 }, { maxKg: 30, rate: 30.0 }],
+      includesIva: false,
+    },
+  },
+  codSurcharge: 7.0,
+  ivaRate: 0.22,
+  islandsCalabriaProvincia: [
+    "AG", "CL", "CT", "EN", "ME", "PA", "RG", "SR", "TP",
+    "CA", "CI", "MD", "NU", "OG", "OT", "OR", "SS", "SU", "VS",
+    "CS", "CZ", "KR", "RC", "VV",
+  ],
+};
+
+// ─── DB-backed config loader ──────────────────────────────────────────────────
+
+let _cachedConfig: ShippingConfig | null = null;
+let _cacheTs = 0;
+const CACHE_TTL_MS = 60_000;
+
+export async function getShippingConfig(): Promise<ShippingConfig> {
+  const now = Date.now();
+  if (_cachedConfig && now - _cacheTs < CACHE_TTL_MS) return _cachedConfig;
+
+  try {
+    const db = getDb();
+    const [row] = await db
+      .select({ value: appSettings.value })
+      .from(appSettings)
+      .where(eq(appSettings.key, "shipping"))
+      .limit(1);
+
+    if (row?.value) {
+      _cachedConfig = row.value as unknown as ShippingConfig;
+      _cacheTs = now;
+      return _cachedConfig;
+    }
+  } catch {
+    // DB unavailable – fall through to default
+  }
+
+  return DEFAULT_SHIPPING_CONFIG;
+}
+
+export function invalidateShippingConfigCache() {
+  _cachedConfig = null;
+  _cacheTs = 0;
+}
+
+// ─── Pure calculation helpers ─────────────────────────────────────────────────
+
 export function getShippingZone(
   country: string,
-  province?: string | null
+  province?: string | null,
+  config: ShippingConfig = DEFAULT_SHIPPING_CONFIG
 ): ShippingZone {
-  // Normalize: accept both "Italia" (display name) and "IT" (code)
   const isItaly =
     country === "Italia" ||
     country === "IT" ||
@@ -49,46 +116,38 @@ export function getShippingZone(
 
   if (!isItaly) return "europe";
 
-  if (province && ISLANDS_CALABRIA_PROVINCES.has(province.toUpperCase())) {
+  const provinces = new Set(config.islandsCalabriaProvincia);
+  if (province && provinces.has(province.toUpperCase())) {
     return "islands_calabria";
   }
 
   return "italy";
 }
 
-/**
- * Calculate shipping cost (IVA-inclusive for Italy, flat for Europe).
- * @param totalWeightKg  Total weight of the order in kg
- * @param zone           Shipping zone
- * @returns Shipping cost in EUR (IVA included for Italy zones)
- */
 export function calculateShippingCost(
   totalWeightKg: number,
-  zone: ShippingZone
+  zone: ShippingZone,
+  config: ShippingConfig = DEFAULT_SHIPPING_CONFIG
 ): number {
-  // Default minimum weight 0.5 kg if nothing specified
   const weight = Math.max(totalWeightKg, 0.1);
+  const zoneConfig = config.zones[zone];
+  const sorted = [...zoneConfig.tiers].sort((a, b) => a.maxKg - b.maxKg);
+  const tier = sorted.find((t) => weight <= t.maxKg) ?? sorted[sorted.length - 1];
 
-  const rates = SHIPPING_RATES[zone];
-  const netRate = weight <= 10 ? rates[0] : rates[1];
-
-  if (zone === "europe") {
-    // Europe rates are flat (no separate IVA addition)
-    return netRate;
+  if (zoneConfig.includesIva) {
+    return Math.round(tier.rate * (1 + config.ivaRate) * 100) / 100;
   }
-
-  // Italy/Islands: add IVA 22%
-  return Math.round(netRate * (1 + IVA_RATE) * 100) / 100;
+  return tier.rate;
 }
 
-/** Get a human-readable label for the shipping zone */
-export function getShippingZoneLabel(zone: ShippingZone): string {
-  switch (zone) {
-    case "italy":
-      return "Italia";
-    case "islands_calabria":
-      return "Isole e Calabria";
-    case "europe":
-      return "Europa";
-  }
+export function getShippingZoneLabel(
+  zone: ShippingZone,
+  config: ShippingConfig = DEFAULT_SHIPPING_CONFIG
+): string {
+  return config.zones[zone]?.label ?? zone;
 }
+
+// ─── Backward-compat ──────────────────────────────────────────────────────────
+export const COD_SURCHARGE = DEFAULT_SHIPPING_CONFIG.codSurcharge;
+export const BANK_IBAN = "IT76S0708461620000000920491";
+export const BANK_INTESTATARIO = "Ricambi X Stufe";

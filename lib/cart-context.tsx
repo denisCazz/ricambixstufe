@@ -85,7 +85,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const existing = prev.find((i) => sameLine(i, product));
       if (existing) {
         return prev.map((i) =>
-          sameLine(i, product) ? { ...i, quantity: i.quantity + quantity } : i
+          sameLine(i, product)
+            ? { ...i, quantity: i.quantity + quantity, lineNotes: product.lineNotes ?? i.lineNotes }
+            : i
         );
       }
       return [...prev, { ...product, quantity }];

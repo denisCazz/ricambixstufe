@@ -8,7 +8,7 @@ import { eq, inArray } from "drizzle-orm";
 import {
   calculateShippingCost,
   getShippingZone,
-  COD_SURCHARGE,
+  getShippingConfig,
 } from "@/lib/shipping";
 import { sendOrderConfirmationEmail, sendNewOrderAdminNotification } from "@/lib/email";
 import { isValidItalianPartitaIva, italianVatIncludedOnProducts } from "@/lib/italian-vat";
@@ -148,12 +148,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const shippingConfig = await getShippingConfig();
     const zone = getShippingZone(
       shippingInfo.country,
-      shippingInfo.province
+      shippingInfo.province,
+      shippingConfig
     );
-    const shippingCost = calculateShippingCost(totalWeight, zone);
-    const codSurcharge = paymentMethod === "cod" ? COD_SURCHARGE : 0;
+    const shippingCost = calculateShippingCost(totalWeight, zone, shippingConfig);
+    const codSurcharge = paymentMethod === "cod" ? shippingConfig.codSurcharge : 0;
 
     // Calculate totals (prices in cart are already discounted)
     const subtotal = items.reduce((sum, item) => {
