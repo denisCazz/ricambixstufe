@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
+import { asc, and, eq, notInArray } from "drizzle-orm";
 import { ChevronLeft } from "lucide-react";
 import { getDb } from "@/db";
 import { products, categories, productImages, productStoves, stoves } from "@/db/schema";
@@ -26,7 +26,7 @@ export default async function EditProductPage({
     db
       .select({ id: categories.id, nameIt: categories.nameIt, slug: categories.slug })
       .from(categories)
-      .where(eq(categories.active, true))
+      .where(and(eq(categories.active, true), notInArray(categories.id, [17, 18])))
       .orderBy(asc(categories.sortOrder)),
     db
       .select()
