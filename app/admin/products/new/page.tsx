@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { asc, eq } from "drizzle-orm";
+import { asc, and, eq, notInArray } from "drizzle-orm";
 import { ChevronLeft } from "lucide-react";
 import { getDb } from "@/db";
 import { categories, stoves } from "@/db/schema";
@@ -12,7 +12,7 @@ export default async function NewProductPage() {
     db
       .select({ id: categories.id, nameIt: categories.nameIt, slug: categories.slug })
       .from(categories)
-      .where(eq(categories.active, true))
+      .where(and(eq(categories.active, true), notInArray(categories.id, [17, 18])))
       .orderBy(asc(categories.sortOrder)),
     db.select({ id: stoves.id, nameIt: stoves.nameIt }).from(stoves).where(eq(stoves.active, true)).orderBy(asc(stoves.sortOrder)),
   ]);
