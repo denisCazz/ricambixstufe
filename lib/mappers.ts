@@ -32,6 +32,8 @@ export function productToFormData(p: P) {
     meta_title: p.metaTitle,
     meta_description: p.metaDescription,
     active: p.active,
+    fragile_shipping: p.fragileShipping,
+    fragile_shipping_cost: p.fragileShippingCost != null ? Number(p.fragileShippingCost) : null,
   };
 }
 

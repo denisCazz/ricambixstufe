@@ -18,6 +18,7 @@ import {
   Cable,
   LifeBuoy,
   Truck,
+  LayoutList,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import type { AuthUser } from "@/lib/auth";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Ordini", icon: ShoppingCart },
   { href: "/admin/products", label: "Prodotti", icon: Package },
+  { href: "/admin/categories", label: "Categorie", icon: LayoutList },
   { href: "/admin/stufe", label: "Stufe", icon: Flame },
   { href: "/admin/users", label: "Utenti", icon: Users },
   { href: "/admin/dealers", label: "Dealer", icon: Briefcase },

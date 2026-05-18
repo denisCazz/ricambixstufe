@@ -116,6 +116,8 @@ export const products = pgTable(
     metaDescription: text("meta_description"),
     metaKeywords: text("meta_keywords"),
     imageUrl: text("image_url"),
+    fragileShipping: boolean("fragile_shipping").notNull().default(false),
+    fragileShippingCost: decimal("fragile_shipping_cost", { precision: 10, scale: 2 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   }

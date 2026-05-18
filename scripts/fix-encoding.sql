@@ -105,5 +105,15 @@ WHERE
   OR has_mojibake(meta_description)
   OR has_mojibake(brand);
 
+-- Categories: run unconditionally because has_mojibake misses uppercase accents
+-- (e.g. É = 0xC3 0x89 → Ã‰, not covered by the c383c2/c383cb patterns).
+-- fix_encoding is safe on already-correct text: it fails the WIN1252 roundtrip
+-- for valid UTF-8 sequences and returns the original string unchanged.
+UPDATE categories SET
+  name_it = fix_encoding(name_it),
+  name_en = fix_encoding(name_en),
+  name_fr = fix_encoding(name_fr),
+  name_es = fix_encoding(name_es);
+
 DROP FUNCTION has_mojibake(text);
 DROP FUNCTION fix_encoding(text);

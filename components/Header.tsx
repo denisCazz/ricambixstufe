@@ -99,7 +99,7 @@ export default function Header({
     setShowResults(true);
     debounceRef.current = setTimeout(async () => {
       const [res, stoves] = await Promise.all([
-        searchProducts(value),
+        searchProducts(value, locale),
         searchStoves(value),
       ]);
       setResults(res);

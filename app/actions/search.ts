@@ -13,7 +13,7 @@ export interface SearchResult {
   category: string;
 }
 
-export async function searchProducts(query: string): Promise<SearchResult[]> {
+export async function searchProducts(query: string, locale: string = "it"): Promise<SearchResult[]> {
   if (!query || query.trim().length < 2) return [];
   const term = `%${query.trim()}%`;
   const db = getDb();
@@ -22,11 +22,17 @@ export async function searchProducts(query: string): Promise<SearchResult[]> {
     .select({
       id: p.id,
       nameIt: p.nameIt,
+      nameEn: p.nameEn,
+      nameFr: p.nameFr,
+      nameEs: p.nameEs,
       slug: p.slug,
       price: p.price,
       imageUrl: p.imageUrl,
       firstImageUrl: sql<string | null>`(SELECT image_url FROM product_images WHERE product_id = products.id ORDER BY sort_order ASC, id ASC LIMIT 1)`,
-      catName: categories.nameIt,
+      catNameIt: categories.nameIt,
+      catNameEn: categories.nameEn,
+      catNameFr: categories.nameFr,
+      catNameEs: categories.nameEs,
     })
     .from(products)
     .innerJoin(categories, eq(products.categoryId, categories.id))
@@ -35,8 +41,14 @@ export async function searchProducts(query: string): Promise<SearchResult[]> {
         eq(products.active, true),
         or(
           ilike(products.nameIt, term),
+          ilike(products.nameEn, term),
+          ilike(products.nameFr, term),
+          ilike(products.nameEs, term),
           ilike(products.sku, term),
           ilike(products.descriptionIt, term),
+          ilike(products.descriptionEn, term),
+          ilike(products.descriptionFr, term),
+          ilike(products.descriptionEs, term),
           exists(
             db
               .select({ id: stoves.id })
@@ -62,11 +74,11 @@ export async function searchProducts(query: string): Promise<SearchResult[]> {
 
   return rows.map((row) => ({
     id: row.id,
-    name: row.nameIt,
+    name: (locale === "en" && row.nameEn) || (locale === "fr" && row.nameFr) || (locale === "es" && row.nameEs) || row.nameIt,
     slug: row.slug,
     price: Number(row.price),
     image: row.firstImageUrl ?? row.imageUrl ?? null,
-    category: row.catName,
+    category: (locale === "en" && row.catNameEn) || (locale === "fr" && row.catNameFr) || (locale === "es" && row.catNameEs) || row.catNameIt,
   }));
 }
 

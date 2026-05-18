@@ -68,6 +68,10 @@ export async function createProduct(formData: FormData) {
       metaTitle: (formData.get("meta_title") as string) || null,
       metaDescription: (formData.get("meta_description") as string) || null,
       active: formData.get("active") === "on",
+      fragileShipping: formData.get("fragile_shipping") === "on",
+      fragileShippingCost: formData.get("fragile_shipping_cost")
+        ? String(parseFloat(formData.get("fragile_shipping_cost") as string))
+        : null,
     });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Errore" };
@@ -138,6 +142,10 @@ export async function updateProduct(id: number, formData: FormData) {
         metaTitle: (formData.get("meta_title") as string) || null,
         metaDescription: (formData.get("meta_description") as string) || null,
         active: formData.get("active") === "on",
+        fragileShipping: formData.get("fragile_shipping") === "on",
+        fragileShippingCost: formData.get("fragile_shipping_cost")
+          ? String(parseFloat(formData.get("fragile_shipping_cost") as string))
+          : null,
         updatedAt: new Date(),
       })
       .where(eq(products.id, id));
