@@ -1,4 +1,4 @@
-import { and, eq, asc, notInArray } from "drizzle-orm";
+import { and, eq, asc, notInArray, exists } from "drizzle-orm";
 import { getDb } from "@/db";
 import { categories, products } from "@/db/schema";
 
@@ -47,7 +47,15 @@ export async function getCategories(): Promise<CategoryWithCount[]> {
   const data = await db
     .select()
     .from(categories)
-    .where(and(eq(categories.active, true), notInArray(categories.slug, HIDDEN_CATEGORY_SLUGS)))
+    .where(and(
+      eq(categories.active, true),
+      notInArray(categories.slug, HIDDEN_CATEGORY_SLUGS),
+      exists(
+        db.select({ id: products.id })
+          .from(products)
+          .where(and(eq(products.categoryId, categories.id), eq(products.active, true)))
+      )
+    ))
     .orderBy(asc(categories.sortOrder));
   return data.map((row) => mapRow(row));
 }

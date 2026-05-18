@@ -31,23 +31,43 @@ export async function POST(req: NextRequest) {
     const db = getDb();
     const productIds = items.map((i) => i.id);
     const prods = await db
-      .select({ id: products.id, weight: products.weight })
+      .select({
+        id: products.id,
+        weight: products.weight,
+        fragileShipping: products.fragileShipping,
+        fragileShippingCost: products.fragileShippingCost,
+      })
       .from(products)
       .where(inArray(products.id, productIds));
 
-    const weightMap = new Map(
-      prods.map((p) => [p.id, p.weight != null ? Number(p.weight) : 0.5])
-    );
+    const prodMap = new Map(prods.map((p) => [p.id, p]));
 
     const totalWeight = items.reduce((sum, item) => {
-      const weight = weightMap.get(item.id) || 0.5;
+      const weight = prodMap.get(item.id)?.weight != null ? Number(prodMap.get(item.id)!.weight) : 0.5;
       return sum + weight * item.quantity;
     }, 0);
 
     const config = await getShippingConfig();
     const zone = getShippingZone(country, province, config);
     const shippingCost = calculateShippingCost(totalWeight, zone, config);
-    return NextResponse.json({ shippingCost, zone, codSurcharge: config.codSurcharge });
+
+    // Fragile shipping surcharge (per-item, IVA applied for Italian zones)
+    const fragileNet = items.reduce((sum, item) => {
+      const prod = prodMap.get(item.id);
+      if (prod?.fragileShipping && prod.fragileShippingCost != null) {
+        return sum + Number(prod.fragileShippingCost) * item.quantity;
+      }
+      return sum;
+    }, 0);
+    const zoneConfig = config.zones[zone];
+    const fragileShippingCost =
+      fragileNet > 0
+        ? zoneConfig.includesIva
+          ? Math.round(fragileNet * (1 + config.ivaRate) * 100) / 100
+          : fragileNet
+        : 0;
+
+    return NextResponse.json({ shippingCost, zone, codSurcharge: config.codSurcharge, fragileShippingCost });
   } catch (e) {
     console.error(e);
     return NextResponse.json(

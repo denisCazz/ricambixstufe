@@ -51,6 +51,8 @@ interface ProductData {
   meta_title: string | null;
   meta_description: string | null;
   active: boolean;
+  fragile_shipping: boolean;
+  fragile_shipping_cost: number | null;
 }
 
 const emptyProduct: ProductData = {
@@ -80,6 +82,8 @@ const emptyProduct: ProductData = {
   meta_title: null,
   meta_description: null,
   active: true,
+  fragile_shipping: false,
+  fragile_shipping_cost: null,
 };
 
 function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
@@ -330,6 +334,34 @@ export default function ProductForm({
           <div>
             <Label htmlFor="meta_description">Meta description</Label>
             <Input name="meta_description" defaultValue={p.meta_description} />
+          </div>
+        </div>
+      </section>
+
+      {/* Spedizioni per collo fragile */}
+      <section className="bg-surface border border-border rounded-2xl p-5">
+        <h2 className="text-lg font-semibold text-foreground mb-1">Spedizioni per collo fragile</h2>
+        <p className="text-sm text-muted mb-4">Attiva se il prodotto richiede spedizione speciale DHL per colli fragili (es. vetri).</p>
+        <div className="space-y-4">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              name="fragile_shipping"
+              defaultChecked={p.fragile_shipping}
+              className="w-4 h-4 rounded border-border text-accent focus:ring-accent/20"
+            />
+            <span className="text-sm font-medium text-foreground">Spedizione per collo fragile (DHL)</span>
+          </label>
+          <div className="max-w-xs">
+            <Label htmlFor="fragile_shipping_cost">Costo netto spedizione fragile (€)</Label>
+            <Input
+              name="fragile_shipping_cost"
+              type="number"
+              step="0.01"
+              defaultValue={p.fragile_shipping_cost}
+              placeholder="Es. 30.00"
+            />
+            <p className="text-xs text-muted mt-1">L&apos;IVA verrà applicata automaticamente al checkout. Lascia vuoto per disabilitare.</p>
           </div>
         </div>
       </section>

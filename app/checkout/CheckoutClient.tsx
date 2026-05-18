@@ -106,6 +106,7 @@ interface ShippingCalc {
   totalWeight: number;
   shippingCost: number;
   codSurcharge: number;
+  fragileShippingCost: number;
 }
 
 const COD_SURCHARGE = 7.0;
@@ -225,12 +226,14 @@ export default function CheckoutClient() {
   const dealerSaving = originalTotal - totalPrice;
 
   const shippingCost = shippingCalc?.shippingCost ?? 0;
+  const fragileShippingCost = shippingCalc?.fragileShippingCost ?? 0;
+  const effectiveShippingCost = fragileShippingCost > 0 ? fragileShippingCost : shippingCost;
   const codExtra = paymentMethod === "cod" ? COD_SURCHARGE : 0;
-  const baseTotal = totalPrice + shippingCost + codExtra;
+  const baseTotal = totalPrice + effectiveShippingCost + codExtra;
   const productsNetIt = Math.round((totalPrice / 1.22) * 100) / 100;
   const grandTotal = italianVatIncluded
     ? Math.round(baseTotal * 100) / 100
-    : Math.round((productsNetIt + shippingCost + codExtra) * 100) / 100;
+    : Math.round((productsNetIt + effectiveShippingCost + codExtra) * 100) / 100;
 
   // VIES validation handler
   async function checkVies(vatNumberValue: string) {
@@ -1048,20 +1051,33 @@ export default function CheckoutClient() {
                   </span>
                 </div>
               )}
-              <div className="flex justify-between text-sm">
-                <span className="text-muted">{t("checkout.shipping")}</span>
-                {shippingLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-muted" />
-                ) : shippingCalc ? (
-                  <span className="font-medium text-foreground">
-                    {formatPrice(shippingCost)}
-                  </span>
-                ) : (
-                  <span className="text-muted text-xs">
-                    {t("checkout.calculated")}
-                  </span>
-                )}
-              </div>
+              {fragileShippingCost > 0 ? (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted">Spedizioni per collo fragile (DHL)</span>
+                  {shippingLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted" />
+                  ) : (
+                    <span className="font-medium text-foreground">
+                      {formatPrice(fragileShippingCost)}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted">{t("checkout.shipping")}</span>
+                  {shippingLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted" />
+                  ) : shippingCalc ? (
+                    <span className="font-medium text-foreground">
+                      {formatPrice(shippingCost)}
+                    </span>
+                  ) : (
+                    <span className="text-muted text-xs">
+                      {t("checkout.calculated")}
+                    </span>
+                  )}
+                </div>
+              )}
               {paymentMethod === "cod" && (
                 <div className="flex justify-between text-sm">
                   <span className="text-amber-600">

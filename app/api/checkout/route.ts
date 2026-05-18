@@ -100,10 +100,15 @@ export async function POST(req: NextRequest) {
 
     // --- Calculate shipping cost server-side ---
 
-    // Fetch product weights
+    // Fetch product weights and fragile shipping info
     const productIds = items.map((i) => i.id);
     const dbProducts = await db
-      .select({ id: products.id, weight: products.weight })
+      .select({
+        id: products.id,
+        weight: products.weight,
+        fragileShipping: products.fragileShipping,
+        fragileShippingCost: products.fragileShippingCost,
+      })
       .from(products)
       .where(inArray(products.id, productIds));
 
@@ -155,6 +160,25 @@ export async function POST(req: NextRequest) {
       shippingConfig
     );
     const shippingCost = calculateShippingCost(totalWeight, zone, shippingConfig);
+
+    // Fragile shipping surcharge (per-item, IVA applied for Italian zones)
+    const dbProductMap = new Map(dbProducts.map((p) => [p.id, p]));
+    const fragileNet = items.reduce((sum, item) => {
+      const prod = dbProductMap.get(item.id);
+      if (prod?.fragileShipping && prod.fragileShippingCost != null) {
+        return sum + Number(prod.fragileShippingCost) * item.quantity;
+      }
+      return sum;
+    }, 0);
+    const zoneConfig = shippingConfig.zones[zone];
+    const fragileShippingCost =
+      fragileNet > 0
+        ? zoneConfig.includesIva
+          ? Math.round(fragileNet * (1 + shippingConfig.ivaRate) * 100) / 100
+          : fragileNet
+        : 0;
+    const totalShippingCost = Math.round((shippingCost + fragileShippingCost) * 100) / 100;
+
     const codSurcharge = paymentMethod === "cod" ? shippingConfig.codSurcharge : 0;
 
     // Calculate totals (prices in cart are already discounted)
@@ -188,7 +212,7 @@ export async function POST(req: NextRequest) {
     const excludeItalianProductVat = !italianVatOnProducts;
 
     const total =
-      Math.round((taxAdjustedSubtotal + shippingCost + codSurcharge) * 100) / 100;
+      Math.round((taxAdjustedSubtotal + totalShippingCost + codSurcharge) * 100) / 100;
 
     // Map country names to ISO 2-letter codes
     const countryMap: Record<string, string> = {
@@ -270,7 +294,7 @@ export async function POST(req: NextRequest) {
         guestEmail: !user ? shippingInfo.email : null,
         dealerDiscount,
         subtotal: Math.round(taxAdjustedSubtotal * 100) / 100,
-        shippingCost,
+        shippingCost: totalShippingCost,
         taxAmount: excludeItalianProductVat
           ? Math.round((subtotal - taxAdjustedSubtotal) * 100) / 100
           : 0,
@@ -333,7 +357,7 @@ export async function POST(req: NextRequest) {
               ? "awaiting_transfer"
               : "cod_pending",
           subtotal: String(subtotalRounded),
-          shippingCost: String(shippingCost),
+          shippingCost: String(totalShippingCost),
           taxAmount: excludeItalianProductVat
             ? String(Math.round((subtotal - taxAdjustedSubtotal) * 100) / 100)
             : "0",
@@ -412,7 +436,7 @@ export async function POST(req: NextRequest) {
         line_total: Number(r.lineTotal),
       })),
       subtotal: Math.round(subtotal * 100) / 100,
-      shippingCost: shippingCost,
+      shippingCost: totalShippingCost,
       total,
       paymentMethod: dbPaymentMethod,
       shippingAddress,
