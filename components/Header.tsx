@@ -106,7 +106,7 @@ export default function Header({
       setStoveResults(stoves);
       setSearching(false);
     }, 300);
-  }, []);
+  }, [locale]);
 
   function handleResultClick() {
     setShowResults(false);
