@@ -21,6 +21,7 @@ import { useCart, cartLineId } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { useUser } from "@/lib/user-context";
 import { italianVatIncludedOnProducts, isValidItalianPartitaIva } from "@/lib/italian-vat";
+import type { EuropeShippingMethod } from "@/lib/shipping";
 
 const COUNTRIES = [
   "Italia",
@@ -133,6 +134,7 @@ export default function CheckoutClient() {
   const [isCompany, setIsCompany] = useState(false);
   const [shippingCalc, setShippingCalc] = useState<ShippingCalc | null>(null);
   const [shippingLoading, setShippingLoading] = useState(false);
+  const [europeShippingMethod, setEuropeShippingMethod] = useState<EuropeShippingMethod>("standard_10");
 
   // VIES lookup (optional): mostra ragione sociale UE; il totale IVA usa paese / P.IVA italiana
   const [viesStatus, setViesStatus] = useState<"idle" | "loading" | "valid" | "invalid">("idle");
@@ -173,7 +175,7 @@ export default function CheckoutClient() {
       .finally(() => setProfileLoaded(true));
   }, []);
 
-  // Calculate shipping when items/country/province change
+  // Calculate shipping when items/country/province/method change
   const calcShipping = useCallback(async () => {
     if (!items.length) return;
     setShippingLoading(true);
@@ -185,6 +187,7 @@ export default function CheckoutClient() {
           items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
           country: selectedCountry,
           province: selectedProvince,
+          ...(selectedCountry !== "Italia" && { europeShippingMethod }),
         }),
       });
       if (res.ok) {
@@ -196,7 +199,7 @@ export default function CheckoutClient() {
     } finally {
       setShippingLoading(false);
     }
-  }, [items, selectedCountry, selectedProvince]);
+  }, [items, selectedCountry, selectedProvince, europeShippingMethod]);
 
   useEffect(() => {
     if (profileLoaded) {
@@ -458,6 +461,7 @@ export default function CheckoutClient() {
           shippingInfo,
           billingInfo,
           paymentMethod,
+          ...(shippingInfo.country !== "Italia" && { europeShippingMethod }),
         }),
       });
 
@@ -652,7 +656,11 @@ export default function CheckoutClient() {
                     autoComplete="country-name"
                     onChange={(e) => {
                       setSelectedCountry(e.target.value);
-                      if (e.target.value !== "Italia") setSelectedProvince("");
+                      if (e.target.value !== "Italia") {
+                        setSelectedProvince("");
+                      } else {
+                        setEuropeShippingMethod("standard_10");
+                      }
                     }}
                     className={inputClass}
                   >
@@ -678,6 +686,56 @@ export default function CheckoutClient() {
                       className={inputClass + " uppercase"}
                       placeholder="TV"
                     />
+                  </div>
+                )}
+                {/* Europe / foreign shipping method selector */}
+                {selectedCountry !== "Italia" && (
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-foreground/70 mb-2">
+                      Metodo di spedizione *
+                    </label>
+                    <div className="space-y-2">
+                      {[
+                        {
+                          value: "standard_10" as EuropeShippingMethod,
+                          label: "Trasporto Estero 10 kg",
+                          price: "€ 20,00",
+                        },
+                        {
+                          value: "standard_30" as EuropeShippingMethod,
+                          label: "Trasporto Estero 30 kg",
+                          price: "€ 30,00",
+                        },
+                        {
+                          value: "dhl" as EuropeShippingMethod,
+                          label: "DHL Express",
+                          price: "€ 45,00",
+                        },
+                      ].map((opt) => (
+                        <label
+                          key={opt.value}
+                          className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
+                            europeShippingMethod === opt.value
+                              ? "border-accent bg-orange-50/50 dark:bg-orange-950/20"
+                              : "border-border hover:border-accent/30"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name="europeShippingMethodRadio"
+                              value={opt.value}
+                              checked={europeShippingMethod === opt.value}
+                              onChange={() => setEuropeShippingMethod(opt.value)}
+                              className="text-accent focus:ring-accent/30"
+                            />
+                            <span className="text-sm font-medium text-foreground">{opt.label}</span>
+                          </div>
+                          <span className="text-sm font-semibold text-accent">{opt.price}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted mt-1.5">Prezzi IVA esclusa</p>
                   </div>
                 )}
                 <div className="sm:col-span-2">
