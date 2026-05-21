@@ -4,10 +4,8 @@ import { getDb } from "@/db";
 import { products } from "@/db/schema";
 import {
   calculateShippingCost,
-  calculateEuropeShippingCost,
   getShippingZone,
   getShippingConfig,
-  type EuropeShippingMethod,
 } from "@/lib/shipping";
 
 /**
@@ -17,11 +15,10 @@ import {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { items, country, province, europeShippingMethod } = (await req.json()) as {
+    const { items, country, province } = (await req.json()) as {
       items: { id: number; quantity: number }[];
       country: string;
       province?: string;
-      europeShippingMethod?: EuropeShippingMethod;
     };
 
     if (!items?.length || !country) {
@@ -52,10 +49,7 @@ export async function POST(req: NextRequest) {
 
     const config = await getShippingConfig();
     const zone = getShippingZone(country, province, config);
-    const shippingCost =
-      zone === "europe" && europeShippingMethod
-        ? calculateEuropeShippingCost(europeShippingMethod, config)
-        : calculateShippingCost(totalWeight, zone, config);
+    const shippingCost = calculateShippingCost(totalWeight, zone, config);
 
     // Fragile shipping surcharge (per-item, IVA applied for Italian zones)
     const fragileNet = items.reduce((sum, item) => {

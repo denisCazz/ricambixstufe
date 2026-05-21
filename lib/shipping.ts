@@ -31,14 +31,11 @@ export type ZoneConfig = {
   includesIva: boolean;
 };
 
-export type EuropeShippingMethod = "standard_10" | "standard_30" | "dhl";
-
 export type ShippingConfig = {
   zones: Record<ShippingZone, ZoneConfig>;
   codSurcharge: number;
   ivaRate: number;
   islandsCalabriaProvincia: string[];
-  dhlRate: number;
 };
 
 // ─── Hardcoded defaults ───────────────────────────────────────────────────────
@@ -57,13 +54,12 @@ export const DEFAULT_SHIPPING_CONFIG: ShippingConfig = {
     },
     europe: {
       label: "Europa",
-      tiers: [{ maxKg: 10, rate: 20.0 }, { maxKg: 30, rate: 30.0 }],
+      tiers: [{ maxKg: 10, rate: 20.0 }, { maxKg: 30, rate: 30.0 }, { maxKg: 9999, rate: 45.0 }],
       includesIva: false,
     },
   },
   codSurcharge: 7.0,
   ivaRate: 0.22,
-  dhlRate: 45.0,
   islandsCalabriaProvincia: [
     "AG", "CL", "CT", "EN", "ME", "PA", "RG", "SR", "TP",
     "CA", "CI", "MD", "NU", "OG", "OT", "OR", "SS", "SU", "VS",
@@ -149,20 +145,6 @@ export function getShippingZoneLabel(
   config: ShippingConfig = DEFAULT_SHIPPING_CONFIG
 ): string {
   return config.zones[zone]?.label ?? zone;
-}
-
-/**
- * Returns the net shipping cost (no IVA) for a specific Europe shipping method.
- * Used when the customer explicitly selects a method instead of weight-based calculation.
- */
-export function calculateEuropeShippingCost(
-  method: EuropeShippingMethod,
-  config: ShippingConfig = DEFAULT_SHIPPING_CONFIG
-): number {
-  if (method === "dhl") return config.dhlRate ?? 45.0;
-  const sorted = [...config.zones.europe.tiers].sort((a, b) => a.maxKg - b.maxKg);
-  if (method === "standard_10") return sorted[0]?.rate ?? 20.0;
-  return sorted[1]?.rate ?? sorted[0]?.rate ?? 30.0;
 }
 
 // ─── Backward-compat ──────────────────────────────────────────────────────────

@@ -314,20 +314,6 @@ export default function ShippingAdminClient({
             <p className="text-xs text-muted">Aggiunto al totale per pagamenti in contrassegno</p>
           </div>
           <div className="space-y-1.5">
-            <Label>Tariffa DHL Estero (€, netta)</Label>
-            <Input
-              type="number"
-              value={config.dhlRate ?? 45}
-              onChange={(v) => {
-                const n = parseFloat(v);
-                if (!isNaN(n) && n >= 0) setConfig((c) => ({ ...c, dhlRate: n }));
-              }}
-              placeholder="es. 45.00"
-              className="w-full"
-            />
-            <p className="text-xs text-muted">Opzione DHL Express per spedizioni estero (IVA esclusa)</p>
-          </div>
-          <div className="space-y-1.5">
             <Label>Aliquota IVA (decimale)</Label>
             <div className="flex items-center gap-2">
               <Input

@@ -7,10 +7,8 @@ import { products, orders, orderItems, profiles, dealerProfiles } from "@/db/sch
 import { eq, inArray } from "drizzle-orm";
 import {
   calculateShippingCost,
-  calculateEuropeShippingCost,
   getShippingZone,
   getShippingConfig,
-  type EuropeShippingMethod,
 } from "@/lib/shipping";
 import { sendOrderConfirmationEmail, sendNewOrderAdminNotification } from "@/lib/email";
 import { isValidItalianPartitaIva, italianVatIncludedOnProducts } from "@/lib/italian-vat";
@@ -43,7 +41,7 @@ function lineItemDisplayName(item: LineItem, nameIt: string): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { items, shippingInfo, billingInfo, paymentMethod, europeShippingMethod } = body as {
+    const { items, shippingInfo, billingInfo, paymentMethod } = body as {
       items: LineItem[];
       shippingInfo: {
         name: string;
@@ -58,7 +56,6 @@ export async function POST(req: NextRequest) {
       };
       billingInfo?: BillingInfo;
       paymentMethod: "bank_transfer" | "cod" | "paypal";
-      europeShippingMethod?: EuropeShippingMethod;
     };
 
     if (!items?.length) {
@@ -162,10 +159,7 @@ export async function POST(req: NextRequest) {
       shippingInfo.province,
       shippingConfig
     );
-    const shippingCost =
-      zone === "europe" && europeShippingMethod
-        ? calculateEuropeShippingCost(europeShippingMethod, shippingConfig)
-        : calculateShippingCost(totalWeight, zone, shippingConfig);
+    const shippingCost = calculateShippingCost(totalWeight, zone, shippingConfig);
 
     // Fragile shipping surcharge (per-item, IVA applied for Italian zones)
     const dbProductMap = new Map(dbProducts.map((p) => [p.id, p]));

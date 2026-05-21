@@ -49,9 +49,6 @@ export async function saveShippingSettings(
   if (isNaN(config.codSurcharge) || config.codSurcharge < 0) {
     return { ok: false, message: "Supplemento contrassegno non valido" };
   }
-  if (config.dhlRate != null && (isNaN(config.dhlRate) || config.dhlRate < 0)) {
-    return { ok: false, message: "Tariffa DHL non valida" };
-  }
   if (isNaN(config.ivaRate) || config.ivaRate < 0 || config.ivaRate > 1) {
     return { ok: false, message: "Aliquota IVA non valida (usare decimale, es. 0.22)" };
   }
