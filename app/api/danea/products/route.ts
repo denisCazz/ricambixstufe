@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { daneaImportLogs } from "@/db/schema";
+import { writeDaneaImportLogFile } from "@/lib/danea-import-log-file";
 import { syncEasyfattCatalog } from "@/lib/danea-import";
 
 /**
@@ -92,12 +93,23 @@ export async function POST(req: NextRequest) {
   const result = await syncEasyfattCatalog(db, xml);
 
   try {
-    await db.insert(daneaImportLogs).values({
+    const [logRow] = await db.insert(daneaImportLogs).values({
       success: result.ok,
       mode: result.ok ? result.mode : null,
       message: result.ok ? null : result.message,
       stats: result.ok ? result.stats : null,
       xmlBytes,
+    }).returning({
+      id: daneaImportLogs.id,
+      createdAt: daneaImportLogs.createdAt,
+    });
+
+    await writeDaneaImportLogFile({
+      id: logRow.id,
+      createdAt: logRow.createdAt,
+      xml,
+      xmlBytes,
+      result,
     });
   } catch (e) {
     console.error("[danea-products] danea_import_logs insert failed", e);

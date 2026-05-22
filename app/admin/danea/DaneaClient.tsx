@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Link2 } from "lucide-react";
+import { Check, Copy, Download, Link2 } from "lucide-react";
 import type { DaneaLogRow, DaneaOrdersExportLogRow } from "@/app/admin/actions/danea";
 
 function CopyField({ label, value }: { label: string; value: string }) {
@@ -145,6 +145,7 @@ export default function DaneaClient({
                     <th className="px-3 py-2 font-medium">Modalità</th>
                     <th className="px-3 py-2 font-medium">XML</th>
                     <th className="px-3 py-2 font-medium">Dettaglio</th>
+                    <th className="px-3 py-2 font-medium">Log</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -178,6 +179,19 @@ export default function DaneaClient({
                           <span className="text-red-600 dark:text-red-400 break-words">
                             {row.message ?? "—"}
                           </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-xs whitespace-nowrap">
+                        {row.hasLogFile ? (
+                          <a
+                            href={`/api/admin/danea/import-logs/${row.id}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-foreground hover:bg-surface-hover transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            TXT
+                          </a>
+                        ) : (
+                          <span className="text-muted">—</span>
                         )}
                       </td>
                     </tr>

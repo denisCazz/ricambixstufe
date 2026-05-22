@@ -4,6 +4,7 @@ import { desc } from "drizzle-orm";
 import { getDb } from "@/db";
 import { daneaImportLogs, daneaOrdersExportLogs } from "@/db/schema";
 import { getUser } from "@/lib/auth";
+import { hasDaneaImportLogFile } from "@/lib/danea-import-log-file";
 
 export type DaneaLogRow = {
   id: number;
@@ -20,6 +21,7 @@ export type DaneaLogRow = {
     skipped: number;
   } | null;
   xmlBytes: number | null;
+  hasLogFile: boolean;
 };
 
 export async function getDaneaImportLogs(limit = 80): Promise<DaneaLogRow[]> {
@@ -35,7 +37,7 @@ export async function getDaneaImportLogs(limit = 80): Promise<DaneaLogRow[]> {
     .orderBy(desc(daneaImportLogs.createdAt))
     .limit(limit);
 
-  return rows.map((r) => ({
+  return Promise.all(rows.map(async (r) => ({
     id: r.id,
     createdAt: r.createdAt.toISOString(),
     success: r.success,
@@ -44,7 +46,8 @@ export async function getDaneaImportLogs(limit = 80): Promise<DaneaLogRow[]> {
     message: r.message,
     stats: r.stats,
     xmlBytes: r.xmlBytes,
-  }));
+    hasLogFile: await hasDaneaImportLogFile(r.id),
+  })));
 }
 
 export type DaneaOrdersExportLogRow = {

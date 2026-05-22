@@ -99,15 +99,24 @@ export interface DaneaImportStats {
   skipped: number;
 }
 
+export interface DaneaImportTraceEntry {
+  level: "info" | "warn" | "error";
+  scope: "import" | "product" | "delete";
+  code?: string;
+  message: string;
+}
+
 export interface DaneaImportResult {
   ok: true;
   stats: DaneaImportStats;
   mode: "full" | "incremental" | "legacy";
+  trace: DaneaImportTraceEntry[];
 }
 
 export interface DaneaImportError {
   ok: false;
   message: string;
+  trace: DaneaImportTraceEntry[];
 }
 
 function normalizeProduct(row: RawProduct): {
@@ -283,10 +292,15 @@ export async function syncEasyfattCatalog(
     bundle = parseEasyfattProductsXml(xml);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Errore parse XML";
-    return { ok: false, message: msg };
+    return {
+      ok: false,
+      message: msg,
+      trace: [{ level: "error", scope: "import", message: msg }],
+    };
   }
 
   const { mode, toUpsert } = bundle;
+  const { toDeleteCodes } = bundle;
 
   const stats: DaneaImportStats = {
     created: 0,
@@ -295,6 +309,22 @@ export async function syncEasyfattCatalog(
     deactivatedDeleted: 0,
     skipped: 0,
   };
+  const trace: DaneaImportTraceEntry[] = [
+    {
+      level: "info",
+      scope: "import",
+      message: `Import ricevuto: mode=${mode}, prodotti=${toUpsert.length}, eliminazioni=${toDeleteCodes.length}`,
+    },
+  ];
+
+  for (const code of toDeleteCodes) {
+    trace.push({
+      level: "info",
+      scope: "delete",
+      code,
+      message: "Prodotto segnalato in DeletedProducts (nessuna disattivazione automatica applicata).",
+    });
+  }
 
   try {
 
@@ -302,11 +332,21 @@ export async function syncEasyfattCatalog(
       const n = normalizeProduct(raw);
       if (!n) {
         stats.skipped++;
+        trace.push({
+          level: "warn",
+          scope: "product",
+          message: "Prodotto saltato: codice assente o record non normalizzabile.",
+        });
         continue;
       }
 
       const existing = await db
-        .select({ id: products.id })
+        .select({
+          id: products.id,
+          price: products.price,
+          wholesalePrice: products.wholesalePrice,
+          stockQuantity: products.stockQuantity,
+        })
         .from(products)
         .where(eq(products.sku, n.code))
         .limit(1);
@@ -315,8 +355,16 @@ export async function syncEasyfattCatalog(
         // Prodotto non presente nel catalogo: ignorato.
         // I prodotti vengono caricati manualmente dagli amministratori.
         stats.skipped++;
+        trace.push({
+          level: "warn",
+          scope: "product",
+          code: n.code,
+          message: `Saltato: SKU non trovato nel catalogo locale. prezzo=${n.price}, ingrosso=${n.wholesalePrice ?? "-"}, qty=${n.stockQuantity}`,
+        });
         continue;
       }
+
+      const previous = existing[0];
 
       // Aggiorna solo prezzo, prezzo ingrosso e quantità disponibile.
       await db
@@ -327,17 +375,39 @@ export async function syncEasyfattCatalog(
           stockQuantity: n.stockQuantity,
           updatedAt: new Date(),
         })
-        .where(eq(products.id, existing[0].id));
+        .where(eq(products.id, previous.id));
       stats.updated++;
+      trace.push({
+        level: "info",
+        scope: "product",
+        code: n.code,
+        message:
+          `Aggiornato: prezzo ${previous.price} -> ${n.price}, ` +
+          `ingrosso ${previous.wholesalePrice ?? "-"} -> ${n.wholesalePrice ?? "-"}, ` +
+          `qty ${previous.stockQuantity} -> ${n.stockQuantity}`,
+      });
     }
 
     // La disattivazione automatica in modalità "full" è disabilitata:
     // la gestione dei prodotti avviene manualmente.
 
-    return { ok: true, stats, mode };
+    trace.push({
+      level: "info",
+      scope: "import",
+      message:
+        `Import completato: updated=${stats.updated}, skipped=${stats.skipped}, ` +
+        `deactivatedFull=${stats.deactivatedFull}, deactivatedDeleted=${stats.deactivatedDeleted}`,
+    });
+
+    return { ok: true, stats, mode, trace };
   } catch (e) {
     const msg =
       e instanceof Error ? e.message : "Errore durante import catalogo";
-    return { ok: false, message: msg };
+    trace.push({
+      level: "error",
+      scope: "import",
+      message: msg,
+    });
+    return { ok: false, message: msg, trace };
   }
 }
