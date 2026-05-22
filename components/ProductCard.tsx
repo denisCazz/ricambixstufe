@@ -4,12 +4,13 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ShoppingCart, Eye, X } from "lucide-react";
+import { ShoppingCart, Eye, X, Minus, Plus } from "lucide-react";
 import { type Product } from "@/data/products";
 import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { useUser } from "@/lib/user-context";
 import { productNeedsBoardProgrammingOption } from "@/lib/product-board-options";
+import { productSoldByMeter } from "@/lib/product-meter-options";
 
 export default function ProductCard({
   product,
@@ -28,6 +29,8 @@ export default function ProductCard({
   const [boardStoves, setBoardStoves] = useState<{ id: number; nameIt: string; nameEn: string | null }[]>([]);
   const [boardStovesLoading, setBoardStovesLoading] = useState(false);
   const [boardStoveId, setBoardStoveId] = useState<number | "">("");
+  const [showMetersModal, setShowMetersModal] = useState(false);
+  const [meters, setMeters] = useState(1);
 
   // Locale-aware name & description
   const localizedName = (locale !== "it" && product[`name_${locale}` as keyof typeof product] as string) || product.name;
@@ -44,7 +47,22 @@ export default function ProductCard({
     name_it: product.name,
   });
 
-  function doAddToCart(lineKey?: string, lineNotes?: string) {
+  const soldByMeter = productSoldByMeter({
+    categorySlug: product.categorySlug,
+    nameIt: product.name,
+  });
+
+  const maxMeters = product.stockQuantity && product.stockQuantity > 0
+    ? product.stockQuantity
+    : undefined;
+
+  function clampMeters(v: number): number {
+    const int = Math.max(1, Math.floor(v));
+    if (maxMeters === undefined) return int;
+    return Math.min(maxMeters, int);
+  }
+
+  function doAddToCart(quantity = 1, lineKey?: string, lineNotes?: string) {
     addItem({
       id: product.id,
       name: localizedName,
@@ -54,7 +72,7 @@ export default function ProductCard({
       weight: product.weight,
       lineKey,
       lineNotes,
-    });
+    }, quantity);
   }
 
   function handleAddToCart(e: React.MouseEvent) {
@@ -73,6 +91,11 @@ export default function ProductCard({
         .then((data) => setBoardStoves(Array.isArray(data) ? data : []))
         .catch(() => setBoardStoves([]))
         .finally(() => setBoardStovesLoading(false));
+      return;
+    }
+    if (soldByMeter) {
+      setMeters(1);
+      setShowMetersModal(true);
       return;
     }
     doAddToCart();
@@ -98,10 +121,16 @@ export default function ProductCard({
       lineKey = "board:prog:custom";
       lineNotes = t("product.board_option_notes_programmed").replace("{stove}", boardStoveText.trim());
     }
-    doAddToCart(lineKey, lineNotes);
+    doAddToCart(1, lineKey, lineNotes);
     setShowBoardModal(false);
     setBoardStoveText("");
     setBoardStoveId("");
+  }
+
+  function handleMetersConfirm() {
+    const qty = clampMeters(meters);
+    doAddToCart(qty, "unit:meter", "Vendita al metro (quantità in metri)");
+    setShowMetersModal(false);
   }
 
   return (
@@ -301,6 +330,72 @@ export default function ProductCard({
             >
               <ShoppingCart className="w-4 h-4" />
               {t("product.add_to_cart")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showMetersModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowMetersModal(false)}
+        >
+          <div
+            className="bg-surface rounded-2xl border border-border shadow-xl w-full max-w-sm p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-foreground">Quanti metri vuoi acquistare?</p>
+              <button
+                type="button"
+                onClick={() => setShowMetersModal(false)}
+                className="text-muted hover:text-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted line-clamp-2">{localizedName}</p>
+            <div>
+              <label className="block text-xs text-muted mb-1">Metri</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMeters((m) => clampMeters(m - 1))}
+                  className="w-10 h-10 rounded-lg border border-border flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800"
+                  aria-label="Diminuisci metri"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <input
+                  type="number"
+                  min={1}
+                  max={maxMeters}
+                  step={1}
+                  value={meters}
+                  onChange={(e) => {
+                    const next = Number.parseInt(e.target.value || "1", 10);
+                    setMeters(clampMeters(Number.isFinite(next) ? next : 1));
+                  }}
+                  className="w-24 h-10 text-center px-2 rounded-lg border border-border bg-background text-sm text-foreground"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setMeters((m) => clampMeters(m + 1))}
+                  className="w-10 h-10 rounded-lg border border-border flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800"
+                  aria-label="Aumenta metri"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+                <span className="text-sm text-muted">m</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleMetersConfirm}
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200"
+            >
+              Aggiungi al carrello
             </button>
           </div>
         </div>

@@ -141,7 +141,15 @@ function normalizeProduct(row: RawProduct): {
   const wholesalePrice =
     pickDecimal(row, ["SupplierNetPrice"]) ?? pickDecimal(row, ["NetPrice2"]);
 
-  const stockQuantity = pickInt(row, ["AvailableQty", "Stock", "OnHand"]) ?? 0;
+  const stockQuantity = pickInt(row, [
+    "AvailableQty",
+    "AvailableQuantity",
+    "Qty",
+    "Quantity",
+    "Qta",
+    "Stock",
+    "OnHand",
+  ]) ?? 0;
 
   const weight = pickDecimal(row, ["NetWeight"]) ?? pickDecimal(row, ["GrossWeight"]);
 

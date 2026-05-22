@@ -166,11 +166,12 @@ export async function GET(req: NextRequest) {
     payment_method: o.paymentMethod,
     payment_status: o.paymentStatus,
     shipping_address: o.shippingAddress as ShippingAddress | null,
+            const isMeterRow = item.product_name.toLowerCase().includes("vendita al metro");
     billing_address: o.billingAddress as OrderRow["billing_address"] | null,
     notes: o.notes,
     danea_exported: o.daneaExported,
     user_id: o.userId,
-    guest_email: o.guestEmail,
+            xml += rowTag("Um", isMeterRow ? "m" : "pz");
     order_items: (byOrder.get(o.id) || []).map((it) => ({
       id: it.id,
       product_id: it.productId,
@@ -388,11 +389,12 @@ function buildEasyfattXml(
     // Rows
     xml += `      <Rows>\n`;
     for (const item of order.order_items) {
+      const isMeterRow = item.product_name.toLowerCase().includes("vendita al metro");
       xml += `        <Row>\n`;
       xml += rowTag("Code", item.product_sku || `P${item.product_id}`);
       xml += rowTag("Description", item.product_name);
       xml += rowTag("Qty", item.quantity);
-      xml += rowTag("Um", "pz");
+      xml += rowTag("Um", isMeterRow ? "m" : "pz");
       xml += rowTag("Price", item.unit_price.toFixed(2));
       if (item.discount_percent > 0) {
         xml += rowTag("Discounts", `${item.discount_percent}%`);
