@@ -1,9 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { ShoppingCart, Eye, X, Minus, Plus } from "lucide-react";
 import { type Product } from "@/data/products";
 import { useCart } from "@/lib/cart-context";
@@ -134,13 +133,9 @@ export default function ProductCard({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.35, delay: index * 0.05, ease: "easeOut" }}
-      layout
-      className="group relative bg-surface border border-border rounded-2xl overflow-hidden transition-all duration-300 hover:border-accent/30 hover:shadow-lg hover:shadow-orange-500/10"
+    <div
+      className="product-card-in group relative bg-surface border border-border rounded-2xl overflow-hidden transition-all duration-300 hover:border-accent/30 hover:shadow-lg hover:shadow-orange-500/10"
+      style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
     >
       <Link href={`/products/${product.slug}`} className="block">
         <div className="relative aspect-[4/3] bg-gradient-to-br from-stone-50 to-orange-50/30 overflow-hidden">
@@ -400,6 +395,6 @@ export default function ProductCard({
           </div>
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

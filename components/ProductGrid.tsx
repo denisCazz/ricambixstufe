@@ -1,7 +1,6 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
-import { AnimatePresence, LayoutGroup } from "framer-motion";
 import ProductCard from "./ProductCard";
 import type { Product } from "@/data/products";
 import { PackageOpen, ChevronDown } from "lucide-react";
@@ -49,15 +48,11 @@ export default function ProductGrid({
         </div>
       </div>
 
-      <LayoutGroup>
-        <AnimatePresence mode="popLayout">
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            {visible.map((product, i) => (
-              <ProductCard key={product.id} product={product} index={i} />
-            ))}
-          </div>
-        </AnimatePresence>
-      </LayoutGroup>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        {visible.map((product, i) => (
+          <ProductCard key={product.id} product={product} index={i} />
+        ))}
+      </div>
 
       {hasMore && (
         <div className="flex justify-center mt-8">

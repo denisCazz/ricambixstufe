@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -15,6 +15,22 @@
   --color-accent-hover: #f97316;
   --color-accent-glow: rgba(234, 88, 12, 0.2);
   --font-sans: var(--font-inter);
+}
+
+@keyframes product-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.product-card-in {
+  opacity: 0;
+  animation: product-card-in 0.35s ease-out forwards;
 }
 
 .dark {

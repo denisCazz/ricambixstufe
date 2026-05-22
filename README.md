@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# RicambiXStufe
 
-## Getting Started
+E-commerce ricambi stufe: **Next.js 16** + **PostgreSQL** (Drizzle) + **NextAuth** + **Cloudflare R2** + **PayPal**.
 
-First, run the development server:
+## Sviluppo locale
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.local.example .env.local   # compila le variabili
+npm run dev                        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Guida DB e import: [`docs/MIGRAZIONE_VPS.md`](docs/MIGRAZIONE_VPS.md)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Check pre-deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run build
+curl -f http://localhost:3000/api/health
+```
 
-## Learn More
+## Analisi bundle (opzionale)
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run analyze
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Apre il report interattivo dei chunk JS dopo il build (`ANALYZE=true`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploy produzione (Docker)
 
-## Deploy on Vercel
+```bash
+cp .env.production.example .env.local   # sul server, valori reali
+docker compose up -d --build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- App: porta host `3100` → container `3000`
+- Healthcheck: `GET /api/health`
+- Nginx: vedi [`nginx/ricambixstufe.conf`](nginx/ricambixstufe.conf)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Checklist produzione
+
+- [ ] `AUTH_SECRET` univoco e lungo (≥ 32 byte)
+- [ ] `AUTH_URL` / `NEXT_PUBLIC_APP_URL` = URL HTTPS pubblico
+- [ ] PostgreSQL solo rete Docker (nessuna porta DB esposta)
+- [ ] `DANEA_API_USER` / `DANEA_API_PASSWORD` impostati in produzione
+- [ ] `PAYPAL_MODE=live` con credenziali live
+- [ ] Backup `pg_dump` schedulato
+- [ ] TLS attivo (Let's Encrypt / Certbot)
+
+## Script utili
+
+| Comando | Descrizione |
+|---------|-------------|
+| `npm run dev` | Dev server |
+| `npm run build` | Build standalone |
+| `npm run start` | Avvio post-build |
+| `npm run lint` | ESLint |
+| `npm run db:clone-qa` | Clone DB verso QA (Docker) |

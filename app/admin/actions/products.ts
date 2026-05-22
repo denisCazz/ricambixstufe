@@ -1,6 +1,7 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
@@ -92,7 +93,7 @@ export async function createProduct(formData: FormData) {
 
   const categoryId = formData.get("category_id") as string;
   revalidatePath("/admin/products");
-  revalidatePath("/");
+  revalidateCatalog();
   redirect(categoryId ? `/admin/products?category=${categoryId}` : "/admin/products");
 }
 
@@ -163,7 +164,7 @@ export async function updateProduct(id: number, formData: FormData) {
   const categoryId = formData.get("category_id") as string;
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${id}`);
-  revalidatePath("/");
+  revalidateCatalog();
   redirect(categoryId ? `/admin/products?category=${categoryId}` : "/admin/products");
 }
 
@@ -179,7 +180,7 @@ export async function toggleProductActive(id: number, active: boolean) {
     return { error: e instanceof Error ? e.message : "Errore" };
   }
   revalidatePath("/admin/products");
-  revalidatePath("/");
+  revalidateCatalog();
 }
 
 export async function deleteProduct(id: number) {
@@ -191,5 +192,5 @@ export async function deleteProduct(id: number) {
     return { error: e instanceof Error ? e.message : "Errore" };
   }
   revalidatePath("/admin/products");
-  revalidatePath("/");
+  revalidateCatalog();
 }

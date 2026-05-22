@@ -1,6 +1,8 @@
+﻿import { unstable_cache } from "next/cache";
 import { and, eq, ne, sql, count, getTableColumns, type SQL, asc, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { products, categories, productImages } from "@/db/schema";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 export interface ProductImage {
   id: number;
@@ -122,7 +124,7 @@ function mapProduct(
   };
 }
 
-export async function getProducts(options?: {
+async function fetchProducts(options?: {
   categorySlug?: string;
   limit?: number;
   offset?: number;
@@ -198,7 +200,28 @@ export async function getProducts(options?: {
   return { products: out, total: Number(totalRes.n) };
 }
 
-export async function getProductBySlug(
+export async function getProducts(options?: {
+  categorySlug?: string;
+  limit?: number;
+  offset?: number;
+  search?: string;
+}): Promise<{ products: ProductWithCategory[]; total: number }> {
+  if (options?.search?.trim()) {
+    return fetchProducts(options);
+  }
+  const cacheKey = [
+    "products",
+    options?.categorySlug ?? "all",
+    String(options?.limit ?? "all"),
+    String(options?.offset ?? 0),
+  ];
+  return unstable_cache(() => fetchProducts(options), cacheKey, {
+    revalidate: 120,
+    tags: [CACHE_TAGS.products],
+  })();
+}
+
+async function fetchProductBySlug(
   slug: string
 ): Promise<ProductWithCategory | null> {
   const db = getDb();
@@ -231,10 +254,19 @@ export async function getProductBySlug(
   return mapProduct(pr as unknown as PRow, catName, catSlug, images);
 }
 
-export async function getRelatedProducts(
+export async function getProductBySlug(
+  slug: string
+): Promise<ProductWithCategory | null> {
+  return unstable_cache(() => fetchProductBySlug(slug), ["product", slug], {
+    revalidate: 120,
+    tags: [CACHE_TAGS.products],
+  })();
+}
+
+async function fetchRelatedProducts(
   productId: number,
   categoryId: number,
-  limitN = 4
+  limitN: number
 ): Promise<ProductWithCategory[]> {
   const db = getDb();
   const data = await db
@@ -273,6 +305,18 @@ export async function getRelatedProducts(
     const { catName, catSlug, ...pr } = row;
     return mapProduct(pr as unknown as PRow, catName, catSlug, imgMap.get(row.id) || []);
   });
+}
+
+export async function getRelatedProducts(
+  productId: number,
+  categoryId: number,
+  limitN = 4
+): Promise<ProductWithCategory[]> {
+  return unstable_cache(
+    () => fetchRelatedProducts(productId, categoryId, limitN),
+    ["related", String(productId), String(categoryId), String(limitN)],
+    { revalidate: 120, tags: [CACHE_TAGS.products] }
+  )();
 }
 
 export function formatPrice(price: number): string {

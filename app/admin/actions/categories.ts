@@ -1,6 +1,7 @@
-    "use server";
+﻿    "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { eq, asc, count } from "drizzle-orm";
 import { getDb } from "@/db";
 import { categories, products } from "@/db/schema";
@@ -62,6 +63,7 @@ export async function createCategory(formData: FormData): Promise<{ error?: stri
     return { error: e instanceof Error ? e.message : "Errore" };
   }
   revalidatePath("/admin/categories");
+  revalidateCatalog();
   return {};
 }
 
@@ -92,6 +94,7 @@ export async function updateCategory(id: number, formData: FormData): Promise<{ 
     return { error: e instanceof Error ? e.message : "Errore" };
   }
   revalidatePath("/admin/categories");
+  revalidateCatalog();
   return {};
 }
 
@@ -104,5 +107,6 @@ export async function deleteCategory(id: number): Promise<{ error?: string }> {
     return { error: e instanceof Error ? e.message : "Errore eliminazione (potrebbe avere prodotti associati)" };
   }
   revalidatePath("/admin/categories");
+  revalidateCatalog();
   return {};
 }
