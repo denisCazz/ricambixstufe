@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { and, asc, eq, inArray, gte, lte } from "drizzle-orm";
 import { getDb } from "@/db";
 import { orders, orderItems, profiles, daneaOrdersExportLogs } from "@/db/schema";
@@ -166,12 +166,11 @@ export async function GET(req: NextRequest) {
     payment_method: o.paymentMethod,
     payment_status: o.paymentStatus,
     shipping_address: o.shippingAddress as ShippingAddress | null,
-            const isMeterRow = item.product_name.toLowerCase().includes("vendita al metro");
     billing_address: o.billingAddress as OrderRow["billing_address"] | null,
     notes: o.notes,
     danea_exported: o.daneaExported,
     user_id: o.userId,
-            xml += rowTag("Um", isMeterRow ? "m" : "pz");
+    guest_email: o.guestEmail,
     order_items: (byOrder.get(o.id) || []).map((it) => ({
       id: it.id,
       product_id: it.productId,

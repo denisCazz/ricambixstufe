@@ -1,6 +1,8 @@
+﻿import { unstable_cache } from "next/cache";
 import { and, eq, asc, notInArray, exists } from "drizzle-orm";
 import { getDb } from "@/db";
 import { categories, products } from "@/db/schema";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 export interface CategoryWithCount {
   id: number;
@@ -42,7 +44,7 @@ function mapRow(row: {
 // These slugs are full-product categories, not spare-parts filters
 const HIDDEN_CATEGORY_SLUGS = ["stufe-a-pellet", "porta-pellet-aspiracenere"];
 
-export async function getCategories(): Promise<CategoryWithCount[]> {
+async function fetchCategories(): Promise<CategoryWithCount[]> {
   const db = getDb();
   const data = await db
     .select()
@@ -60,7 +62,14 @@ export async function getCategories(): Promise<CategoryWithCount[]> {
   return data.map((row) => mapRow(row));
 }
 
-export async function getCategoryBySlug(
+export async function getCategories(): Promise<CategoryWithCount[]> {
+  return unstable_cache(fetchCategories, ["categories-list"], {
+    revalidate: 300,
+    tags: [CACHE_TAGS.categories],
+  })();
+}
+
+async function fetchCategoryBySlug(
   slug: string
 ): Promise<CategoryWithCount | null> {
   const db = getDb();
@@ -73,7 +82,17 @@ export async function getCategoryBySlug(
   return mapRow(row);
 }
 
-export async function getCategoriesWithCounts(): Promise<CategoryWithCount[]> {
+export async function getCategoryBySlug(
+  slug: string
+): Promise<CategoryWithCount | null> {
+  return unstable_cache(
+    () => fetchCategoryBySlug(slug),
+    ["category", slug],
+    { revalidate: 300, tags: [CACHE_TAGS.categories] }
+  )();
+}
+
+async function fetchCategoriesWithCounts(): Promise<CategoryWithCount[]> {
   const db = getDb();
   const cats = await db
     .select()
@@ -98,4 +117,11 @@ export async function getCategoriesWithCounts(): Promise<CategoryWithCount[]> {
     ...mapRow(c),
     productCount: countMap.get(c.id) || 0,
   }));
+}
+
+export async function getCategoriesWithCounts(): Promise<CategoryWithCount[]> {
+  return unstable_cache(fetchCategoriesWithCounts, ["categories-with-counts"], {
+    revalidate: 300,
+    tags: [CACHE_TAGS.categories],
+  })();
 }

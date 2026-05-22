@@ -8,7 +8,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "analyze": "cross-env ANALYZE=true npm run build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1022.0",
@@ -29,7 +31,9 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.1.7",
     "@tailwindcss/postcss": "^4",
+    "cross-env": "^7.0.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",

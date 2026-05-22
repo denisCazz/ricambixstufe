@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
@@ -201,7 +201,7 @@ export default function Header({
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            <a href="/" className="flex items-center group shrink-0">
+            <Link href="/" className="flex items-center group shrink-0">
               <Image
                 src="/logo_senza_scritte.png"
                 alt="RicambiXStufe"
@@ -210,7 +210,7 @@ export default function Header({
                 className="h-12 sm:h-16 w-auto object-contain"
                 priority
               />
-            </a>
+            </Link>
             <Link
               href="/assistenza"
               className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-muted hover:text-accent hover:bg-surface-hover transition-colors"

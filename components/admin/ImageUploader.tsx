@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
@@ -86,21 +86,7 @@ export default function ImageUploader({
   // Currently assigned URLs for filtering R2 browser
   const assignedUrls = new Set(images.map((img) => img.image_url));
 
-  // Load R2 images when category changes
-  useEffect(() => {
-    if (showR2Browser && r2Category) {
-      loadR2Images(r2Category);
-    }
-  }, [showR2Browser, r2Category]);
-
-  // Auto-set R2 category when categoryId prop changes
-  useEffect(() => {
-    if (categoryId && CATEGORY_SLUG_MAP[categoryId]) {
-      setR2Category(CATEGORY_SLUG_MAP[categoryId]);
-    }
-  }, [categoryId]);
-
-  async function loadR2Images(slug: string) {
+  const loadR2Images = useCallback(async (slug: string) => {
     setR2Loading(true);
     setR2Selected(new Set());
     try {
@@ -113,7 +99,21 @@ export default function ImageUploader({
       console.error("Errore caricamento immagini R2");
     }
     setR2Loading(false);
-  }
+  }, []);
+
+  // Load R2 images when category changes
+  useEffect(() => {
+    if (showR2Browser && r2Category) {
+      void loadR2Images(r2Category);
+    }
+  }, [showR2Browser, r2Category, loadR2Images]);
+
+  // Auto-set R2 category when categoryId prop changes
+  useEffect(() => {
+    if (categoryId && CATEGORY_SLUG_MAP[categoryId]) {
+      setR2Category(CATEGORY_SLUG_MAP[categoryId]);
+    }
+  }, [categoryId]);
 
   const uploadFile = useCallback(
     async (file: File) => {

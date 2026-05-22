@@ -1,19 +1,19 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { Package, Users, Briefcase, ShoppingCart, X, Sparkles, TrendingUp } from "lucide-react";
+import { Package, Users, Briefcase, ShoppingCart, X, Sparkles } from "lucide-react";
+
+const DashboardCharts = dynamic(() => import("./DashboardCharts"), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-4">
+      <div className="bg-surface border border-border rounded-2xl h-[280px] animate-pulse" />
+      <div className="bg-surface border border-border rounded-2xl h-[240px] animate-pulse" />
+    </div>
+  ),
+});
 
 export interface DailyStat {
   day: string;
@@ -40,20 +40,6 @@ function formatEur(n: number) {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 }
 
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string }[]; label?: string }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-surface border border-border rounded-xl px-3 py-2 shadow-lg text-sm">
-      <p className="text-muted text-xs mb-1">{label}</p>
-      {payload.map((p) => (
-        <p key={p.name} className="font-semibold text-foreground">
-          {p.name === "revenue" ? formatEur(p.value) : `${p.value} ordini`}
-        </p>
-      ))}
-    </div>
-  );
-}
-
 export default function DashboardClient({
   stats,
   dailyData,
@@ -64,7 +50,6 @@ export default function DashboardClient({
   topProducts: TopProduct[];
 }) {
   const [aiDismissed, setAiDismissed] = useState(true);
-  const [chartMode, setChartMode] = useState<"revenue" | "orders">("revenue");
 
   useEffect(() => {
     setAiDismissed(localStorage.getItem("ai_popup_dismissed") === "1");
@@ -101,9 +86,9 @@ export default function DashboardClient({
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-semibold text-foreground text-sm mb-1">Potenzia il tuo negozio con l'intelligenza artificiale</p>
+              <p className="font-semibold text-foreground text-sm mb-1">Potenzia il tuo negozio con l&apos;intelligenza artificiale</p>
               <p className="text-sm text-muted leading-relaxed">
-                Integra l'IA per ricevere consigli personalizzati su prezzi, promozioni e scorte — e non andare mai <em>out of stock</em> anticipando le tendenze dei tuoi clienti. Analisi automatica degli ordini, previsioni stagionali e suggerimenti in tempo reale.
+                Integra l&apos;IA per ricevere consigli personalizzati su prezzi, promozioni e scorte — e non andare mai <em>out of stock</em> anticipando le tendenze dei tuoi clienti. Analisi automatica degli ordini, previsioni stagionali e suggerimenti in tempo reale.
               </p>
               <p className="text-xs text-accent font-medium mt-2 cursor-pointer hover:underline" onClick={dismissAi}>
                 Capito, grazie →
@@ -144,81 +129,7 @@ export default function DashboardClient({
         </div>
       </div>
 
-      {/* Sales chart */}
-      <div className="bg-surface border border-border rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-accent" />
-            <h2 className="font-semibold text-foreground text-sm">Andamento ultimi 30 giorni</h2>
-          </div>
-          <div className="flex rounded-xl bg-background border border-border overflow-hidden text-xs">
-            <button
-              onClick={() => setChartMode("revenue")}
-              className={`px-3 py-1.5 transition-colors ${chartMode === "revenue" ? "bg-accent text-white font-medium" : "text-muted hover:text-foreground"}`}
-            >
-              Fatturato
-            </button>
-            <button
-              onClick={() => setChartMode("orders")}
-              className={`px-3 py-1.5 transition-colors ${chartMode === "orders" ? "bg-accent text-white font-medium" : "text-muted hover:text-foreground"}`}
-            >
-              Ordini
-            </button>
-          </div>
-        </div>
-        {dailyData.length === 0 ? (
-          <p className="text-center text-muted text-sm py-12">Nessun dato disponibile</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={dailyData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, #e5e7eb)" />
-              <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#9ca3af" }} tickLine={false} axisLine={false} />
-              <YAxis
-                tick={{ fontSize: 11, fill: "#9ca3af" }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={chartMode === "revenue" ? (v) => `€${v}` : undefined}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Line
-                type="monotone"
-                dataKey={chartMode}
-                stroke="#f97316"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, fill: "#f97316" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-
-      {/* Top products */}
-      {topProducts.length > 0 && (
-        <div className="bg-surface border border-border rounded-2xl p-5">
-          <h2 className="font-semibold text-foreground text-sm mb-5">Top prodotti (ultimi 30 giorni)</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={topProducts} layout="vertical" margin={{ top: 0, right: 32, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, #e5e7eb)" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11, fill: "#9ca3af" }} tickLine={false} axisLine={false} />
-              <YAxis
-                type="category"
-                dataKey="name"
-                width={140}
-                tick={{ fontSize: 11, fill: "#6b7280" }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(v: string) => v.length > 22 ? v.slice(0, 22) + "…" : v}
-              />
-              <Tooltip
-                formatter={(value) => [`${value} pz`, "Qtà"]}
-                contentStyle={{ borderRadius: "12px", fontSize: 12, border: "1px solid #e5e7eb" }}
-              />
-              <Bar dataKey="qty" fill="#f97316" radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      <DashboardCharts dailyData={dailyData} topProducts={topProducts} />
     </div>
   );
 }
