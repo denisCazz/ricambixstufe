@@ -135,8 +135,9 @@ export default function CartDrawer() {
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
-                        <span className="w-8 h-8 flex items-center justify-center text-sm font-medium border-x border-border bg-surface">
+                        <span className="w-14 h-8 flex items-center justify-center text-sm font-medium border-x border-border bg-surface">
                           {item.quantity}
+                          {item.lineKey === "unit:meter" ? " m" : ""}
                         </span>
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity + 1, item.lineKey)}
