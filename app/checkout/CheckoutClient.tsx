@@ -1008,8 +1008,9 @@ export default function CheckoutClient() {
                         >
                           <Minus className="w-3 h-3" />
                         </button>
-                        <span className="w-7 h-7 flex items-center justify-center text-xs font-medium border-x border-border bg-surface">
+                        <span className="w-14 h-7 flex items-center justify-center text-xs font-medium border-x border-border bg-surface">
                           {item.quantity}
+                          {item.lineKey === "unit:meter" ? " m" : ""}
                         </span>
                         <button
                           type="button"

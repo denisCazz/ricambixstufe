@@ -160,6 +160,7 @@ export default async function ProductDetailPage({
                       name_fr: product.name_fr,
                       name_es: product.name_es,
                       slug: product.slug,
+                      categorySlug: product.categorySlug,
                       price: product.price,
                       image: product.image,
                       weight: product.weight,
