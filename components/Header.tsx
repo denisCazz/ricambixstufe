@@ -405,14 +405,24 @@ export default function Header({
                 )}
               </div>
             ) : (
-              <Link
-                href="/login"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-foreground hover:text-accent hover:bg-surface-hover active:bg-surface-hover transition-colors"
-                aria-label={t("auth.login")}
-              >
-                <User className="w-4.5 h-4.5" />
-                <span className="hidden sm:inline">{t("auth.login")}</span>
-              </Link>
+              <div className="flex items-center gap-1">
+                <Link
+                  href="/login"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-foreground hover:text-accent hover:bg-surface-hover active:bg-surface-hover transition-colors"
+                  aria-label={t("auth.login")}
+                >
+                  <User className="w-4.5 h-4.5" />
+                  <span className="hidden sm:inline">{t("auth.login")}</span>
+                </Link>
+                <Link
+                  href="/register"
+                  className="px-3 py-2 rounded-xl text-sm font-semibold text-white bg-accent hover:opacity-90 active:opacity-90 transition-opacity"
+                  aria-label={t("auth.register")}
+                >
+                  <span className="hidden sm:inline">{t("auth.register")}</span>
+                  <span className="sm:hidden">+</span>
+                </Link>
+              </div>
             )}
 
             {/* Spacer to push cart to far right */}
