@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Plus, Pencil, Trash2, Check, X, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { createStove, updateStove, deleteStove } from "@/app/admin/actions/stoves";
 
@@ -295,9 +295,29 @@ function AddRow({ onAdded }: { onAdded: (s: Stove) => void }) {
 
 export default function StovesClient({ initialStoves }: { initialStoves: Stove[] }) {
   const [stoveList, setStoveList] = useState<Stove[]>(initialStoves);
+  const [sortByName, setSortByName] = useState(false);
+
+  const visibleStoves = useMemo(() => {
+    if (!sortByName) return stoveList;
+
+    return [...stoveList].sort((a, b) =>
+      a.nameIt.localeCompare(b.nameIt, "it", { sensitivity: "base" })
+    );
+  }, [sortByName, stoveList]);
 
   return (
     <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+      <div className="flex items-center justify-end px-4 py-3 border-b border-border bg-background">
+        <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={sortByName}
+            onChange={(e) => setSortByName(e.target.checked)}
+            className="h-4 w-4 rounded border-border text-accent focus:ring-accent/40"
+          />
+          Ordina per nome
+        </label>
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -311,14 +331,14 @@ export default function StovesClient({ initialStoves }: { initialStoves: Stove[]
             </tr>
           </thead>
           <tbody>
-            {stoveList.length === 0 ? (
+            {visibleStoves.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted">
                   Nessuna stufa aggiunta. Clicca &ldquo;Aggiungi stufa&rdquo; per iniziare.
                 </td>
               </tr>
             ) : (
-              stoveList.map((s) => (
+              visibleStoves.map((s) => (
                 <StoveRow
                   key={s.id}
                   stove={s}
