@@ -4,8 +4,9 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { appUsers, profiles } from "@/db/schema";
+import { appUsers, profiles, dealerProfiles } from "@/db/schema";
 import { getUser } from "@/lib/auth";
+import { isValidItalianPartitaIva } from "@/lib/italian-vat";
 import { Resend } from "resend";
 import type { UserRole } from "@/lib/types";
 
@@ -57,12 +58,25 @@ export async function createUser(formData: FormData): Promise<{ ok: boolean; mes
   const firstName = (formData.get("firstName") as string)?.trim() || "";
   const lastName = (formData.get("lastName") as string)?.trim() || "";
   const role = (formData.get("role") as UserRole) || "customer";
+  const companyName = (formData.get("companyName") as string)?.trim() || "";
+  const vatNumber = ((formData.get("vatNumber") as string) || "").trim().replace(/^IT/i, "");
 
   if (!email || !password) {
     return { ok: false, message: "Email e password sono obbligatorie" };
   }
   if (password.length < 8) {
     return { ok: false, message: "La password deve essere di almeno 8 caratteri" };
+  }
+  if (role === "dealer") {
+    if (!companyName) {
+      return { ok: false, message: "La ragione sociale è obbligatoria per i rivenditori" };
+    }
+    if (!vatNumber) {
+      return { ok: false, message: "La Partita IVA è obbligatoria per i rivenditori" };
+    }
+    if (!isValidItalianPartitaIva(vatNumber)) {
+      return { ok: false, message: "Partita IVA italiana non valida" };
+    }
   }
 
   const db = getDb();
@@ -91,9 +105,25 @@ export async function createUser(formData: FormData): Promise<{ ok: boolean; mes
       firstName: firstName || null,
       lastName: lastName || null,
       role,
+      company: role === "dealer" ? companyName : null,
+      vatNumber: role === "dealer" ? vatNumber : null,
     });
+    if (role === "dealer") {
+      await tx.insert(dealerProfiles).values({
+        id: u.id,
+        companyName,
+        vatNumber,
+      });
+    }
   });
 
   revalidatePath("/admin/users");
-  return { ok: true, message: `Utente ${email} creato con ruolo "${role}"` };
+  revalidatePath("/admin/dealers");
+  return {
+    ok: true,
+    message:
+      role === "dealer"
+        ? `Rivenditore ${email} creato. Approva la richiesta in Admin → Dealer.`
+        : `Utente ${email} creato con ruolo "${role}"`,
+  };
 }

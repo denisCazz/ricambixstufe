@@ -8,11 +8,13 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { getDb } from "@/db";
-import { profiles, appUsers } from "@/db/schema";
+import { profiles, appUsers, dealerProfiles } from "@/db/schema";
+import { getUser } from "@/lib/auth";
 import { Search } from "lucide-react";
 import UserRoleSelect from "./UserRoleSelect";
 import CreateUserModal from "./CreateUserModal";
 import VerifyEmailButton from "./VerifyEmailButton";
+import DeleteUserButton from "./DeleteUserButton";
 import type { UserRole } from "@/lib/types";
 import ExportExcelButton from "@/components/admin/ExportExcelButton";
 
@@ -30,6 +32,7 @@ export default async function AdminUsersPage({
   const offset = (page - 1) * PAGE_SIZE;
 
   const db = getDb();
+  const admin = await getUser();
   const conds: SQL[] = [];
   if (search) {
     const t = `%${search}%`;
@@ -61,12 +64,16 @@ export default async function AdminUsersPage({
           lastName: profiles.lastName,
           role: profiles.role,
           company: profiles.company,
+          vatNumber: profiles.vatNumber,
           phone: profiles.phone,
           createdAt: profiles.createdAt,
           emailVerifiedAt: appUsers.emailVerifiedAt,
+          dealerStatus: dealerProfiles.status,
+          dealerDiscount: dealerProfiles.discountPercent,
         })
         .from(profiles)
         .leftJoin(appUsers, eq(appUsers.id, profiles.id))
+        .leftJoin(dealerProfiles, eq(dealerProfiles.id, profiles.id))
         .where(whereClause)
         .orderBy(desc(profiles.createdAt))
         .limit(PAGE_SIZE)
@@ -79,12 +86,16 @@ export default async function AdminUsersPage({
           lastName: profiles.lastName,
           role: profiles.role,
           company: profiles.company,
+          vatNumber: profiles.vatNumber,
           phone: profiles.phone,
           createdAt: profiles.createdAt,
           emailVerifiedAt: appUsers.emailVerifiedAt,
+          dealerStatus: dealerProfiles.status,
+          dealerDiscount: dealerProfiles.discountPercent,
         })
         .from(profiles)
         .leftJoin(appUsers, eq(appUsers.id, profiles.id))
+        .leftJoin(dealerProfiles, eq(dealerProfiles.id, profiles.id))
         .orderBy(desc(profiles.createdAt))
         .limit(PAGE_SIZE)
         .offset(offset);
@@ -99,9 +110,13 @@ export default async function AdminUsersPage({
     last_name: u.lastName,
     role: u.role,
     company: u.company,
+    vat_number: u.vatNumber,
     phone: u.phone,
     created_at: u.createdAt.toISOString(),
     emailVerified: !!u.emailVerifiedAt,
+    dealer_status: u.dealerStatus,
+    dealer_discount: u.dealerDiscount,
+    dealer_profile_missing: u.role === "dealer" && !u.dealerStatus,
   }));
 
   return (
@@ -156,8 +171,10 @@ export default async function AdminUsersPage({
                 <th className="text-left py-3 px-4 hidden md:table-cell">Nome</th>
                 <th className="text-left py-3 px-4 hidden lg:table-cell">Azienda</th>
                 <th className="text-left py-3 px-4">Ruolo</th>
+                <th className="text-left py-3 px-4 hidden lg:table-cell">Sconto</th>
                 <th className="text-left py-3 px-4">Email verificata</th>
                 <th className="text-left py-3 px-4 hidden sm:table-cell">Data</th>
+                <th className="text-left py-3 px-4">Azioni</th>
               </tr>
             </thead>
             <tbody>
@@ -177,7 +194,24 @@ export default async function AdminUsersPage({
                     <UserRoleSelect
                       userId={u.id}
                       currentRole={u.role as UserRole}
+                      email={u.email}
+                      company={u.company}
+                      vatNumber={u.vat_number}
+                      dealerProfileMissing={u.dealer_profile_missing}
                     />
+                  </td>
+                  <td className="py-3 px-4 hidden lg:table-cell">
+                    {u.dealer_profile_missing ? (
+                      <span className="text-xs text-amber-700 dark:text-amber-400">Profilo incompleto</span>
+                    ) : u.dealer_status === "approved" ? (
+                      <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                        {u.dealer_discount}%
+                      </span>
+                    ) : u.dealer_status === "pending" ? (
+                      <span className="text-xs text-yellow-700 dark:text-yellow-400">In attesa</span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     {u.emailVerified ? (
@@ -190,6 +224,11 @@ export default async function AdminUsersPage({
                   </td>
                   <td className="py-3 px-4 text-muted text-xs hidden sm:table-cell">
                     {u.created_at.slice(0, 10)}
+                  </td>
+                  <td className="py-3 px-4">
+                    {u.role !== "admin" && u.id !== admin?.id && (
+                      <DeleteUserButton userId={u.id} email={u.email} />
+                    )}
                   </td>
                 </tr>
               ))}
