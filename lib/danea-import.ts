@@ -39,6 +39,26 @@ type RawProduct = Record<string, unknown>;
 /** Aliquota predefinita catalogo (prezzi sito = IVA inclusa). */
 export const DEFAULT_CATALOG_VAT_RATE = 0.22;
 
+/**
+ * Quale listino prezzi Easyfatt usare (NetPrice<N> / GrossPrice<N>).
+ * Default: 2 per il pubblico, 1 per l'ingrosso (configurazione cliente).
+ * Override via env: DANEA_CATALOG_PRICE_LIST / DANEA_WHOLESALE_PRICE_LIST.
+ */
+function readListIndex(envValue: string | undefined, fallback: number): number {
+  const n = Number(envValue);
+  if (!Number.isInteger(n) || n < 1 || n > 9) return fallback;
+  return n;
+}
+
+export const CATALOG_PRICE_LIST_INDEX = readListIndex(
+  process.env.DANEA_CATALOG_PRICE_LIST,
+  2
+);
+export const WHOLESALE_PRICE_LIST_INDEX = readListIndex(
+  process.env.DANEA_WHOLESALE_PRICE_LIST,
+  1
+);
+
 function pickString(p: RawProduct, keys: string[]): string | undefined {
   for (const k of keys) {
     const t = extractText(p[k]);
@@ -78,20 +98,26 @@ function buildCategoryDisplayName(p: RawProduct): string {
   return parts.join(" / ");
 }
 
-function firstGrossPrice(p: RawProduct): string | undefined {
-  for (let i = 1; i <= 9; i++) {
-    const v = pickDecimal(p, [`GrossPrice${i}`]);
-    if (v) return v;
-  }
-  return undefined;
+function pickGrossPriceAt(p: RawProduct, n: number): string | undefined {
+  return pickDecimal(p, [`GrossPrice${n}`]);
 }
 
-function firstNetPrice(p: RawProduct): string | undefined {
-  for (let i = 1; i <= 9; i++) {
-    const v = pickDecimal(p, [`NetPrice${i}`]);
-    if (v) return v;
+function pickNetPriceAt(p: RawProduct, n: number): string | undefined {
+  return pickDecimal(p, [`NetPrice${n}`]);
+}
+
+/** Primo listino con Gross/Net valorizzato, partendo da `preferred` poi 1..9. */
+function pickPriceAnyList(
+  p: RawProduct,
+  preferred: number
+): { net?: string; gross?: string } {
+  const order = [preferred, ...Array.from({ length: 9 }, (_, i) => i + 1)];
+  for (const i of order) {
+    const gross = pickGrossPriceAt(p, i);
+    const net = pickNetPriceAt(p, i);
+    if (gross || net) return { net, gross };
   }
-  return undefined;
+  return {};
 }
 
 /** Legge l'aliquota IVA dal tag Vat Easyfatt (es. Perc="22"). */
@@ -114,24 +140,35 @@ export function applyCatalogVat(netPrice: string, vatRate: number): string {
 }
 
 /**
- * Prezzo da mostrare nel catalogo: netto Danea + IVA.
- * Se è presente solo GrossPrice, si assume già ivato (fallback).
+ * Prezzo catalogo (IVA inclusa) dal listino configurato.
+ * Preferisce GrossPrice<N> (già ivato dal gestionale).
+ * Se manca, fa NetPrice<N> + IVA. Se anche quello manca, fallback su qualunque listino.
  */
 export function resolveCatalogPrice(p: RawProduct): string {
   const vatRate = pickVatRate(p);
-  const net = firstNetPrice(p);
-  if (net) return applyCatalogVat(net, vatRate);
-  const gross = firstGrossPrice(p);
+  const gross = pickGrossPriceAt(p, CATALOG_PRICE_LIST_INDEX);
   if (gross) return gross;
+  const net = pickNetPriceAt(p, CATALOG_PRICE_LIST_INDEX);
+  if (net) return applyCatalogVat(net, vatRate);
+  const fallback = pickPriceAnyList(p, CATALOG_PRICE_LIST_INDEX);
+  if (fallback.gross) return fallback.gross;
+  if (fallback.net) return applyCatalogVat(fallback.net, vatRate);
   return "0";
 }
 
+/**
+ * Prezzo ingrosso (IVA inclusa) dal listino configurato per i rivenditori.
+ * Fallback: SupplierNetPrice + IVA, poi qualunque listino.
+ */
 function resolveWholesalePrice(p: RawProduct): string | undefined {
   const vatRate = pickVatRate(p);
-  const net =
-    pickDecimal(p, ["SupplierNetPrice"]) ?? pickDecimal(p, ["NetPrice2"]);
-  if (!net) return undefined;
-  return applyCatalogVat(net, vatRate);
+  const gross = pickGrossPriceAt(p, WHOLESALE_PRICE_LIST_INDEX);
+  if (gross) return gross;
+  const net = pickNetPriceAt(p, WHOLESALE_PRICE_LIST_INDEX);
+  if (net) return applyCatalogVat(net, vatRate);
+  const supplierNet = pickDecimal(p, ["SupplierNetPrice"]);
+  if (supplierNet) return applyCatalogVat(supplierNet, vatRate);
+  return undefined;
 }
 
 export interface DaneaImportStats {
