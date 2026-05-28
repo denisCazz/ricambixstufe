@@ -19,7 +19,15 @@ export default function CreateUserModal() {
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<Result>(null);
   const [pending, startTransition] = useTransition();
-  const [form, setForm] = useState({ email: "", password: "", firstName: "", lastName: "", role: "customer" });
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    firstName: "",
+    lastName: "",
+    role: "customer",
+    companyName: "",
+    vatNumber: "",
+  });
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -32,7 +40,17 @@ export default function CreateUserModal() {
     startTransition(async () => {
       const r = await createUser(fd);
       setResult(r);
-      if (r.ok) setForm({ email: "", password: "", firstName: "", lastName: "", role: "customer" });
+      if (r.ok) {
+        setForm({
+          email: "",
+          password: "",
+          firstName: "",
+          lastName: "",
+          role: "customer",
+          companyName: "",
+          vatNumber: "",
+        });
+      }
     });
   }
 
@@ -92,6 +110,32 @@ export default function CreateUserModal() {
                   {Object.entries(roleLabels).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </div>
+
+              {form.role === "dealer" && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-muted mb-1">Ragione sociale *</label>
+                    <input
+                      name="companyName"
+                      required
+                      value={form.companyName}
+                      onChange={handleChange}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted mb-1">Partita IVA *</label>
+                    <input
+                      name="vatNumber"
+                      required
+                      value={form.vatNumber}
+                      onChange={handleChange}
+                      placeholder="02450960261"
+                      className={inputClass}
+                    />
+                  </div>
+                </>
+              )}
 
               {result && (
                 <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${result.ok ? "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200" : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200"}`}>
