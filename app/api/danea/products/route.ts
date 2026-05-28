@@ -105,13 +105,20 @@ export async function POST(req: NextRequest) {
       createdAt: daneaImportLogs.createdAt,
     });
 
-    await writeDaneaImportLogFile({
-      id: logRow.id,
-      createdAt: logRow.createdAt,
-      xml,
-      xmlBytes,
-      result,
-    });
+    try {
+      await writeDaneaImportLogFile({
+        id: logRow.id,
+        createdAt: logRow.createdAt,
+        xml,
+        xmlBytes,
+        result,
+      });
+    } catch (fileErr) {
+      console.error(
+        "[danea-products] writeDaneaImportLogFile failed (DB log OK, file no):",
+        fileErr
+      );
+    }
   } catch (e) {
     console.error("[danea-products] danea_import_logs insert failed", e);
   }
