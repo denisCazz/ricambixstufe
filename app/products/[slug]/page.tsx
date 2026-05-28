@@ -65,13 +65,7 @@ export default async function ProductDetailPage({
             <Link href="/" className="hover:text-accent transition-colors shrink-0"><TranslatedText k="breadcrumb.home" /></Link>
             <span className="text-border shrink-0">/</span>
             <Link href={`/categories/${product.categorySlug}`} className="hover:text-accent transition-colors shrink-0">
-              <LocalizedText
-                it={product.category}
-                en={product.name_en ? product.category : undefined}
-                fr={product.name_fr ? product.category : undefined}
-                es={product.name_es ? product.category : undefined}
-                fallback={product.category}
-              />
+              <TranslatedText k={`cat.${product.categorySlug}`} />
             </Link>
             <span className="text-border shrink-0">/</span>
             <span className="text-foreground font-medium truncate">
@@ -116,7 +110,7 @@ export default async function ProductDetailPage({
             {/* Info */}
             <div>
               <span className="inline-block px-3 py-1 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-accent text-xs font-medium mb-3">
-                {product.category}
+                <TranslatedText k={`cat.${product.categorySlug}`} />
               </span>
               <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-4">
                 <LocalizedText
