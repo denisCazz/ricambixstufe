@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Danea Easyfatt product catalog import (XML spec:
  * https://www.danea.it/software/easyfatt/ecommerce/integrazione/invio-prodotti/)
  */
@@ -35,6 +35,9 @@ export function extractText(v: unknown): string | undefined {
 }
 
 type RawProduct = Record<string, unknown>;
+
+/** Aliquota predefinita catalogo (prezzi sito = IVA inclusa). */
+export const DEFAULT_CATALOG_VAT_RATE = 0.22;
 
 function pickString(p: RawProduct, keys: string[]): string | undefined {
   for (const k of keys) {
@@ -91,6 +94,46 @@ function firstNetPrice(p: RawProduct): string | undefined {
   return undefined;
 }
 
+/** Legge l'aliquota IVA dal tag Vat Easyfatt (es. Perc="22"). */
+export function pickVatRate(p: RawProduct): number {
+  const vat = p.Vat;
+  if (vat && typeof vat === "object") {
+    const perc = extractText((vat as { "@_Perc"?: unknown })["@_Perc"]);
+    if (perc) {
+      const n = Number(perc.replace(",", "."));
+      if (Number.isFinite(n) && n >= 0 && n <= 100) return n / 100;
+    }
+  }
+  return DEFAULT_CATALOG_VAT_RATE;
+}
+
+export function applyCatalogVat(netPrice: string, vatRate: number): string {
+  const n = Number(netPrice);
+  if (!Number.isFinite(n)) return netPrice;
+  return (Math.round(n * (1 + vatRate) * 100) / 100).toFixed(2);
+}
+
+/**
+ * Prezzo da mostrare nel catalogo: netto Danea + IVA.
+ * Se è presente solo GrossPrice, si assume già ivato (fallback).
+ */
+export function resolveCatalogPrice(p: RawProduct): string {
+  const vatRate = pickVatRate(p);
+  const net = firstNetPrice(p);
+  if (net) return applyCatalogVat(net, vatRate);
+  const gross = firstGrossPrice(p);
+  if (gross) return gross;
+  return "0";
+}
+
+function resolveWholesalePrice(p: RawProduct): string | undefined {
+  const vatRate = pickVatRate(p);
+  const net =
+    pickDecimal(p, ["SupplierNetPrice"]) ?? pickDecimal(p, ["NetPrice2"]);
+  if (!net) return undefined;
+  return applyCatalogVat(net, vatRate);
+}
+
 export interface DaneaImportStats {
   created: number;
   updated: number;
@@ -142,13 +185,8 @@ function normalizeProduct(row: RawProduct): {
   const descHtml = pickString(row, ["DescriptionHTML"]);
   const descriptionIt = descHtml ?? descPlain;
 
-  const price =
-    firstGrossPrice(row) ??
-    firstNetPrice(row) ??
-    "0";
-
-  const wholesalePrice =
-    pickDecimal(row, ["SupplierNetPrice"]) ?? pickDecimal(row, ["NetPrice2"]);
+  const price = resolveCatalogPrice(row);
+  const wholesalePrice = resolveWholesalePrice(row);
 
   const stockQuantity = pickInt(row, [
     "AvailableQty",

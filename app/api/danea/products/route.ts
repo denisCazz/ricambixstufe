@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { daneaImportLogs } from "@/db/schema";
 import { writeDaneaImportLogFile } from "@/lib/danea-import-log-file";
 import { syncEasyfattCatalog } from "@/lib/danea-import";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 /**
  * Danea Easyfatt catalog import.
@@ -121,6 +122,8 @@ export async function POST(req: NextRequest) {
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   }
+
+  revalidateCatalog();
 
   if (process.env.NODE_ENV !== "production") {
     console.info("[danea-products] import OK", result.stats);
