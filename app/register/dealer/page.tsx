@@ -6,7 +6,7 @@ import Image from "next/image";
 import { registerDealer } from "../../(auth)/actions";
 import { Eye, EyeOff, Building2, AlertCircle, ArrowLeft } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
-import { isValidItalianPartitaIva } from "@/lib/italian-vat";
+import { isValidEuVatNumber } from "@/lib/italian-vat";
 
 export default function DealerRegisterPage() {
   const { t } = useLocale();
@@ -41,7 +41,7 @@ export default function DealerRegisterPage() {
       setLoading(false);
       return;
     }
-    if (!isValidItalianPartitaIva(vatRaw)) {
+    if (!isValidEuVatNumber(vatRaw)) {
       setError(t("dealer.vat_invalid"));
       setLoading(false);
       return;
@@ -143,7 +143,7 @@ export default function DealerRegisterPage() {
                 name="vatNumber"
                 type="text"
                 required
-                maxLength={13}
+                maxLength={18}
                 autoComplete="off"
                 title={t("dealer.vat_hint")}
                 className="w-full px-4 py-2.5 rounded-lg border border-[var(--color-muted)]/40 bg-[var(--color-background)] text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)] transition"

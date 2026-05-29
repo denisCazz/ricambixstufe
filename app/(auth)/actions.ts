@@ -8,7 +8,7 @@ import { getDb } from "@/db";
 import { appUsers, profiles, dealerProfiles } from "@/db/schema";
 import { sendDealerRegistrationNotification, sendEmailVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
 import { signPayload, verifyPayload } from "@/lib/signed-payload";
-import { isValidItalianPartitaIva } from "@/lib/italian-vat";
+import { isValidEuVatNumber } from "@/lib/italian-vat";
 
 const SALT = 10;
 
@@ -117,8 +117,8 @@ export async function registerDealer(formData: FormData): Promise<{ error: strin
   if (!vatNumber) {
     return { error: "La Partita IVA è obbligatoria per la registrazione rivenditore." };
   }
-  if (!isValidItalianPartitaIva(vatNumber)) {
-    return { error: "Partita IVA italiana non valida. Inserisci 11 cifre con codice di controllo corretto (es. IT02450960261)." };
+  if (!isValidEuVatNumber(vatNumber)) {
+    return { error: "Partita IVA / numero VAT non valido. Per l'Italia inserisci 11 cifre (es. IT02450960261); per gli altri paesi UE indica il prefisso del paese (es. FR12345678901)." };
   }
 
   const db = getDb();
