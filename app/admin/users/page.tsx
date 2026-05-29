@@ -7,6 +7,7 @@ import {
   or,
   type SQL,
 } from "drizzle-orm";
+import Link from "next/link";
 import { getDb } from "@/db";
 import { profiles, appUsers, dealerProfiles } from "@/db/schema";
 import { getUser } from "@/lib/auth";
@@ -102,6 +103,14 @@ export default async function AdminUsersPage({
 
   const totalCount = Number(countRes.n);
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  const buildPageHref = (targetPage: number) => {
+    const sp = new URLSearchParams();
+    if (search) sp.set("q", search);
+    if (roleFilter) sp.set("role", roleFilter);
+    sp.set("page", String(Math.min(Math.max(1, targetPage), totalPages)));
+    return `?${sp.toString()}`;
+  };
 
   const users = userRows.map((u) => ({
     id: u.id,
@@ -240,9 +249,33 @@ export default async function AdminUsersPage({
         )}
       </div>
       {totalPages > 1 && (
-        <p className="text-center text-sm text-muted mt-4">
-          Pagina {page} / {totalPages}
-        </p>
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <Link
+            href={buildPageHref(page - 1)}
+            aria-disabled={page <= 1}
+            className={`px-3 py-1.5 rounded-lg border border-border text-sm ${
+              page <= 1
+                ? "pointer-events-none opacity-40"
+                : "hover:bg-stone-50/50"
+            }`}
+          >
+            ← Precedente
+          </Link>
+          <span className="text-sm text-muted">
+            Pagina {page} / {totalPages}
+          </span>
+          <Link
+            href={buildPageHref(page + 1)}
+            aria-disabled={page >= totalPages}
+            className={`px-3 py-1.5 rounded-lg border border-border text-sm ${
+              page >= totalPages
+                ? "pointer-events-none opacity-40"
+                : "hover:bg-stone-50/50"
+            }`}
+          >
+            Successiva →
+          </Link>
+        </div>
       )}
     </div>
   );
