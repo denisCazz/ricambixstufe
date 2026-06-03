@@ -27,6 +27,7 @@ export default function CreateUserModal() {
     role: "customer",
     companyName: "",
     vatNumber: "",
+    vatCountry: "IT",
   });
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
@@ -49,6 +50,7 @@ export default function CreateUserModal() {
           role: "customer",
           companyName: "",
           vatNumber: "",
+          vatCountry: "IT",
         });
       }
     });
@@ -124,13 +126,46 @@ export default function CreateUserModal() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-muted mb-1">Partita IVA *</label>
+                    <label className="block text-xs font-medium text-muted mb-1">Paese (P.IVA)</label>
+                    <select name="vatCountry" value={form.vatCountry} onChange={handleChange} className={inputClass}>
+                      <option value="IT">IT – Italia</option>
+                      <option value="DE">DE – Germania</option>
+                      <option value="FR">FR – Francia</option>
+                      <option value="ES">ES – Spagna</option>
+                      <option value="AT">AT – Austria</option>
+                      <option value="BE">BE – Belgio</option>
+                      <option value="NL">NL – Olanda</option>
+                      <option value="PL">PL – Polonia</option>
+                      <option value="PT">PT – Portogallo</option>
+                      <option value="GR">GR – Grecia</option>
+                      <option value="HR">HR – Croazia</option>
+                      <option value="RO">RO – Romania</option>
+                      <option value="CZ">CZ – Repubblica Ceca</option>
+                      <option value="HU">HU – Ungheria</option>
+                      <option value="SE">SE – Svezia</option>
+                      <option value="DK">DK – Danimarca</option>
+                      <option value="FI">FI – Finlandia</option>
+                      <option value="SK">SK – Slovacchia</option>
+                      <option value="SI">SI – Slovenia</option>
+                      <option value="BG">BG – Bulgaria</option>
+                      <option value="LU">LU – Lussemburgo</option>
+                      <option value="IE">IE – Irlanda</option>
+                      <option value="EE">EE – Estonia</option>
+                      <option value="LV">LV – Lettonia</option>
+                      <option value="LT">LT – Lituania</option>
+                      <option value="MT">MT – Malta</option>
+                      <option value="CY">CY – Cipro</option>
+                      <option value="EXTRA">Extra-UE (nessuna validazione formato)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted mb-1">Partita IVA / VAT *</label>
                     <input
                       name="vatNumber"
                       required
                       value={form.vatNumber}
                       onChange={handleChange}
-                      placeholder="02450960261"
+                      placeholder={form.vatCountry === "IT" ? "02450960261" : form.vatCountry === "EXTRA" ? "Numero IVA estero" : `${form.vatCountry}123456789`}
                       className={inputClass}
                     />
                   </div>

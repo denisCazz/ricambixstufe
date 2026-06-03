@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { appUsers, profiles, dealerProfiles, orders } from "@/db/schema";
 import { getUser } from "@/lib/auth";
-import { isValidItalianPartitaIva } from "@/lib/italian-vat";
+import { isValidItalianPartitaIva, isValidEuVatNumber } from "@/lib/italian-vat";
 import { sendDealerApprovedEmail } from "@/lib/email";
 import type { UserRole } from "@/lib/types";
 
@@ -79,6 +79,7 @@ export async function promoteToDealer(
   data: {
     companyName: string;
     vatNumber: string;
+    vatCountry?: string;
     approveImmediately: boolean;
     discountPercent: number;
   }
@@ -89,7 +90,11 @@ export async function promoteToDealer(
   }
 
   const companyName = data.companyName.trim();
-  const vatNumber = data.vatNumber.trim().replace(/^IT/i, "");
+  const vatCountry = (data.vatCountry || "IT").trim().toUpperCase();
+  // Per l'Italia rimuoviamo il prefisso IT; per gli altri paesi conserviamo il numero così com'è.
+  const vatNumber = vatCountry === "IT"
+    ? data.vatNumber.trim().replace(/^IT/i, "")
+    : data.vatNumber.trim();
 
   if (!companyName) {
     return { error: "La ragione sociale è obbligatoria" };
@@ -97,12 +102,22 @@ export async function promoteToDealer(
   if (!vatNumber) {
     return { error: "La Partita IVA è obbligatoria" };
   }
-  if (!isValidItalianPartitaIva(vatNumber)) {
-    return {
-      error:
-        "Partita IVA italiana non valida. Inserisci 11 cifre con codice di controllo corretto.",
-    };
+  if (vatCountry === "IT") {
+    if (!isValidItalianPartitaIva(vatNumber)) {
+      return {
+        error:
+          "Partita IVA italiana non valida. Inserisci 11 cifre con codice di controllo corretto.",
+      };
+    }
+  } else if (vatCountry !== "EXTRA") {
+    const vatWithPrefix = vatNumber.toUpperCase().startsWith(vatCountry)
+      ? vatNumber
+      : `${vatCountry}${vatNumber}`;
+    if (!isValidEuVatNumber(vatWithPrefix)) {
+      return { error: `VAT number non valido per il paese ${vatCountry}` };
+    }
   }
+  // Per EXTRA-UE nessuna validazione di formato
 
   const discountPercent = Math.min(70, Math.max(0, data.discountPercent || 50));
 
