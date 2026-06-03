@@ -6,9 +6,70 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { appUsers, profiles, dealerProfiles } from "@/db/schema";
 import { getUser } from "@/lib/auth";
-import { isValidItalianPartitaIva, isValidEuVatNumber } from "@/lib/italian-vat";
+import { isValidItalianPartitaIva } from "@/lib/italian-vat";
+import { validateVAT } from "@/lib/vies";
 import { Resend } from "resend";
 import type { UserRole } from "@/lib/types";
+
+export type VatCheckResult = {
+  status: "valid" | "invalid" | "unverifiable" | "error";
+  message: string;
+  companyName?: string;
+};
+
+export async function checkVatNumber(
+  vatCountry: string,
+  vatNumber: string
+): Promise<VatCheckResult> {
+  await requireAdmin();
+
+  const country = vatCountry.trim().toUpperCase();
+  const vat = vatNumber.trim();
+
+  if (!vat) return { status: "error", message: "Inserisci il numero IVA." };
+
+  // Extra-UE: non possiamo verificare
+  if (country === "EXTRA") {
+    return {
+      status: "unverifiable",
+      message: "Partita IVA extra-UE: impossibile verificare automaticamente. Controlla manualmente.",
+    };
+  }
+
+  // Italia: verifica locale con cifra di controllo
+  if (country === "IT") {
+    const normalized = vat.replace(/^IT/i, "");
+    if (isValidItalianPartitaIva(normalized)) {
+      return { status: "valid", message: "Partita IVA italiana valida (cifra di controllo corretta)." };
+    }
+    return { status: "invalid", message: "Partita IVA italiana non valida. Controlla le 11 cifre e la cifra di controllo." };
+  }
+
+  // Paesi UE: verifica tramite VIES
+  // VIES usa GR per la Grecia (non EL)
+  const viesCountry = country === "EL" ? "GR" : country;
+  const vatForVies = vat.toUpperCase().startsWith(viesCountry) ? vat.slice(viesCountry.length) : vat;
+  const result = await validateVAT(viesCountry, vatForVies);
+
+  if (result.error) {
+    return {
+      status: "unverifiable",
+      message: `Impossibile verificare tramite VIES (${result.error}). Controlla manualmente.`,
+    };
+  }
+  if (result.valid) {
+    const extra = result.name ? ` — ${result.name}` : "";
+    return {
+      status: "valid",
+      message: `VAT verificata tramite VIES${extra}.`,
+      companyName: result.name ?? undefined,
+    };
+  }
+  return {
+    status: "invalid",
+    message: "VAT non risulta valida nel sistema VIES. Verifica il numero.",
+  };
+}
 
 const SALT = 10;
 
@@ -77,20 +138,10 @@ export async function createUser(formData: FormData): Promise<{ ok: boolean; mes
     if (!vatNumber) {
       return { ok: false, message: "La Partita IVA è obbligatoria per i rivenditori" };
     }
-    if (vatCountry === "IT") {
-      if (!isValidItalianPartitaIva(vatNumber)) {
-        return { ok: false, message: "Partita IVA italiana non valida" };
-      }
-    } else if (vatCountry !== "EXTRA") {
-      // Paese UE: valida con il prefisso del paese
-      const vatWithPrefix = vatNumber.toUpperCase().startsWith(vatCountry)
-        ? vatNumber
-        : `${vatCountry}${vatNumber}`;
-      if (!isValidEuVatNumber(vatWithPrefix)) {
-        return { ok: false, message: `VAT number non valido per il paese ${vatCountry}` };
-      }
+    if (vatCountry === "IT" && !isValidItalianPartitaIva(vatNumber)) {
+      return { ok: false, message: "Partita IVA italiana non valida" };
     }
-    // Per EXTRA-UE nessuna validazione di formato
+    // Per paesi esteri (UE o extra-UE) l'admin inserisce manualmente: nessuna validazione formato
   }
 
   const db = getDb();
