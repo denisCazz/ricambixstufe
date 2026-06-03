@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { appUsers, profiles, dealerProfiles } from "@/db/schema";
 import { getUser } from "@/lib/auth";
-import { isValidItalianPartitaIva } from "@/lib/italian-vat";
+import { isValidItalianPartitaIva, isValidEuVatNumber } from "@/lib/italian-vat";
 import { Resend } from "resend";
 import type { UserRole } from "@/lib/types";
 
@@ -59,7 +59,10 @@ export async function createUser(formData: FormData): Promise<{ ok: boolean; mes
   const lastName = (formData.get("lastName") as string)?.trim() || "";
   const role = (formData.get("role") as UserRole) || "customer";
   const companyName = (formData.get("companyName") as string)?.trim() || "";
-  const vatNumber = ((formData.get("vatNumber") as string) || "").trim().replace(/^IT/i, "");
+  const vatCountry = ((formData.get("vatCountry") as string) || "IT").trim().toUpperCase();
+  const vatRaw = ((formData.get("vatNumber") as string) || "").trim();
+  // Per l'Italia rimuoviamo il prefisso IT prima di salvare; per gli altri paesi conserviamo il numero così com'è.
+  const vatNumber = vatCountry === "IT" ? vatRaw.replace(/^IT/i, "") : vatRaw;
 
   if (!email || !password) {
     return { ok: false, message: "Email e password sono obbligatorie" };
@@ -74,9 +77,20 @@ export async function createUser(formData: FormData): Promise<{ ok: boolean; mes
     if (!vatNumber) {
       return { ok: false, message: "La Partita IVA è obbligatoria per i rivenditori" };
     }
-    if (!isValidItalianPartitaIva(vatNumber)) {
-      return { ok: false, message: "Partita IVA italiana non valida" };
+    if (vatCountry === "IT") {
+      if (!isValidItalianPartitaIva(vatNumber)) {
+        return { ok: false, message: "Partita IVA italiana non valida" };
+      }
+    } else if (vatCountry !== "EXTRA") {
+      // Paese UE: valida con il prefisso del paese
+      const vatWithPrefix = vatNumber.toUpperCase().startsWith(vatCountry)
+        ? vatNumber
+        : `${vatCountry}${vatNumber}`;
+      if (!isValidEuVatNumber(vatWithPrefix)) {
+        return { ok: false, message: `VAT number non valido per il paese ${vatCountry}` };
+      }
     }
+    // Per EXTRA-UE nessuna validazione di formato
   }
 
   const db = getDb();
