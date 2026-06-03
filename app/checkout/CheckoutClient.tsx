@@ -22,6 +22,7 @@ import { useLocale } from "@/lib/locale-context";
 import { useUser } from "@/lib/user-context";
 import { italianVatIncludedOnProducts, isValidItalianPartitaIva } from "@/lib/italian-vat";
 import type { EuropeShippingMethod } from "@/lib/shipping";
+import ReceiptUploader from "@/components/ReceiptUploader";
 
 const COUNTRIES = [
   "Italia",
@@ -150,6 +151,7 @@ export default function CheckoutClient() {
     orderId: number;
     paymentMethod: PaymentMethod;
     total: number;
+    receiptToken?: string;
   } | null>(null);
 
   // Fetch user profile for pre-fill
@@ -361,6 +363,14 @@ export default function CheckoutClient() {
               L&apos;ordine verrà elaborato dopo la ricezione del pagamento
               (1-2 giorni lavorativi).
             </p>
+            <p className="text-sm text-muted text-center">
+              {t("checkout.payment.bank_transfer_receipt_hint")}
+            </p>
+            <ReceiptUploader
+              orderId={orderResult.orderId}
+              token={orderResult.receiptToken}
+              className="flex flex-col items-center"
+            />
           </div>
         ) : (
           <div className="text-left w-full mt-4 space-y-4">
@@ -487,6 +497,7 @@ export default function CheckoutClient() {
           orderId: data.orderId,
           paymentMethod,
           total: data.total,
+          receiptToken: data.receiptToken,
         });
         return;
       }
@@ -941,6 +952,9 @@ export default function CheckoutClient() {
                   </p>
                   <p className="text-xs text-muted">
                     {t("checkout.payment.bank_transfer_note")}
+                  </p>
+                  <p className="text-xs text-muted mt-1">
+                    {t("checkout.payment.bank_transfer_receipt_hint")}
                   </p>
                 </div>
               </label>
