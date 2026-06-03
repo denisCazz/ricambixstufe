@@ -46,8 +46,8 @@ export async function checkVatNumber(
   }
 
   // Paesi UE: verifica tramite VIES
-  // VIES usa GR per la Grecia (non EL)
-  const viesCountry = country === "EL" ? "GR" : country;
+  // VIES usa il prefisso EL per la Grecia (codice ISO GR)
+  const viesCountry = country === "GR" ? "EL" : country;
   const vatForVies = vat.toUpperCase().startsWith(viesCountry) ? vat.slice(viesCountry.length) : vat;
   const result = await validateVAT(viesCountry, vatForVies);
 

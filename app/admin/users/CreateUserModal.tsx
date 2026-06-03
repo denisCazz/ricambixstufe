@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useTransition } from "react";
-import { UserPlus, X, Loader2, CheckCircle, XCircle, AlertTriangle, ShieldCheck } from "lucide-react";
+import { UserPlus, X, Loader2, CheckCircle, XCircle, AlertTriangle, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { createUser, checkVatNumber } from "@/app/admin/actions/settings";
 import type { VatCheckResult } from "@/app/admin/actions/settings";
 
@@ -40,6 +40,7 @@ function VatCheckBadge({ result }: { result: VatCheckResult | null }) {
 
 export default function CreateUserModal() {
   const [open, setOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [result, setResult] = useState<Result>(null);
   const [pending, startTransition] = useTransition();
   const [checkPending, startCheckTransition] = useTransition();
@@ -142,7 +143,17 @@ export default function CreateUserModal() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted mb-1">Password * <span className="text-muted font-normal">(min. 8 caratteri)</span></label>
-                <input name="password" type="password" required minLength={8} value={form.password} onChange={handleChange} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" className={inputClass} />
+                <div className="relative">
+                  <input name="password" type={showPassword ? "text" : "password"} required minLength={8} value={form.password} onChange={handleChange} placeholder="••••••••" className={`${inputClass} pr-10`} />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={showPassword ? "Nascondi password" : "Mostra password"}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted mb-1">Ruolo</label>
@@ -166,33 +177,33 @@ export default function CreateUserModal() {
                   <div>
                     <label className="block text-xs font-medium text-muted mb-1">Paese (P.IVA)</label>
                     <select name="vatCountry" value={form.vatCountry} onChange={handleChange} className={inputClass}>
-                      <option value="IT">IT â€“ Italia</option>
-                      <option value="DE">DE â€“ Germania</option>
-                      <option value="FR">FR â€“ Francia</option>
-                      <option value="ES">ES â€“ Spagna</option>
-                      <option value="AT">AT â€“ Austria</option>
-                      <option value="BE">BE â€“ Belgio</option>
-                      <option value="NL">NL â€“ Olanda</option>
-                      <option value="PL">PL â€“ Polonia</option>
-                      <option value="PT">PT â€“ Portogallo</option>
-                      <option value="GR">GR â€“ Grecia</option>
-                      <option value="HR">HR â€“ Croazia</option>
-                      <option value="RO">RO â€“ Romania</option>
-                      <option value="CZ">CZ â€“ Repubblica Ceca</option>
-                      <option value="HU">HU â€“ Ungheria</option>
-                      <option value="SE">SE â€“ Svezia</option>
-                      <option value="DK">DK â€“ Danimarca</option>
-                      <option value="FI">FI â€“ Finlandia</option>
-                      <option value="SK">SK â€“ Slovacchia</option>
-                      <option value="SI">SI â€“ Slovenia</option>
-                      <option value="BG">BG â€“ Bulgaria</option>
-                      <option value="LU">LU â€“ Lussemburgo</option>
-                      <option value="IE">IE â€“ Irlanda</option>
-                      <option value="EE">EE â€“ Estonia</option>
-                      <option value="LV">LV â€“ Lettonia</option>
-                      <option value="LT">LT â€“ Lituania</option>
-                      <option value="MT">MT â€“ Malta</option>
-                      <option value="CY">CY â€“ Cipro</option>
+                      <option value="IT">IT – Italia</option>
+                      <option value="DE">DE – Germania</option>
+                      <option value="FR">FR – Francia</option>
+                      <option value="ES">ES – Spagna</option>
+                      <option value="AT">AT – Austria</option>
+                      <option value="BE">BE – Belgio</option>
+                      <option value="NL">NL – Olanda</option>
+                      <option value="PL">PL – Polonia</option>
+                      <option value="PT">PT – Portogallo</option>
+                      <option value="GR">GR – Grecia</option>
+                      <option value="HR">HR – Croazia</option>
+                      <option value="RO">RO – Romania</option>
+                      <option value="CZ">CZ – Repubblica Ceca</option>
+                      <option value="HU">HU – Ungheria</option>
+                      <option value="SE">SE – Svezia</option>
+                      <option value="DK">DK – Danimarca</option>
+                      <option value="FI">FI – Finlandia</option>
+                      <option value="SK">SK – Slovacchia</option>
+                      <option value="SI">SI – Slovenia</option>
+                      <option value="BG">BG – Bulgaria</option>
+                      <option value="LU">LU – Lussemburgo</option>
+                      <option value="IE">IE – Irlanda</option>
+                      <option value="EE">EE – Estonia</option>
+                      <option value="LV">LV – Lettonia</option>
+                      <option value="LT">LT – Lituania</option>
+                      <option value="MT">MT – Malta</option>
+                      <option value="CY">CY – Cipro</option>
                       <option value="EXTRA">Extra-UE (nessuna validazione formato)</option>
                     </select>
                   </div>
