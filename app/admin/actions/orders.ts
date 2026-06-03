@@ -84,6 +84,7 @@ export async function getOrders(filters?: {
     id: o.id,
     created_at: o.createdAt.toISOString(),
     status: o.status,
+    payment_method: o.paymentMethod,
     payment_status: o.paymentStatus,
     subtotal: Number(o.subtotal),
     shipping_cost: Number(o.shippingCost),
@@ -95,6 +96,7 @@ export async function getOrders(filters?: {
     notes: o.notes,
     danea_exported: o.daneaExported,
     tracking_number: o.trackingNumber,
+    bank_transfer_receipt_url: o.bankTransferReceiptUrl,
     order_items: (itemsByOrder.get(o.id) || []).map((it) => ({
       id: it.id,
       product_name: it.productName,

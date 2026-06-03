@@ -10,6 +10,7 @@ import {
   Truck,
   ExternalLink,
 } from "lucide-react";
+import ReceiptUploader from "@/components/ReceiptUploader";
 
 interface OrderItem {
   id: number;
@@ -32,6 +33,7 @@ interface Order {
   total: number;
   shipping_address: Record<string, string>;
   tracking_number: string | null;
+  bank_transfer_receipt_url: string | null;
   order_items: OrderItem[];
 }
 
@@ -294,6 +296,26 @@ export default function OrdersListClient({ orders }: { orders: Order[] }) {
                             {order.shipping_address.province}{" "}
                             {order.shipping_address.country}
                           </p>
+                        </div>
+                      )}
+
+                      {/* Bank transfer receipt upload */}
+                      {order.payment_method === "bank_transfer" && (
+                        <div className="mt-3 pt-3 border-t border-[var(--color-muted)]/20">
+                          <p className="text-xs font-medium text-[var(--color-foreground)]/50 uppercase mb-2">
+                            Contabile bonifico
+                          </p>
+                          {!order.bank_transfer_receipt_url && (
+                            <p className="text-sm text-[var(--color-foreground)]/60 mb-2">
+                              Carica la contabile del bonifico per consentire
+                              una verifica anticipata del pagamento e ridurre i
+                              tempi di attesa.
+                            </p>
+                          )}
+                          <ReceiptUploader
+                            orderId={order.id}
+                            existingUrl={order.bank_transfer_receipt_url}
+                          />
                         </div>
                       )}
                     </div>

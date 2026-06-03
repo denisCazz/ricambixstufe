@@ -46,6 +46,7 @@ interface OrderEmailData {
   orderId: number;
   customerEmail: string;
   customerName: string;
+  receiptUploadUrl?: string;
   items: OrderItem[];
   subtotal: number;
   shippingCost: number;
@@ -129,6 +130,13 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
   let paymentNote = "";
   if (data.paymentMethod === "bank_transfer") {
     paymentNote = bankTransferNote().replace("[orderId]", data.orderId.toString());
+    if (data.receiptUploadUrl) {
+      paymentNote += `
+    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; margin: 16px 0;">
+      <p style="margin: 0 0 10px; font-size: 14px; color: #1e3a8a;">Carica la contabile del bonifico per consentire una verifica anticipata del pagamento e ridurre i tempi di attesa.</p>
+      <a href="${escapeHtml(data.receiptUploadUrl)}" style="display: inline-block; padding: 10px 20px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">Carica contabile</a>
+    </div>`;
+    }
   } else if (data.paymentMethod === "cod") {
     paymentNote = `<p style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 16px; font-size: 14px; color: #166534; margin: 16px 0;">Il pagamento avverrà in contanti alla consegna. Supplemento contrassegno incluso nel totale.</p>`;
   }
@@ -295,6 +303,38 @@ export async function sendNewOrderAdminNotification(data: OrderEmailData) {
     });
   } catch (error) {
     console.error("Failed to send admin order notification:", error);
+  }
+}
+
+/** Notify admin that a customer uploaded a bank transfer receipt */
+export async function sendReceiptUploadedAdminNotification({
+  orderId,
+  customerName,
+  receiptUrl,
+}: {
+  orderId: number;
+  customerName: string;
+  receiptUrl: string;
+}) {
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: ORDERS_EMAIL,
+      ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
+      subject: `Contabile bonifico caricata — Ordine #${orderId}`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #b45309;">Contabile bonifico ricevuta</h2>
+          <p style="font-size: 14px;">Il cliente <strong>${escapeHtml(customerName)}</strong> ha caricato la contabile del bonifico per l'ordine <strong>#${orderId}</strong>.</p>
+          <p style="margin: 20px 0;">
+            <a href="${escapeHtml(receiptUrl)}" style="display: inline-block; padding: 10px 20px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">Visualizza contabile</a>
+          </p>
+          <p style="margin-top: 16px;"><a href="https://ricambixstufe.it/admin/orders" style="color: #b45309; font-size: 14px;">Gestisci ordini</a></p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Failed to send receipt uploaded notification:", error);
   }
 }
 

@@ -159,6 +159,7 @@ export const orders = pgTable(
       .default(sql`'{}'`)
       .$type<Record<string, unknown>>(),
     trackingNumber: text("tracking_number"),
+    bankTransferReceiptUrl: text("bank_transfer_receipt_url"),
     notes: text("notes"),
     daneaExported: boolean("danea_exported").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

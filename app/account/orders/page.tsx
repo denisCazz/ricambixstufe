@@ -52,6 +52,7 @@ export default async function MyOrdersPage() {
     total: Number(o.total),
     shipping_address: shippingAddress,
     tracking_number: o.trackingNumber,
+    bank_transfer_receipt_url: o.bankTransferReceiptUrl,
     order_items: (byOrder.get(o.id) || []).map((it) => ({
       id: it.id,
       product_name: it.productName,

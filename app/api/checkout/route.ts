@@ -428,11 +428,23 @@ export async function POST(req: NextRequest) {
       console.error("Failed to save order items:", itemsErr);
     }
 
+    // Signed token allowing the customer (incl. guests) to upload the
+    // bank transfer receipt for this specific order.
+    const receiptToken =
+      dbPaymentMethod === "bank_transfer"
+        ? signPayload({ orderId, scope: "receipt" })
+        : null;
+    const siteUrl = process.env.AUTH_URL || "http://localhost:3000";
+    const receiptUploadUrl = receiptToken
+      ? `${siteUrl}/ordine/${orderId}/contabile?t=${encodeURIComponent(receiptToken)}`
+      : undefined;
+
     // Send order confirmation emails
     const emailData = {
       orderId: orderId,
       customerEmail: shippingInfo.email,
       customerName: shippingInfo.name,
+      receiptUploadUrl,
       items: rows.map((r) => ({
         product_name: r.productName,
         product_sku: r.productSku,
@@ -457,6 +469,7 @@ export async function POST(req: NextRequest) {
       orderId: orderId,
       total,
       paymentMethod,
+      ...(receiptToken ? { receiptToken } : {}),
     });
   } catch (err) {
     console.error("Checkout error:", err);

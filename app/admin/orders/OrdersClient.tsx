@@ -11,6 +11,7 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  FileText,
 } from "lucide-react";
 import ExportExcelButton from "@/components/admin/ExportExcelButton";
 import {
@@ -33,6 +34,7 @@ interface Order {
   id: number;
   created_at: string;
   status: string;
+  payment_method: string | null;
   payment_status: string;
   subtotal: number;
   shipping_cost: number;
@@ -52,6 +54,7 @@ interface Order {
   notes: string | null;
   danea_exported: boolean;
   tracking_number: string | null;
+  bank_transfer_receipt_url: string | null;
   order_items: OrderItem[];
 }
 
@@ -71,6 +74,13 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 };
 
 const statuses = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"];
+
+const paymentMethodLabels: Record<string, string> = {
+  paypal: "PayPal",
+  bank_transfer: "Bonifico bancario",
+  cod: "Contrassegno",
+  stripe: "Carta di credito",
+};
 
 export default function OrdersClient({
   initialOrders,
@@ -275,10 +285,19 @@ export default function OrdersClient({
                     <div>
                       <h4 className="font-semibold mb-1">Pagamento</h4>
                       <p>
-                        {order.payment_status.startsWith("stripe:")
-                          ? "Stripe"
-                          : order.payment_status}
+                        {order.payment_method
+                          ? paymentMethodLabels[order.payment_method] ||
+                            order.payment_method
+                          : order.payment_status.startsWith("stripe:")
+                            ? "Stripe"
+                            : order.payment_status}
                       </p>
+                      {order.payment_method === "bank_transfer" &&
+                        !order.bank_transfer_receipt_url && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                            Contabile non ancora caricata
+                          </p>
+                        )}
                       <p className="text-muted">
                         Ordine del{" "}
                         {new Date(order.created_at).toLocaleString("it-IT")}
@@ -286,6 +305,19 @@ export default function OrdersClient({
                       {order.notes && (
                         <p className="mt-1 text-muted italic">
                           Note: {order.notes}
+                        </p>
+                      )}
+                      {order.bank_transfer_receipt_url && (
+                        <p className="mt-1">
+                          <a
+                            href={order.bank_transfer_receipt_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-400 font-medium hover:underline"
+                          >
+                            <FileText className="w-4 h-4" />
+                            Contabile bonifico
+                          </a>
                         </p>
                       )}
                     </div>
