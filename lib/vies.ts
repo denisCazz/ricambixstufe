@@ -60,13 +60,14 @@ export async function validateVAT(
 
     const xml = await response.text();
 
-    const validMatch = xml.match(/<valid>(true|false)<\/valid>/i);
-    const nameMatch = xml.match(/<name>([^<]*)<\/name>/i);
-    const addressMatch = xml.match(/<address>([^<]*)<\/address>/i);
+    // VIES risponde con tag namespaced (es. <ns2:valid>), quindi il prefisso è opzionale.
+    const validMatch = xml.match(/<(?:\w+:)?valid>(true|false)<\/(?:\w+:)?valid>/i);
+    const nameMatch = xml.match(/<(?:\w+:)?name>([^<]*)<\/(?:\w+:)?name>/i);
+    const addressMatch = xml.match(/<(?:\w+:)?address>([^<]*)<\/(?:\w+:)?address>/i);
 
     if (!validMatch) {
       // Check for SOAP fault
-      const faultMatch = xml.match(/<faultstring>([^<]*)<\/faultstring>/i);
+      const faultMatch = xml.match(/<(?:\w+:)?faultstring>([^<]*)<\/(?:\w+:)?faultstring>/i);
       return {
         valid: false,
         name: null,
@@ -75,10 +76,16 @@ export async function validateVAT(
       };
     }
 
+    // VIES usa "---" quando il dato non è divulgato: trattalo come assente.
+    const clean = (v?: string) => {
+      const t = v?.trim();
+      return t && t !== "---" ? t : null;
+    };
+
     const result: ViesResult = {
       valid: validMatch[1].toLowerCase() === "true",
-      name: nameMatch?.[1]?.trim() || null,
-      address: addressMatch?.[1]?.trim() || null,
+      name: clean(nameMatch?.[1]),
+      address: clean(addressMatch?.[1]),
     };
 
     // Cache result
