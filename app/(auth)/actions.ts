@@ -50,7 +50,7 @@ export async function login(formData: FormData) {
     ) {
       return { error: "email_not_verified" as const };
     }
-    return { error: "Email o password non validi" };
+    return { error: "invalid_credentials" };
   }
 
   redirect(redirectTo);

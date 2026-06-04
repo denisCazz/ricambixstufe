@@ -4,8 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Mail, Loader2, CheckCircle } from "lucide-react";
 import { requestPasswordReset } from "@/app/(auth)/actions";
+import { useLocale } from "@/lib/locale-context";
 
 export default function ForgotPasswordClient() {
+  const { t } = useLocale();
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,20 +34,20 @@ export default function ForgotPasswordClient() {
             <Mail className="w-6 h-6 text-accent" />
           </div>
 
-          <h1 className="text-xl font-bold text-foreground mb-2 text-center">Recupera password</h1>
+          <h1 className="text-xl font-bold text-foreground mb-2 text-center">{t("forgot_password.title")}</h1>
           <p className="text-sm text-muted text-center mb-6">
-            Inserisci la tua email. Ti invieremo un link per reimpostare la password.
+            {t("forgot_password.subtitle")}
           </p>
 
           {sent ? (
             <div className="flex flex-col items-center gap-3 text-center">
               <CheckCircle className="w-10 h-10 text-green-500" />
-              <p className="text-sm text-foreground font-medium">Email inviata!</p>
+              <p className="text-sm text-foreground font-medium">{t("forgot_password.sent_title")}</p>
               <p className="text-sm text-muted">
-                Se l&apos;email è registrata, riceverai un link entro qualche minuto. Controlla anche la cartella spam.
+                {t("forgot_password.sent_text")}
               </p>
               <Link href="/login" className="mt-4 text-sm text-accent hover:underline">
-                Torna al login
+                {t("forgot_password.back_to_login")}
               </Link>
             </div>
           ) : (
@@ -60,7 +62,7 @@ export default function ForgotPasswordClient() {
                   type="email"
                   required
                   autoComplete="email"
-                  placeholder="la-tua@email.it"
+                  placeholder={t("forgot_password.email_placeholder")}
                   className="w-full px-3 py-2.5 rounded-xl bg-background border border-border text-sm placeholder:text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all"
                 />
               </div>
@@ -81,7 +83,7 @@ export default function ForgotPasswordClient() {
                 ) : (
                   <Mail className="w-4 h-4" />
                 )}
-                Invia link di reset
+                {t("forgot_password.submit")}
               </button>
             </form>
           )}
@@ -90,7 +92,7 @@ export default function ForgotPasswordClient() {
         <div className="mt-6 text-center">
           <Link href="/login" className="inline-flex items-center gap-2 text-sm text-muted hover:text-accent transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            Torna al login
+            {t("forgot_password.back_to_login")}
           </Link>
         </div>
       </div>
