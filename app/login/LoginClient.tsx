@@ -132,7 +132,7 @@ function LoginForm() {
           {error && (
             <div className="mb-4 flex items-start gap-2 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 p-3 rounded-lg text-sm">
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-              <span>{error}</span>
+              <span>{error === "invalid_credentials" ? t("login.error_invalid_credentials") : error}</span>
             </div>
           )}
 
@@ -176,7 +176,7 @@ function LoginForm() {
               </div>
               <div className="mt-1.5 text-right">
                 <Link href="/recupera-password" className="text-xs text-muted hover:text-accent transition-colors">
-                  Password dimenticata?
+                  {t("login.forgot_password")}
                 </Link>
               </div>
             </div>
@@ -232,7 +232,7 @@ function LoginForm() {
         <div className="mt-6 text-center">
           <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted hover:text-accent transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            Torna alla Home
+            {t("login.back_home")}
           </Link>
         </div>
       </div>

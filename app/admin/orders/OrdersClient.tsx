@@ -111,6 +111,13 @@ export default function OrdersClient({
     });
   }
 
+  function handleCancelOrder(orderId: number) {
+    startTransition(async () => {
+      await updateOrderStatus(orderId, "cancelled");
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    });
+  }
+
   function handleResetDanea(orderId: number) {
     startTransition(async () => {
       await resetDaneaExport(orderId);
@@ -213,41 +220,55 @@ export default function OrdersClient({
               className="border border-border rounded-xl bg-surface overflow-hidden"
             >
               {/* Summary row */}
-              <button
-                onClick={() =>
-                  setExpandedId(isExpanded ? null : order.id)
-                }
-                className="w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-surface-hover transition-colors"
-              >
-                <Package className="w-5 h-5 text-muted flex-shrink-0" />
-                <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4 items-center text-sm">
-                  <span className="font-semibold">#{order.id}</span>
-                  <span className="truncate">{customer.name}</span>
-                  <span className="hidden sm:block text-muted">
-                    {new Date(order.created_at).toLocaleDateString("it-IT")}
-                  </span>
-                  <span className="font-medium">
-                    €{order.total.toFixed(2)}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${st.color}`}
-                    >
-                      {st.label}
+              <div className="flex items-center">
+                <button
+                  onClick={() =>
+                    setExpandedId(isExpanded ? null : order.id)
+                  }
+                  className="flex-1 flex items-center gap-4 px-4 py-3 text-left hover:bg-surface-hover transition-colors min-w-0"
+                >
+                  <Package className="w-5 h-5 text-muted flex-shrink-0" />
+                  <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4 items-center text-sm">
+                    <span className="font-semibold">#{order.id}</span>
+                    <span className="truncate">{customer.name}</span>
+                    <span className="hidden sm:block text-muted">
+                      {new Date(order.created_at).toLocaleDateString("it-IT")}
                     </span>
-                    {order.danea_exported ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <Clock className="w-4 h-4 text-yellow-500" />
-                    )}
+                    <span className="font-medium">
+                      €{order.total.toFixed(2)}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${st.color}`}
+                      >
+                        {st.label}
+                      </span>
+                      {order.danea_exported ? (
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <Clock className="w-4 h-4 text-yellow-500" />
+                      )}
+                    </div>
                   </div>
-                </div>
-                {isExpanded ? (
-                  <ChevronUp className="w-4 h-4 text-muted" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-muted" />
-                )}
-              </button>
+                  {isExpanded ? (
+                    <ChevronUp className="w-4 h-4 text-muted" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted" />
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Annullare l'ordine #${order.id}? L'operazione ripristinerà le scorte dei prodotti.`)) {
+                      handleCancelOrder(order.id);
+                    }
+                  }}
+                  disabled={isPending}
+                  title="Annulla ordine"
+                  className="flex-shrink-0 px-3 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 transition-colors disabled:opacity-50 border-l border-border"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
 
               {/* Expanded detail */}
               {isExpanded && (

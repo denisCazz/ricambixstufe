@@ -161,7 +161,7 @@ export async function createUser(formData: FormData): Promise<{ ok: boolean; mes
   await db.transaction(async (tx) => {
     const [u] = await tx
       .insert(appUsers)
-      .values({ email, passwordHash, name: `${firstName} ${lastName}`.trim() || null })
+      .values({ email, passwordHash, name: `${firstName} ${lastName}`.trim() || null, emailVerifiedAt: new Date() })
       .returning({ id: appUsers.id });
     if (!u) throw new Error("Errore inserimento utente");
     await tx.insert(profiles).values({

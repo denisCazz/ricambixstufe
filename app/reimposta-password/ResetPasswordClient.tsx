@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Lock, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { resetPassword } from "@/app/(auth)/actions";
+import { useLocale } from "@/lib/locale-context";
 
 export default function ResetPasswordClient() {
+  const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
@@ -23,7 +25,7 @@ export default function ResetPasswordClient() {
     const confirm = (form.elements.namedItem("confirm") as HTMLInputElement).value;
 
     if (password !== confirm) {
-      setError("Le password non coincidono");
+      setError(t("reset_password.passwords_mismatch"));
       return;
     }
 
@@ -44,10 +46,10 @@ export default function ResetPasswordClient() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-surface rounded-2xl border border-border p-8 text-center">
           <AlertTriangle className="w-10 h-10 text-yellow-500 mx-auto mb-4" />
-          <p className="text-sm text-foreground font-medium mb-2">Link non valido</p>
-          <p className="text-sm text-muted mb-4">Usa il link ricevuto via email o richiedi un nuovo reset.</p>
+          <p className="text-sm text-foreground font-medium mb-2">{t("reset_password.invalid_link_title")}</p>
+          <p className="text-sm text-muted mb-4">{t("reset_password.invalid_link_text")}</p>
           <Link href="/recupera-password" className="text-sm text-accent hover:underline">
-            Richiedi nuovo link
+            {t("reset_password.request_new_link")}
           </Link>
         </div>
       </div>
@@ -62,20 +64,20 @@ export default function ResetPasswordClient() {
             <Lock className="w-6 h-6 text-accent" />
           </div>
 
-          <h1 className="text-xl font-bold text-foreground mb-2 text-center">Nuova password</h1>
-          <p className="text-sm text-muted text-center mb-6">Scegli una nuova password per il tuo account.</p>
+          <h1 className="text-xl font-bold text-foreground mb-2 text-center">{t("reset_password.title")}</h1>
+          <p className="text-sm text-muted text-center mb-6">{t("reset_password.subtitle")}</p>
 
           {done ? (
             <div className="flex flex-col items-center gap-3 text-center">
               <CheckCircle className="w-10 h-10 text-green-500" />
-              <p className="text-sm text-foreground font-medium">Password aggiornata!</p>
-              <p className="text-sm text-muted">Verrai reindirizzato al login a breve&hellip;</p>
+              <p className="text-sm text-foreground font-medium">{t("reset_password.done_title")}</p>
+              <p className="text-sm text-muted">{t("reset_password.done_text")}</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1.5">
-                  Nuova password
+                  {t("reset_password.label_new")}
                 </label>
                 <input
                   id="password"
@@ -84,14 +86,14 @@ export default function ResetPasswordClient() {
                   required
                   minLength={8}
                   autoComplete="new-password"
-                  placeholder="Almeno 8 caratteri"
+                  placeholder={t("reset_password.placeholder_new")}
                   className="w-full px-3 py-2.5 rounded-xl bg-background border border-border text-sm placeholder:text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all"
                 />
               </div>
 
               <div>
                 <label htmlFor="confirm" className="block text-sm font-medium text-foreground mb-1.5">
-                  Conferma password
+                  {t("reset_password.label_confirm")}
                 </label>
                 <input
                   id="confirm"
@@ -99,7 +101,7 @@ export default function ResetPasswordClient() {
                   type="password"
                   required
                   autoComplete="new-password"
-                  placeholder="Ripeti la password"
+                  placeholder={t("reset_password.placeholder_confirm")}
                   className="w-full px-3 py-2.5 rounded-xl bg-background border border-border text-sm placeholder:text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all"
                 />
               </div>
@@ -116,7 +118,7 @@ export default function ResetPasswordClient() {
                 className="w-full py-2.5 px-4 rounded-lg bg-accent text-white font-medium hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent/50 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                Salva nuova password
+                {t("reset_password.submit")}
               </button>
             </form>
           )}
@@ -125,7 +127,7 @@ export default function ResetPasswordClient() {
         <div className="mt-6 text-center">
           <Link href="/login" className="inline-flex items-center gap-2 text-sm text-muted hover:text-accent transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            Torna al login
+            {t("reset_password.back_to_login")}
           </Link>
         </div>
       </div>
