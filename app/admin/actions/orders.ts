@@ -198,3 +198,32 @@ export async function resetDaneaExport(orderId: number) {
     .where(eq(orders.id, orderId));
   revalidatePath("/admin/orders");
 }
+
+export async function deleteOrder(orderId: number) {
+  const user = await getUser();
+  if (!user || user.role !== "admin") throw new Error("Unauthorized");
+
+  const db = getDb();
+
+  // Restore stock for all order items before deleting
+  const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+  if (order && order.status !== "cancelled") {
+    const items = await db
+      .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId));
+    for (const item of items) {
+      await db
+        .update(products)
+        .set({ stockQuantity: sql`${products.stockQuantity} + ${item.quantity}`, updatedAt: new Date() })
+        .where(eq(products.id, item.productId));
+    }
+  }
+
+  // Delete order items first (foreign key constraint)
+  await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
+  // Delete the order
+  await db.delete(orders).where(eq(orders.id, orderId));
+
+  revalidatePath("/admin/orders");
+}

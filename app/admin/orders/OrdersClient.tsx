@@ -18,6 +18,7 @@ import {
   updateOrderStatus,
   updateTrackingNumber,
   resetDaneaExport,
+  deleteOrder,
 } from "@/app/admin/actions/orders";
 
 interface OrderItem {
@@ -113,7 +114,7 @@ export default function OrdersClient({
 
   function handleCancelOrder(orderId: number) {
     startTransition(async () => {
-      await updateOrderStatus(orderId, "cancelled");
+      await deleteOrder(orderId);
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
     });
   }
