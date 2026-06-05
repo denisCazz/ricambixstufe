@@ -2,7 +2,7 @@
 
 export default function FlameEffect() {
   return (
-    <div className="flex items-center justify-center mb-6">
+    <div className="flex items-center justify-center">
       <div className="relative w-16 h-20">
         {/* Main flame */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-14 rounded-[50%_50%_50%_50%/60%_60%_40%_40%] bg-gradient-to-t from-orange-600 via-orange-400 to-yellow-300 animate-flame opacity-90" />
