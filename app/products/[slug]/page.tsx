@@ -121,6 +121,9 @@ export default async function ProductDetailPage({
                   fallback={product.name}
                 />
               </h1>
+              {product.sku && product.sku.trim().toLowerCase() !== "null" && product.sku.trim() !== "" && (
+                <p className="text-xs text-muted mb-3">SKU: <span className="font-mono">{product.sku.trim()}</span></p>
+              )}
               <p className="text-muted leading-relaxed mb-6 whitespace-pre-line">
                 <LocalizedText
                   it={product.description_it || product.descriptionShort_it}

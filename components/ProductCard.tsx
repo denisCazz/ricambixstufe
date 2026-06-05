@@ -20,7 +20,7 @@ export default function ProductCard({
 }) {
   const [imgError, setImgError] = useState(false);
   const { addItem } = useCart();
-  const { formatPrice, t, locale } = useLocale();
+  const { formatPrice, t, locale, isItalianLocale } = useLocale();
   const { dealerDiscount } = useUser();
   const [showBoardModal, setShowBoardModal] = useState(false);
   const [boardVariant, setBoardVariant] = useState<"programmed" | "virgin">("programmed");
@@ -38,6 +38,9 @@ export default function ProductCard({
   const discountedPrice = dealerDiscount
     ? product.price * (1 - dealerDiscount / 100)
     : product.price;
+
+  const displayListPrice = isItalianLocale ? product.price : Math.round(product.price / 1.22 * 100) / 100;
+  const displayDiscountedPrice = isItalianLocale ? discountedPrice : Math.round(discountedPrice / 1.22 * 100) / 100;
 
   const outOfStock = product.stockQuantity !== undefined && product.stockQuantity <= 0;
 
@@ -197,15 +200,15 @@ export default function ProductCard({
           {dealerDiscount ? (
             <>
               <span className="text-xs text-muted line-through">
-                {formatPrice(product.price)}
+                {formatPrice(displayListPrice)}
               </span>
               <span className="text-lg font-bold text-green-600 tabular-nums">
-                {formatPrice(discountedPrice)}
+                {formatPrice(displayDiscountedPrice)}
               </span>
             </>
           ) : (
             <span className="text-lg font-bold text-accent tabular-nums">
-              {formatPrice(product.price)}
+              {formatPrice(displayListPrice)}
             </span>
           )}
         </div>
