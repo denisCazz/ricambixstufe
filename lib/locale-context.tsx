@@ -41,6 +41,7 @@ interface LocaleContextType {
   currencies: Currency[];
   t: (key: string) => string;
   formatPrice: (eurPrice: number) => string;
+  isItalianLocale: boolean;
 }
 
 const LocaleContext = createContext<LocaleContextType | null>(null);
@@ -192,6 +193,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
         currencies,
         t: tFn,
         formatPrice,
+        isItalianLocale: locale === "it",
       }}
     >
       {children}

@@ -124,7 +124,7 @@ export default function CheckoutClient() {
     totalItems,
     clearCart,
   } = useCart();
-  const { t, formatPrice } = useLocale();
+  const { t, formatPrice, isItalianLocale } = useLocale();
   const { dealerDiscount, isDealer } = useUser();
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -1111,7 +1111,11 @@ export default function CheckoutClient() {
               <div className="flex justify-between text-sm">
                 <span className="text-muted">{t("cart.subtotal")}</span>
                 <span className="font-medium text-foreground">
-                  {formatPrice(isDealer && dealerDiscount ? originalTotal : totalPrice)}
+                  {formatPrice(
+                    isDealer && dealerDiscount
+                      ? (isItalianLocale ? originalTotal : Math.round(originalTotal / 1.22 * 100) / 100)
+                      : (isItalianLocale ? totalPrice : productsNetIt)
+                  )}
                 </span>
               </div>
               {isDealer && dealerDiscount && dealerSaving > 0 && (
@@ -1120,7 +1124,7 @@ export default function CheckoutClient() {
                     {t("checkout.dealer_discount").replace("{percent}", String(dealerDiscount))}
                   </span>
                   <span className="font-medium text-green-600">
-                    -{formatPrice(dealerSaving)}
+                    -{formatPrice(isItalianLocale ? dealerSaving : Math.round(dealerSaving / 1.22 * 100) / 100)}
                   </span>
                 </div>
               )}
@@ -1161,16 +1165,6 @@ export default function CheckoutClient() {
                   </span>
                 </div>
               )}
-              {!italianVatIncluded && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-green-600">
-                    {t("checkout.vat_deduction_products")}
-                  </span>
-                  <span className="font-medium text-green-600">
-                    −{formatPrice(Math.round((totalPrice - productsNetIt) * 100) / 100)}
-                  </span>
-                </div>
-              )}
               <div className="border-t border-border pt-3 flex justify-between">
                 <span className="font-bold text-foreground">
                   {t("checkout.total")}
@@ -1179,11 +1173,11 @@ export default function CheckoutClient() {
                   {formatPrice(grandTotal)}
                 </span>
               </div>
-              <p className="text-[11px] text-muted">
-                {italianVatIncluded
-                  ? t("checkout.vat_included_note")
-                  : t("checkout.vat_net_products_note")}
-              </p>
+              {italianVatIncluded && (
+                <p className="text-[11px] text-muted">
+                  {t("checkout.vat_included_note")}
+                </p>
+              )}
             </div>
           </div>
         </div>
