@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Italian Partita IVA (11 digits): check digit per specifiche Agenzia delle Entrate.
  */
 export function isValidItalianPartitaIva(raw: string): boolean {
@@ -82,12 +82,32 @@ export function isValidEuVatNumber(raw: string): boolean {
   return isValidItalianPartitaIva(cleaned);
 }
 
-/** Prezzo catalogo è IVA inclusa 22%: solo Italia o P.IVA italiana valida in fatturazione. */
+/** Prefisso paese su P.IVA / VAT (es. FR, DE). Null se assente o non riconosciuto. */
+export function euVatCountryPrefix(vat: string): string | null {
+  const cleaned = vat.trim().toUpperCase().replace(/[\s.\-]/g, "");
+  const match = cleaned.match(/^([A-Z]{2})(.+)$/);
+  if (!match) return null;
+  const cc = match[1];
+  return COUNTRY_ALIASES[cc] ?? cc;
+}
+
+/**
+ * IVA italiana inclusa sul prezzo prodotto?
+ * - P.IVA italiana valida → sì
+ * - P.IVA UE estera → no (cessione intracomunitaria)
+ * - Privato / senza P.IVA e spedizione in Italia → sì
+ * - Spedizione fuori Italia senza P.IVA italiana → no
+ */
 export function italianVatIncludedOnProducts(
   shippingCountry: string,
   billingVatNumber: string | undefined
 ): boolean {
+  const vat = billingVatNumber?.trim();
+  if (vat) {
+    if (isValidItalianPartitaIva(vat)) return true;
+    const prefix = euVatCountryPrefix(vat);
+    if (prefix && prefix !== "IT") return false;
+  }
   if (shippingCountry === "Italia") return true;
-  if (billingVatNumber && isValidItalianPartitaIva(billingVatNumber)) return true;
   return false;
 }

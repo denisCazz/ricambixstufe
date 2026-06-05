@@ -8,6 +8,7 @@ import { type Product } from "@/data/products";
 import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { useUser } from "@/lib/user-context";
+import { useCatalogDisplayPrice } from "@/lib/use-catalog-display-price";
 import { productNeedsBoardProgrammingOption } from "@/lib/product-board-options";
 import { productSoldByMeter } from "@/lib/product-meter-options";
 
@@ -20,8 +21,9 @@ export default function ProductCard({
 }) {
   const [imgError, setImgError] = useState(false);
   const { addItem } = useCart();
-  const { formatPrice, t, locale, isItalianLocale } = useLocale();
+  const { t, locale } = useLocale();
   const { dealerDiscount } = useUser();
+  const { formatCatalogPrice } = useCatalogDisplayPrice();
   const [showBoardModal, setShowBoardModal] = useState(false);
   const [boardVariant, setBoardVariant] = useState<"programmed" | "virgin">("programmed");
   const [boardStoveText, setBoardStoveText] = useState("");
@@ -39,8 +41,6 @@ export default function ProductCard({
     ? product.price * (1 - dealerDiscount / 100)
     : product.price;
 
-  const displayListPrice = isItalianLocale ? product.price : Math.round(product.price / 1.22 * 100) / 100;
-  const displayDiscountedPrice = isItalianLocale ? discountedPrice : Math.round(discountedPrice / 1.22 * 100) / 100;
 
   const outOfStock = product.stockQuantity !== undefined && product.stockQuantity <= 0;
 
@@ -200,15 +200,15 @@ export default function ProductCard({
           {dealerDiscount ? (
             <>
               <span className="text-xs text-muted line-through">
-                {formatPrice(displayListPrice)}
+                {formatCatalogPrice(product.price)}
               </span>
               <span className="text-lg font-bold text-green-600 tabular-nums">
-                {formatPrice(displayDiscountedPrice)}
+                {formatCatalogPrice(discountedPrice)}
               </span>
             </>
           ) : (
             <span className="text-lg font-bold text-accent tabular-nums">
-              {formatPrice(displayListPrice)}
+              {formatCatalogPrice(product.price)}
             </span>
           )}
         </div>

@@ -1,4 +1,4 @@
-export const locales = ["it", "en", "fr", "es"] as const;
+﻿export const locales = ["it", "en", "fr", "es"] as const;
 export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = "it";
 
@@ -32,6 +32,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "product.warranty": "Garanzia 2 anni",
     "product.warranty_ignition": "Garanzia 1 anno",
     "product.vat": "IVA inclusa",
+    "product.vat_excluded": "IVA esclusa",
     "product.image_na": "Immagine non disponibile",
     "product.out_of_stock": "Esaurito",
     "product.board_option_title": "Scheda elettronica",
@@ -381,6 +382,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "product.warranty": "2-year warranty",
     "product.warranty_ignition": "1-year warranty",
     "product.vat": "VAT included",
+    "product.vat_excluded": "VAT excluded",
     "product.image_na": "Image not available",
     "product.out_of_stock": "Out of stock",
     "product.board_option_title": "Electronic control board",
@@ -719,6 +721,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "product.warranty": "Garantie 2 ans",
     "product.warranty_ignition": "Garantie 1 an",
     "product.vat": "TVA incluse",
+    "product.vat_excluded": "TVA exclue",
     "product.image_na": "Image non disponible",
     "product.out_of_stock": "Rupture de stock",
     "product.board_option_title": "Carte électronique",
@@ -1057,6 +1060,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "product.warranty": "Garantía 2 años",
     "product.warranty_ignition": "Garantía 1 año",
     "product.vat": "IVA incluido",
+    "product.vat_excluded": "IVA excluida",
     "product.image_na": "Imagen no disponible",
     "product.out_of_stock": "Agotado",
     "product.board_option_title": "Placa electrónica",

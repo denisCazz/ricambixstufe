@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { createPayPalOrder } from "@/lib/paypal";
@@ -13,7 +13,12 @@ import {
   type EuropeShippingMethod,
 } from "@/lib/shipping";
 import { sendOrderConfirmationEmail, sendNewOrderAdminNotification } from "@/lib/email";
-import { isValidItalianPartitaIva, italianVatIncludedOnProducts } from "@/lib/italian-vat";
+import {
+  euVatCountryPrefix,
+  isValidItalianPartitaIva,
+  italianVatIncludedOnProducts,
+} from "@/lib/italian-vat";
+import { grossToNetItalianVat } from "@/lib/catalog-display-price";
 
 interface LineItem {
   id: number;
@@ -195,7 +200,9 @@ export async function POST(req: NextRequest) {
     const companyName = billingInfo?.company?.trim();
     if (companyName && shippingInfo.country === "Italia") {
       const vat = billingInfo?.vatNumber?.trim() || "";
-      if (!isValidItalianPartitaIva(vat)) {
+      const foreignPrefix = vat ? euVatCountryPrefix(vat) : null;
+      const isForeignEuVat = !!(foreignPrefix && foreignPrefix !== "IT");
+      if (!isForeignEuVat && !isValidItalianPartitaIva(vat)) {
         return NextResponse.json(
           {
             error:
@@ -211,9 +218,7 @@ export async function POST(req: NextRequest) {
       billingInfo?.vatNumber
     );
 
-    const taxAdjustedSubtotal = italianVatOnProducts
-      ? subtotal
-      : Math.round((subtotal / 1.22) * 100) / 100;
+    const taxAdjustedSubtotal = italianVatOnProducts ? subtotal : grossToNetItalianVat(subtotal);
 
     const excludeItalianProductVat = !italianVatOnProducts;
 

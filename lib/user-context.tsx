@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   createContext,
@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 interface UserContextType {
   dealerDiscount: number | null;
   isDealer: boolean;
+  pricesIncludeVat: boolean;
   loading: boolean;
   refresh: () => void;
 }
@@ -20,12 +21,14 @@ interface UserContextType {
 const UserContext = createContext<UserContextType>({
   dealerDiscount: null,
   isDealer: false,
+  pricesIncludeVat: true,
   loading: true,
   refresh: () => {},
 });
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [dealerDiscount, setDealerDiscount] = useState<number | null>(null);
+  const [pricesIncludeVat, setPricesIncludeVat] = useState(true);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
 
@@ -35,6 +38,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         setDealerDiscount(data?.dealerDiscount ?? null);
+        setPricesIncludeVat(data?.pricesIncludeVat ?? true);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -50,6 +54,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       value={{
         dealerDiscount,
         isDealer: dealerDiscount !== null,
+        pricesIncludeVat,
         loading,
         refresh: fetchUser,
       }}
