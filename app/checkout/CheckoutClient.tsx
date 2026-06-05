@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
@@ -20,7 +20,12 @@ import {
 import { useCart, cartLineId } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { useUser } from "@/lib/user-context";
-import { italianVatIncludedOnProducts, isValidItalianPartitaIva } from "@/lib/italian-vat";
+import {
+  euVatCountryPrefix,
+  italianVatIncludedOnProducts,
+  isValidItalianPartitaIva,
+} from "@/lib/italian-vat";
+import { grossToNetItalianVat } from "@/lib/catalog-display-price";
 import type { EuropeShippingMethod } from "@/lib/shipping";
 import ReceiptUploader from "@/components/ReceiptUploader";
 
@@ -124,8 +129,8 @@ export default function CheckoutClient() {
     totalItems,
     clearCart,
   } = useCart();
-  const { t, formatPrice, isItalianLocale } = useLocale();
-  const { dealerDiscount, isDealer } = useUser();
+  const { t, formatPrice } = useLocale();
+  const { dealerDiscount, isDealer, pricesIncludeVat } = useUser();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -215,14 +220,17 @@ export default function CheckoutClient() {
     }
   }, [calcShipping, profileLoaded]);
 
-  const italianVatIncluded = useMemo(
-    () =>
-      italianVatIncludedOnProducts(
-        selectedCountry,
-        isCompany ? vatDraft : undefined
-      ),
-    [selectedCountry, isCompany, vatDraft]
-  );
+  const billingVatForDisplay = useMemo(() => {
+    if (isCompany && vatDraft.trim()) return vatDraft.trim();
+    const profileVat = profile?.vat_number?.trim();
+    if (profileVat && (profile?.company?.trim() || isDealer)) return profileVat;
+    return undefined;
+  }, [isCompany, vatDraft, profile, isDealer]);
+
+  const italianVatIncluded = useMemo(() => {
+    if (!profileLoaded && !billingVatForDisplay) return pricesIncludeVat;
+    return italianVatIncludedOnProducts(selectedCountry, billingVatForDisplay);
+  }, [profileLoaded, billingVatForDisplay, pricesIncludeVat, selectedCountry]);
 
   // totalPrice is already discounted (discount applied in AddToCartButton)
   const originalTotal = dealerDiscount
@@ -235,7 +243,7 @@ export default function CheckoutClient() {
   const effectiveShippingCost = fragileShippingCost > 0 ? fragileShippingCost : shippingCost;
   const codExtra = paymentMethod === "cod" ? COD_SURCHARGE : 0;
   const baseTotal = totalPrice + effectiveShippingCost + codExtra;
-  const productsNetIt = Math.round((totalPrice / 1.22) * 100) / 100;
+  const productsNetIt = grossToNetItalianVat(totalPrice);
   const grandTotal = italianVatIncluded
     ? Math.round(baseTotal * 100) / 100
     : Math.round((productsNetIt + effectiveShippingCost + codExtra) * 100) / 100;
@@ -447,7 +455,9 @@ export default function CheckoutClient() {
     const companyTrim = billingInfo?.company?.trim();
     if (companyTrim && shippingInfo.country === "Italia") {
       const vat = (billingInfo?.vatNumber || "").trim();
-      if (!isValidItalianPartitaIva(vat)) {
+      const foreignPrefix = vat ? euVatCountryPrefix(vat) : null;
+      const isForeignEuVat = !!(foreignPrefix && foreignPrefix !== "IT");
+      if (!isForeignEuVat && !isValidItalianPartitaIva(vat)) {
         setError(t("checkout.vat_italy_company_required"));
         setPaying(false);
         return;
@@ -1066,7 +1076,9 @@ export default function CheckoutClient() {
                       <p className="text-xs text-muted mt-0.5 line-clamp-2">{item.lineNotes}</p>
                     )}
                     <p className="text-sm font-bold text-accent mt-0.5">
-                      {formatPrice(item.price)}
+                      {formatPrice(
+                        italianVatIncluded ? item.price : grossToNetItalianVat(item.price)
+                      )}
                     </p>
                     <div className="flex items-center justify-between mt-1.5">
                       <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden">
@@ -1112,9 +1124,13 @@ export default function CheckoutClient() {
                 <span className="text-muted">{t("cart.subtotal")}</span>
                 <span className="font-medium text-foreground">
                   {formatPrice(
-                    isDealer && dealerDiscount
-                      ? (isItalianLocale ? originalTotal : Math.round(originalTotal / 1.22 * 100) / 100)
-                      : (isItalianLocale ? totalPrice : productsNetIt)
+                    italianVatIncluded
+                      ? isDealer && dealerDiscount
+                        ? originalTotal
+                        : totalPrice
+                      : isDealer && dealerDiscount
+                        ? grossToNetItalianVat(originalTotal)
+                        : productsNetIt
                   )}
                 </span>
               </div>
@@ -1124,7 +1140,7 @@ export default function CheckoutClient() {
                     {t("checkout.dealer_discount").replace("{percent}", String(dealerDiscount))}
                   </span>
                   <span className="font-medium text-green-600">
-                    -{formatPrice(isItalianLocale ? dealerSaving : Math.round(dealerSaving / 1.22 * 100) / 100)}
+                    -{formatPrice(italianVatIncluded ? dealerSaving : grossToNetItalianVat(dealerSaving))}
                   </span>
                 </div>
               )}
@@ -1173,9 +1189,13 @@ export default function CheckoutClient() {
                   {formatPrice(grandTotal)}
                 </span>
               </div>
-              {italianVatIncluded && (
+              {italianVatIncluded ? (
                 <p className="text-[11px] text-muted">
                   {t("checkout.vat_included_note")}
+                </p>
+              ) : (
+                <p className="text-[11px] text-muted">
+                  {t("checkout.vat_net_products_note")}
                 </p>
               )}
             </div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
 import Image from "next/image";
@@ -6,14 +6,12 @@ import Link from "next/link";
 import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart, cartLineId } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
+import { useCatalogDisplayPrice } from "@/lib/use-catalog-display-price";
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, totalItems, totalPrice } = useCart();
-  const { t, formatPrice, isItalianLocale } = useLocale();
-
-  function displayPrice(gross: number): string {
-    return formatPrice(isItalianLocale ? gross : Math.round((gross / 1.22) * 100) / 100);
-  }
+  const { t } = useLocale();
+  const { formatCatalogPrice } = useCatalogDisplayPrice();
 
   // Lock body scroll when open
   useEffect(() => {
@@ -120,7 +118,7 @@ export default function CartDrawer() {
                       <p className="text-xs text-muted mt-0.5 line-clamp-2">{item.lineNotes}</p>
                     )}
                     <div className="text-accent font-bold text-sm mt-1">
-                      {displayPrice(item.price)}
+                      {formatCatalogPrice(item.price)}
                     </div>
 
                     {/* Quantity controls */}
@@ -169,7 +167,7 @@ export default function CartDrawer() {
             <div className="border-t border-border px-5 py-4 space-y-3 bg-surface">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted">{t("cart.subtotal")}</span>
-                <span className="text-lg font-bold text-foreground">{displayPrice(totalPrice)}</span>
+                <span className="text-lg font-bold text-foreground">{formatCatalogPrice(totalPrice)}</span>
               </div>
               <p className="text-xs text-muted">{t("cart.shipping_note")}</p>
               <Link

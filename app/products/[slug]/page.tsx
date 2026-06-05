@@ -13,6 +13,7 @@ import AddToCartButton from "@/components/AddToCartButton";
 import ElectronicBoardCartSection from "@/components/ElectronicBoardCartSection";
 import { productNeedsBoardProgrammingOption } from "@/lib/product-board-options";
 import PriceDisplay from "@/components/PriceDisplay";
+import ProductVatLabel from "@/components/ProductVatLabel";
 import TranslatedText from "@/components/TranslatedText";
 import LocalizedText from "@/components/LocalizedText";
 import ProductImageCarousel from "@/components/ProductImageCarousel";
@@ -138,7 +139,7 @@ export default async function ProductDetailPage({
                 <div className="text-3xl font-bold text-accent mb-1">
                   <PriceDisplay price={product.price} />
                 </div>
-                <p className="text-xs text-muted"><TranslatedText k="product.vat" /></p>
+                <ProductVatLabel />
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
