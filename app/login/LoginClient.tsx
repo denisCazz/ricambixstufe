@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -9,20 +9,6 @@ import { useLocale } from "@/lib/locale-context";
 import FlameEffect from "@/components/FlameEffect";
 import FireBackground from "@/components/FireBackground";
 import AuthTopBar from "@/components/AuthTopBar";
-
-const languageFlags: Record<Locale, string> = {
-  it: "https://flagcdn.com/w20/it.png",
-  en: "https://flagcdn.com/w20/gb.png",
-  fr: "https://flagcdn.com/w20/fr.png",
-  es: "https://flagcdn.com/w20/es.png",
-};
-
-const languageLabels: Record<Locale, string> = {
-  it: "Italiano",
-  en: "English",
-  fr: "Français",
-  es: "Español",
-};
 
 function LoginForm() {
   const { t } = useLocale();
