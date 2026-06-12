@@ -11,9 +11,7 @@ import Footer from "@/components/Footer";
 import ProductDetailClient from "./ProductDetailClient";
 import AddToCartButton from "@/components/AddToCartButton";
 import ElectronicBoardCartSection from "@/components/ElectronicBoardCartSection";
-import DisplayCartSection from "@/components/DisplayCartSection";
 import { productNeedsBoardProgrammingOption } from "@/lib/product-board-options";
-import { productNeedsDisplayTypeNote } from "@/lib/product-display-options";
 import PriceDisplay from "@/components/PriceDisplay";
 import ProductVatLabel from "@/components/ProductVatLabel";
 import TranslatedText from "@/components/TranslatedText";
@@ -152,26 +150,6 @@ export default async function ProductDetailPage({
                   <ElectronicBoardCartSection
                     showBuyNow
                     compatibleStoves={compatibleStoves}
-                    product={{
-                      id: product.id,
-                      name: product.name,
-                      name_it: product.name_it,
-                      name_en: product.name_en,
-                      name_fr: product.name_fr,
-                      name_es: product.name_es,
-                      slug: product.slug,
-                      price: product.price,
-                      image: product.image,
-                      weight: product.weight,
-                      stockQuantity: product.stockQuantity,
-                    }}
-                  />
-                ) : productNeedsDisplayTypeNote({
-                  categorySlug: product.categorySlug,
-                  nameIt: product.name_it || product.name,
-                }) ? (
-                  <DisplayCartSection
-                    showBuyNow
                     product={{
                       id: product.id,
                       name: product.name,
