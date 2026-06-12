@@ -315,16 +315,16 @@ export async function POST(req: NextRequest) {
         notes: shippingInfo.notes || null,
         items: items.map((item) => {
           const product = productMap.get(item.id);
-          const discountedPrice =
-            dealerDiscount > 0 ? item.price * (1 - dealerDiscount / 100) : item.price;
+          // item.price è già il prezzo finale (eventuale sconto applicato lato client).
+          // line_total deve coincidere con subtotal/total: niente doppia applicazione.
           return {
             productId: item.id,
             productName: lineItemDisplayName(item, product?.nameIt || "Prodotto"),
             productSku: product?.sku || null,
             quantity: item.quantity,
             unitPrice: item.price,
-            discountPercent: dealerDiscount,
-            lineTotal: Math.round(discountedPrice * item.quantity * 100) / 100,
+            discountPercent: 0,
+            lineTotal: Math.round(item.price * item.quantity * 100) / 100,
           };
         }),
         expiresAt: Date.now() + 3 * 60 * 60 * 1000, // 3h (PayPal order TTL)
@@ -398,10 +398,8 @@ export async function POST(req: NextRequest) {
 
     const rows = items.map((item) => {
       const product = productMap.get(item.id);
-      const discountedPrice =
-        dealerDiscount > 0
-          ? item.price * (1 - dealerDiscount / 100)
-          : item.price;
+      // item.price è già il prezzo finale (eventuale sconto applicato lato client).
+      // line_total deve coincidere con subtotal/total: niente doppia applicazione.
       return {
         orderId: orderId,
         productId: item.id,
@@ -409,10 +407,8 @@ export async function POST(req: NextRequest) {
         productSku: product?.sku || null,
         quantity: item.quantity,
         unitPrice: String(item.price),
-        discountPercent: dealerDiscount,
-        lineTotal: String(
-          Math.round(discountedPrice * item.quantity * 100) / 100
-        ),
+        discountPercent: 0,
+        lineTotal: String(Math.round(item.price * item.quantity * 100) / 100),
       };
     });
 
