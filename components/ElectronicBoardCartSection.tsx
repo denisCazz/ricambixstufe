@@ -45,6 +45,7 @@ export default function ElectronicBoardCartSection({
   const [variant, setVariant] = useState<"programmed" | "virgin">("programmed");
   const [stoveId, setStoveId] = useState<number | "">("");
   const [stoveText, setStoveText] = useState("");
+  const [displayText, setDisplayText] = useState("");
 
   const outOfStock = product.stockQuantity !== undefined && product.stockQuantity <= 0;
 
@@ -84,21 +85,28 @@ export default function ElectronicBoardCartSection({
       };
     }
     // variant === "programmed"
+    const display = displayText.trim();
+    const displayNote = display
+      ? "\n" + t("product.board_option_notes_display").replace("{display}", display)
+      : "";
+    const displayKey = display ? `:disp:${display.toLowerCase().slice(0, 40)}` : "";
     if (hasStoves) {
       if (!stoveId) return null;
       const s = compatibleStoves.find((x) => x.id === stoveId);
       if (!s) return null;
       return {
-        lineKey: `board:prog:${stoveId}`,
-        lineNotes: t("product.board_option_notes_programmed").replace("{stove}", stoveLabel(s)),
+        lineKey: `board:prog:${stoveId}${displayKey}`,
+        lineNotes:
+          t("product.board_option_notes_programmed").replace("{stove}", stoveLabel(s)) + displayNote,
       };
     } else {
       // no stoves list: free text
       const label = stoveText.trim();
       if (!label) return null;
       return {
-        lineKey: `board:prog:custom`,
-        lineNotes: t("product.board_option_notes_programmed").replace("{stove}", label),
+        lineKey: `board:prog:custom${displayKey}`,
+        lineNotes:
+          t("product.board_option_notes_programmed").replace("{stove}", label) + displayNote,
       };
     }
   }
@@ -201,6 +209,22 @@ export default function ElectronicBoardCartSection({
                 placeholder={t("product.board_option_stove_placeholder")}
                 className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted"
               />
+            </div>
+          )}
+          {variant === "programmed" && (
+            <div className="pl-6 pt-1">
+              <label htmlFor="board_display_text" className="block text-xs font-medium text-muted mb-1">
+                {t("product.board_option_display_label")}
+              </label>
+              <input
+                id="board_display_text"
+                type="text"
+                value={displayText}
+                onChange={(e) => setDisplayText(e.target.value)}
+                placeholder={t("product.board_option_display_placeholder")}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted"
+              />
+              <span className="block text-muted text-xs mt-1">{t("product.board_option_display_hint")}</span>
             </div>
           )}
           <label className="flex items-start gap-2 cursor-pointer text-sm">
