@@ -110,6 +110,7 @@ export default function ProductCard({
     if (boardVariant === "programmed") {
       if (hasStoves && boardStoveId === "") return;
       if (!hasStoves && !boardStoveText.trim()) return;
+      if (!boardDisplayText.trim()) return;
     }
     let lineKey: string;
     let lineNotes: string;
@@ -118,10 +119,8 @@ export default function ProductCard({
       lineNotes = t("product.board_option_notes_virgin");
     } else {
       const display = boardDisplayText.trim();
-      const displayNote = display
-        ? "\n" + t("product.board_option_notes_display").replace("{display}", display)
-        : "";
-      const displayKey = display ? `:disp:${display.toLowerCase().slice(0, 40)}` : "";
+      const displayNote = "\n" + t("product.board_option_notes_display").replace("{display}", display);
+      const displayKey = `:disp:${display.toLowerCase().slice(0, 40)}`;
       if (hasStoves) {
         const stove = boardStoves.find((s) => s.id === boardStoveId);
         const stoveName = stove?.nameIt ?? String(boardStoveId);
@@ -333,7 +332,7 @@ export default function ProductCard({
                   name="card_board_variant"
                   className="mt-1"
                   checked={boardVariant === "virgin"}
-                  onChange={() => { setBoardVariant("virgin"); setBoardStoveText(""); }}
+                  onChange={() => { setBoardVariant("virgin"); setBoardStoveText(""); setBoardDisplayText(""); }}
                 />
                 <span>
                   <span className="font-medium text-foreground">{t("product.board_option_virgin")}</span>
@@ -347,7 +346,8 @@ export default function ProductCard({
               disabled={
                 boardVariant === "programmed" &&
                 (boardStovesLoading ||
-                  (boardStoves.length > 0 ? boardStoveId === "" : !boardStoveText.trim()))
+                  (boardStoves.length > 0 ? boardStoveId === "" : !boardStoveText.trim()) ||
+                  !boardDisplayText.trim())
               }
               className="w-full py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none hover:shadow-lg hover:shadow-orange-500/25 transition-all"
             >
