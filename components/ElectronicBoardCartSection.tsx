@@ -86,10 +86,9 @@ export default function ElectronicBoardCartSection({
     }
     // variant === "programmed"
     const display = displayText.trim();
-    const displayNote = display
-      ? "\n" + t("product.board_option_notes_display").replace("{display}", display)
-      : "";
-    const displayKey = display ? `:disp:${display.toLowerCase().slice(0, 40)}` : "";
+    if (!display) return null;
+    const displayNote = "\n" + t("product.board_option_notes_display").replace("{display}", display);
+    const displayKey = `:disp:${display.toLowerCase().slice(0, 40)}`;
     if (hasStoves) {
       if (!stoveId) return null;
       const s = compatibleStoves.find((x) => x.id === stoveId);
@@ -142,9 +141,10 @@ export default function ElectronicBoardCartSection({
 
   const needsStove = variant === "programmed" && hasStoves;
   const needsStoveText = variant === "programmed" && !hasStoves;
+  const needsDisplay = variant === "programmed";
   const canAdd =
     variant === "virgin" ||
-    (hasStoves ? stoveId !== "" : stoveText.trim() !== "");
+    (hasStoves ? stoveId !== "" : stoveText.trim() !== "") && displayText.trim() !== "";
 
   if (outOfStock) {
     return (
@@ -237,6 +237,7 @@ export default function ElectronicBoardCartSection({
                 setVariant("virgin");
                 setStoveId("");
                 setStoveText("");
+                setDisplayText("");
               }}
             />
             <span>
@@ -249,6 +250,12 @@ export default function ElectronicBoardCartSection({
           <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400">
             <AlertCircle className="w-4 h-4 shrink-0" />
             {t("product.board_option_stove_required")}
+          </div>
+        ) : null}
+        {needsDisplay && !displayText.trim() && (hasStoves ? stoveId !== "" : stoveText.trim() !== "") ? (
+          <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {t("product.board_option_display_required")}
           </div>
         ) : null}
       </div>
