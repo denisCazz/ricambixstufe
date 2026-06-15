@@ -83,13 +83,23 @@ export async function POST(req: NextRequest) {
     const db = getDb();
 
     let dealerDiscount = 0;
+    // Indirizzo di riferimento del cliente registrato: usato per forzare la zona
+    // di spedizione lato server, a prescindere da cosa invia il client.
+    let profileCountry: string | null = null;
+    let profileProvince: string | null = null;
     if (user?.id) {
       const profile = await db
-        .select({ role: profiles.role })
+        .select({
+          role: profiles.role,
+          country: profiles.country,
+          province: profiles.province,
+        })
         .from(profiles)
         .where(eq(profiles.id, user.id))
         .limit(1)
         .then((r) => r[0]);
+      profileCountry = profile?.country?.trim() || null;
+      profileProvince = profile?.province?.trim() || null;
       if (profile?.role === "dealer") {
         const dealer = await db
           .select({
@@ -162,13 +172,67 @@ export async function POST(req: NextRequest) {
     }
 
     const shippingConfig = await getShippingConfig();
+
+    // Mappa nome paese -> codice ISO. Risolta qui (prima del calcolo spedizione)
+    // così che la zona derivi dallo STESSO paese di destinazione che verrà
+    // salvato sull'ordine: un cliente estero non può mai cadere sulla tariffa
+    // italiana.
+    const countryMap: Record<string, string> = {
+      Italia: "IT",
+      Austria: "AT",
+      Belgio: "BE",
+      Bulgaria: "BG",
+      Croazia: "HR",
+      Danimarca: "DK",
+      Estonia: "EE",
+      Finlandia: "FI",
+      Francia: "FR",
+      Germania: "DE",
+      Grecia: "GR",
+      Irlanda: "IE",
+      Lettonia: "LV",
+      Lituania: "LT",
+      Lussemburgo: "LU",
+      Malta: "MT",
+      "Paesi Bassi": "NL",
+      Polonia: "PL",
+      Portogallo: "PT",
+      "Repubblica Ceca": "CZ",
+      Romania: "RO",
+      Slovacchia: "SK",
+      Slovenia: "SI",
+      Spagna: "ES",
+      Svezia: "SE",
+      Ungheria: "HU",
+      "Regno Unito": "GB",
+      Svizzera: "CH",
+    };
+    const formCountryCode = countryMap[shippingInfo.country];
+    if (!formCountryCode) {
+      return NextResponse.json(
+        { error: "Paese non supportato" },
+        { status: 400 }
+      );
+    }
+
+    // Clienti registrati con indirizzo di riferimento: zona e tariffa forzate dal
+    // profilo, senza possibilità di scelta (incluso il metodo Europa). I guest e
+    // gli utenti senza indirizzo salvato usano i dati inseriti nel form.
+    const useReferenceAddress = !!(user?.id && profileCountry);
+    const shippingCountryCode = useReferenceAddress
+      ? profileCountry!
+      : formCountryCode;
+    const shippingProvince = useReferenceAddress
+      ? profileProvince
+      : shippingInfo.province;
+
     const zone = getShippingZone(
-      shippingInfo.country,
-      shippingInfo.province,
+      shippingCountryCode,
+      shippingProvince,
       shippingConfig
     );
     const shippingCost =
-      zone === "europe" && europeShippingMethod
+      zone === "europe" && europeShippingMethod && !useReferenceAddress
         ? calculateEuropeShippingCost(europeShippingMethod, shippingConfig)
         : calculateShippingCost(totalWeight, zone, shippingConfig);
 
@@ -218,51 +282,31 @@ export async function POST(req: NextRequest) {
       billingInfo?.vatNumber
     );
 
-    const taxAdjustedSubtotal = italianVatOnProducts ? subtotal : grossToNetItalianVat(subtotal);
-
     const excludeItalianProductVat = !italianVatOnProducts;
 
-    const total =
-      Math.round((taxAdjustedSubtotal + totalShippingCost + codSurcharge) * 100) / 100;
+    const round2 = (n: number) => Math.round(n * 100) / 100;
 
-    // Map country names to ISO 2-letter codes
-    const countryMap: Record<string, string> = {
-      Italia: "IT",
-      Austria: "AT",
-      Belgio: "BE",
-      Bulgaria: "BG",
-      Croazia: "HR",
-      Danimarca: "DK",
-      Estonia: "EE",
-      Finlandia: "FI",
-      Francia: "FR",
-      Germania: "DE",
-      Grecia: "GR",
-      Irlanda: "IE",
-      Lettonia: "LV",
-      Lituania: "LT",
-      Lussemburgo: "LU",
-      Malta: "MT",
-      "Paesi Bassi": "NL",
-      Polonia: "PL",
-      Portogallo: "PT",
-      "Repubblica Ceca": "CZ",
-      Romania: "RO",
-      Slovacchia: "SK",
-      Slovenia: "SI",
-      Spagna: "ES",
-      Svezia: "SE",
-      Ungheria: "HU",
-      "Regno Unito": "GB",
-      Svizzera: "CH",
-    };
-    const countryCode = countryMap[shippingInfo.country];
-    if (!countryCode) {
-      return NextResponse.json(
-        { error: "Paese non supportato" },
-        { status: 400 }
-      );
-    }
+    // Prezzo unitario persistito: al NETTO dell'IVA italiana quando l'ordine la
+    // esclude (estero / cessione intracomunitaria reverse charge), altrimenti il
+    // prezzo lordo invariato.
+    const netUnitPrice = (grossUnit: number) =>
+      excludeItalianProductVat ? grossToNetItalianVat(grossUnit) : round2(grossUnit);
+
+    // Subtotale calcolato dalla somma delle righe effettivamente salvate, così
+    // che l'ordine quadri sempre: somma(lineTotal) === subtotal e
+    // total === subtotal + spedizione (+ contrassegno). Per gli ordini esenti
+    // tax_amount riporta l'IVA scorporata a titolo informativo.
+    const persistedSubtotal = round2(
+      items.reduce(
+        (sum, item) => sum + round2(netUnitPrice(item.price) * item.quantity),
+        0
+      )
+    );
+    const persistedTaxAmount = excludeItalianProductVat
+      ? round2(subtotal - persistedSubtotal)
+      : 0;
+
+    const total = round2(persistedSubtotal + totalShippingCost + codSurcharge);
 
     // Build shipping & billing address objects
     const shippingAddress = {
@@ -271,8 +315,8 @@ export async function POST(req: NextRequest) {
       address: shippingInfo.address,
       city: shippingInfo.city,
       zip: shippingInfo.zip,
-      province: (shippingInfo.province || "").toUpperCase().slice(0, 2) || "",
-      country: countryCode,
+      province: (shippingProvince || "").toUpperCase().slice(0, 2) || "",
+      country: shippingCountryCode,
     };
 
     const billingAddress = {
@@ -304,11 +348,9 @@ export async function POST(req: NextRequest) {
         userId: user?.id || null,
         guestEmail: !user ? shippingInfo.email : null,
         dealerDiscount,
-        subtotal: Math.round(taxAdjustedSubtotal * 100) / 100,
+        subtotal: persistedSubtotal,
         shippingCost: totalShippingCost,
-        taxAmount: excludeItalianProductVat
-          ? Math.round((subtotal - taxAdjustedSubtotal) * 100) / 100
-          : 0,
+        taxAmount: persistedTaxAmount,
         total,
         shippingAddress,
         billingAddress,
@@ -317,14 +359,15 @@ export async function POST(req: NextRequest) {
           const product = productMap.get(item.id);
           // item.price è già il prezzo finale (eventuale sconto applicato lato client).
           // line_total deve coincidere con subtotal/total: niente doppia applicazione.
+          const unitPrice = netUnitPrice(item.price);
           return {
             productId: item.id,
             productName: lineItemDisplayName(item, product?.nameIt || "Prodotto"),
             productSku: product?.sku || null,
             quantity: item.quantity,
-            unitPrice: item.price,
+            unitPrice,
             discountPercent: 0,
-            lineTotal: Math.round(item.price * item.quantity * 100) / 100,
+            lineTotal: round2(unitPrice * item.quantity),
           };
         }),
         expiresAt: Date.now() + 3 * 60 * 60 * 1000, // 3h (PayPal order TTL)
@@ -353,7 +396,6 @@ export async function POST(req: NextRequest) {
     const dbPaymentMethod =
       paymentMethod === "bank_transfer" ? "bank_transfer" : "cod";
 
-    const subtotalRounded = Math.round(subtotal * 100) / 100;
     let orderId: number;
     try {
       const [o] = await db
@@ -367,11 +409,9 @@ export async function POST(req: NextRequest) {
             paymentMethod === "bank_transfer"
               ? "awaiting_transfer"
               : "cod_pending",
-          subtotal: String(subtotalRounded),
+          subtotal: String(persistedSubtotal),
           shippingCost: String(totalShippingCost),
-          taxAmount: excludeItalianProductVat
-            ? String(Math.round((subtotal - taxAdjustedSubtotal) * 100) / 100)
-            : "0",
+          taxAmount: String(persistedTaxAmount),
           total: String(total),
           shippingAddress,
           billingAddress,
@@ -400,15 +440,16 @@ export async function POST(req: NextRequest) {
       const product = productMap.get(item.id);
       // item.price è già il prezzo finale (eventuale sconto applicato lato client).
       // line_total deve coincidere con subtotal/total: niente doppia applicazione.
+      const unitPrice = netUnitPrice(item.price);
       return {
         orderId: orderId,
         productId: item.id,
         productName: lineItemDisplayName(item, product?.nameIt || "Prodotto"),
         productSku: product?.sku || null,
         quantity: item.quantity,
-        unitPrice: String(item.price),
+        unitPrice: String(unitPrice),
         discountPercent: 0,
-        lineTotal: String(Math.round(item.price * item.quantity * 100) / 100),
+        lineTotal: String(round2(unitPrice * item.quantity)),
       };
     });
 
@@ -454,7 +495,7 @@ export async function POST(req: NextRequest) {
         discount_percent: r.discountPercent,
         line_total: Number(r.lineTotal),
       })),
-      subtotal: Math.round(subtotal * 100) / 100,
+      subtotal: persistedSubtotal,
       shippingCost: totalShippingCost,
       total,
       paymentMethod: dbPaymentMethod,
