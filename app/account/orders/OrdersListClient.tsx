@@ -10,6 +10,7 @@ import {
   Truck,
   ExternalLink,
 } from "lucide-react";
+import { formatOrderNumber } from "@/lib/order-number";
 
 interface OrderItem {
   id: number;
@@ -158,7 +159,7 @@ export default function OrdersListClient({ orders }: { orders: Order[] }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-[var(--color-foreground)]">
-                          Ordine #{order.id}
+                          Ordine #{formatOrderNumber(order.id)}
                         </span>
                         <span
                           className={`inline-flex px-2 py-0.5 rounded-full border text-xs font-medium ${status.bg} ${status.color}`}
