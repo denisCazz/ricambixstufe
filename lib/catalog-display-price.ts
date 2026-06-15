@@ -46,8 +46,13 @@ export function grossToNetItalianVat(gross: number): number {
 }
 
 /**
- * Catalogo: ospiti e privati → lordo IVA inclusa.
- * Aziende estere (P.IVA UE non italiana o paese estero) → netto.
+ * Catalogo: stessa logica del checkout, così i prezzi mostrati nello shop
+ * coincidono con quelli applicati alla cassa.
+ * - Ospiti → lordo IVA inclusa (paese sconosciuto durante la navigazione).
+ * - Clienti registrati → si applica `italianVatIncludedOnProducts` sull'indirizzo
+ *   di riferimento: un cliente estero vede il NETTO (IVA esclusa) anche nello
+ *   shop, anche senza P.IVA/azienda nel profilo; un cliente italiano vede il
+ *   lordo. Lo sconto dealer è indipendente e resta applicato a parte.
  */
 export function catalogPricesIncludeItalianVat(opts: {
   isLoggedIn: boolean;
@@ -57,10 +62,7 @@ export function catalogPricesIncludeItalianVat(opts: {
 }): boolean {
   if (!opts.isLoggedIn) return true;
 
-  const company = opts.company?.trim();
   const vat = opts.vatNumber?.trim();
-  if (!company && !vat) return true;
-
   return italianVatIncludedOnProducts(countryCodeToName(opts.country), vat || undefined);
 }
 
