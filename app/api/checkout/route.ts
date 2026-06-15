@@ -218,12 +218,31 @@ export async function POST(req: NextRequest) {
       billingInfo?.vatNumber
     );
 
-    const taxAdjustedSubtotal = italianVatOnProducts ? subtotal : grossToNetItalianVat(subtotal);
-
     const excludeItalianProductVat = !italianVatOnProducts;
 
-    const total =
-      Math.round((taxAdjustedSubtotal + totalShippingCost + codSurcharge) * 100) / 100;
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+
+    // Prezzo unitario persistito: al NETTO dell'IVA italiana quando l'ordine la
+    // esclude (estero / cessione intracomunitaria reverse charge), altrimenti il
+    // prezzo lordo invariato.
+    const netUnitPrice = (grossUnit: number) =>
+      excludeItalianProductVat ? grossToNetItalianVat(grossUnit) : round2(grossUnit);
+
+    // Subtotale calcolato dalla somma delle righe effettivamente salvate, così
+    // che l'ordine quadri sempre: somma(lineTotal) === subtotal e
+    // total === subtotal + spedizione (+ contrassegno). Per gli ordini esenti
+    // tax_amount riporta l'IVA scorporata a titolo informativo.
+    const persistedSubtotal = round2(
+      items.reduce(
+        (sum, item) => sum + round2(netUnitPrice(item.price) * item.quantity),
+        0
+      )
+    );
+    const persistedTaxAmount = excludeItalianProductVat
+      ? round2(subtotal - persistedSubtotal)
+      : 0;
+
+    const total = round2(persistedSubtotal + totalShippingCost + codSurcharge);
 
     // Map country names to ISO 2-letter codes
     const countryMap: Record<string, string> = {
@@ -304,11 +323,9 @@ export async function POST(req: NextRequest) {
         userId: user?.id || null,
         guestEmail: !user ? shippingInfo.email : null,
         dealerDiscount,
-        subtotal: Math.round(taxAdjustedSubtotal * 100) / 100,
+        subtotal: persistedSubtotal,
         shippingCost: totalShippingCost,
-        taxAmount: excludeItalianProductVat
-          ? Math.round((subtotal - taxAdjustedSubtotal) * 100) / 100
-          : 0,
+        taxAmount: persistedTaxAmount,
         total,
         shippingAddress,
         billingAddress,
@@ -317,14 +334,15 @@ export async function POST(req: NextRequest) {
           const product = productMap.get(item.id);
           // item.price è già il prezzo finale (eventuale sconto applicato lato client).
           // line_total deve coincidere con subtotal/total: niente doppia applicazione.
+          const unitPrice = netUnitPrice(item.price);
           return {
             productId: item.id,
             productName: lineItemDisplayName(item, product?.nameIt || "Prodotto"),
             productSku: product?.sku || null,
             quantity: item.quantity,
-            unitPrice: item.price,
+            unitPrice,
             discountPercent: 0,
-            lineTotal: Math.round(item.price * item.quantity * 100) / 100,
+            lineTotal: round2(unitPrice * item.quantity),
           };
         }),
         expiresAt: Date.now() + 3 * 60 * 60 * 1000, // 3h (PayPal order TTL)
@@ -353,7 +371,6 @@ export async function POST(req: NextRequest) {
     const dbPaymentMethod =
       paymentMethod === "bank_transfer" ? "bank_transfer" : "cod";
 
-    const subtotalRounded = Math.round(subtotal * 100) / 100;
     let orderId: number;
     try {
       const [o] = await db
@@ -367,11 +384,9 @@ export async function POST(req: NextRequest) {
             paymentMethod === "bank_transfer"
               ? "awaiting_transfer"
               : "cod_pending",
-          subtotal: String(subtotalRounded),
+          subtotal: String(persistedSubtotal),
           shippingCost: String(totalShippingCost),
-          taxAmount: excludeItalianProductVat
-            ? String(Math.round((subtotal - taxAdjustedSubtotal) * 100) / 100)
-            : "0",
+          taxAmount: String(persistedTaxAmount),
           total: String(total),
           shippingAddress,
           billingAddress,
@@ -400,15 +415,16 @@ export async function POST(req: NextRequest) {
       const product = productMap.get(item.id);
       // item.price è già il prezzo finale (eventuale sconto applicato lato client).
       // line_total deve coincidere con subtotal/total: niente doppia applicazione.
+      const unitPrice = netUnitPrice(item.price);
       return {
         orderId: orderId,
         productId: item.id,
         productName: lineItemDisplayName(item, product?.nameIt || "Prodotto"),
         productSku: product?.sku || null,
         quantity: item.quantity,
-        unitPrice: String(item.price),
+        unitPrice: String(unitPrice),
         discountPercent: 0,
-        lineTotal: String(Math.round(item.price * item.quantity * 100) / 100),
+        lineTotal: String(round2(unitPrice * item.quantity)),
       };
     });
 
@@ -454,7 +470,7 @@ export async function POST(req: NextRequest) {
         discount_percent: r.discountPercent,
         line_total: Number(r.lineTotal),
       })),
-      subtotal: Math.round(subtotal * 100) / 100,
+      subtotal: persistedSubtotal,
       shippingCost: totalShippingCost,
       total,
       paymentMethod: dbPaymentMethod,
