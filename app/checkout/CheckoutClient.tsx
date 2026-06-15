@@ -493,6 +493,13 @@ export default function CheckoutClient() {
   const inputClass =
     "w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition";
 
+  // Registered customers with a reference address: the shipping destination
+  // (country/province) is locked to their saved profile, so the shipping cost
+  // is determined automatically with no possibility of choosing another zone.
+  const lockShipping = profileLoaded && !!profile?.country;
+  const lockedInputClass =
+    inputClass + " bg-stone-100 dark:bg-stone-800/60 text-muted cursor-not-allowed";
+
   return (
     <div className="max-w-6xl mx-auto w-full px-4 py-6 sm:py-10">
       {/* Back link */}
@@ -629,7 +636,8 @@ export default function CheckoutClient() {
                     defaultValue={defaults.province}
                     onChange={(e) => setSelectedProvince(e.target.value.toUpperCase().slice(0, 2))}
                     maxLength={2}
-                    className={inputClass + " uppercase"}
+                    readOnly={lockShipping}
+                    className={(lockShipping ? lockedInputClass : inputClass) + " uppercase"}
                     placeholder="TV"
                   />
                 </div>
@@ -637,20 +645,35 @@ export default function CheckoutClient() {
                   <label className="block text-sm font-medium text-foreground/70 mb-1.5">
                     {t("checkout.country")} *
                   </label>
-                  <select
-                    required
-                    name="country"
-                    defaultValue={defaults.country}
-                    autoComplete="country-name"
-                    onChange={(e) => setSelectedCountry(e.target.value)}
-                    className={inputClass}
-                  >
-                    {COUNTRIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                  {lockShipping ? (
+                    <>
+                      <input type="hidden" name="country" value={selectedCountry} />
+                      <input
+                        type="text"
+                        readOnly
+                        value={selectedCountry}
+                        className={lockedInputClass}
+                      />
+                      <p className="mt-1.5 text-[11px] text-muted">
+                        {t("checkout.shipping_locked_note")}
+                      </p>
+                    </>
+                  ) : (
+                    <select
+                      required
+                      name="country"
+                      defaultValue={defaults.country}
+                      autoComplete="country-name"
+                      onChange={(e) => setSelectedCountry(e.target.value)}
+                      className={inputClass}
+                    >
+                      {COUNTRIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-foreground/70 mb-1.5">

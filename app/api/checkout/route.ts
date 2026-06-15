@@ -68,13 +68,23 @@ export async function POST(req: NextRequest) {
     const db = getDb();
 
     let dealerDiscount = 0;
+    // Reference address of the registered customer (used to force the shipping
+    // zone server-side, regardless of what the client submits).
+    let profileCountry: string | null = null;
+    let profileProvince: string | null = null;
     if (user?.id) {
       const profile = await db
-        .select({ role: profiles.role })
+        .select({
+          role: profiles.role,
+          country: profiles.country,
+          province: profiles.province,
+        })
         .from(profiles)
         .where(eq(profiles.id, user.id))
         .limit(1)
         .then((r) => r[0]);
+      profileCountry = profile?.country?.trim() || null;
+      profileProvince = profile?.province?.trim() || null;
       if (profile?.role === "dealer") {
         const dealer = await db
           .select({
@@ -168,15 +178,25 @@ export async function POST(req: NextRequest) {
       "Regno Unito": "GB",
       Svizzera: "CH",
     };
-    const countryCode = countryMap[shippingInfo.country];
-    if (!countryCode) {
+    const formCountryCode = countryMap[shippingInfo.country];
+    if (!formCountryCode) {
       return NextResponse.json(
         { error: "Paese non supportato" },
         { status: 400 }
       );
     }
 
-    const zone = getShippingZone(countryCode, shippingInfo.province);
+    // For registered customers with a reference address the shipping zone is
+    // forced from their saved profile address (country + province), without any
+    // possibility of choosing a cheaper zone at checkout. Guests (or users
+    // without a saved country) fall back to the address entered in the form.
+    const useReferenceAddress = !!(user?.id && profileCountry);
+    const countryCode = useReferenceAddress ? profileCountry! : formCountryCode;
+    const shippingProvince = useReferenceAddress
+      ? profileProvince
+      : shippingInfo.province;
+
+    const zone = getShippingZone(countryCode, shippingProvince);
     const shippingCost = calculateShippingCost(totalWeight, zone);
     const codSurcharge = paymentMethod === "cod" ? COD_SURCHARGE : 0;
 
@@ -247,7 +267,7 @@ export async function POST(req: NextRequest) {
       address: shippingInfo.address,
       city: shippingInfo.city,
       zip: shippingInfo.zip,
-      province: (shippingInfo.province || "").toUpperCase().slice(0, 2) || "",
+      province: (shippingProvince || "").toUpperCase().slice(0, 2) || "",
       country: countryCode,
     };
 
