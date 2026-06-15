@@ -134,10 +134,49 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const zone = getShippingZone(
-      shippingInfo.country,
-      shippingInfo.province
-    );
+    // Resolve the destination country ISO code up-front, so the shipping zone
+    // is derived from the SAME country that gets persisted on the order. This
+    // guarantees that foreign destinations always receive the foreign (EU)
+    // shipping rate and can never fall back to the Italian rate.
+    const countryMap: Record<string, string> = {
+      Italia: "IT",
+      Austria: "AT",
+      Belgio: "BE",
+      Bulgaria: "BG",
+      Croazia: "HR",
+      Danimarca: "DK",
+      Estonia: "EE",
+      Finlandia: "FI",
+      Francia: "FR",
+      Germania: "DE",
+      Grecia: "GR",
+      Irlanda: "IE",
+      Lettonia: "LV",
+      Lituania: "LT",
+      Lussemburgo: "LU",
+      Malta: "MT",
+      "Paesi Bassi": "NL",
+      Polonia: "PL",
+      Portogallo: "PT",
+      "Repubblica Ceca": "CZ",
+      Romania: "RO",
+      Slovacchia: "SK",
+      Slovenia: "SI",
+      Spagna: "ES",
+      Svezia: "SE",
+      Ungheria: "HU",
+      "Regno Unito": "GB",
+      Svizzera: "CH",
+    };
+    const countryCode = countryMap[shippingInfo.country];
+    if (!countryCode) {
+      return NextResponse.json(
+        { error: "Paese non supportato" },
+        { status: 400 }
+      );
+    }
+
+    const zone = getShippingZone(countryCode, shippingInfo.province);
     const shippingCost = calculateShippingCost(totalWeight, zone);
     const codSurcharge = paymentMethod === "cod" ? COD_SURCHARGE : 0;
 
@@ -200,45 +239,6 @@ export async function POST(req: NextRequest) {
     const persistedTaxAmount = 0;
 
     const total = round2(persistedSubtotal + shippingCost + codSurcharge);
-
-    // Map country names to ISO 2-letter codes
-    const countryMap: Record<string, string> = {
-      Italia: "IT",
-      Austria: "AT",
-      Belgio: "BE",
-      Bulgaria: "BG",
-      Croazia: "HR",
-      Danimarca: "DK",
-      Estonia: "EE",
-      Finlandia: "FI",
-      Francia: "FR",
-      Germania: "DE",
-      Grecia: "GR",
-      Irlanda: "IE",
-      Lettonia: "LV",
-      Lituania: "LT",
-      Lussemburgo: "LU",
-      Malta: "MT",
-      "Paesi Bassi": "NL",
-      Polonia: "PL",
-      Portogallo: "PT",
-      "Repubblica Ceca": "CZ",
-      Romania: "RO",
-      Slovacchia: "SK",
-      Slovenia: "SI",
-      Spagna: "ES",
-      Svezia: "SE",
-      Ungheria: "HU",
-      "Regno Unito": "GB",
-      Svizzera: "CH",
-    };
-    const countryCode = countryMap[shippingInfo.country];
-    if (!countryCode) {
-      return NextResponse.json(
-        { error: "Paese non supportato" },
-        { status: 400 }
-      );
-    }
 
     // Build shipping & billing address objects
     const shippingAddress = {
