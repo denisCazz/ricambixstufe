@@ -171,13 +171,35 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // If VIES exempt, remove 22% IVA from product prices
-    const taxAdjustedSubtotal = isViesExempt
-      ? Math.round((subtotal / 1.22) * 100) / 100
-      : subtotal;
+    const round2 = (n: number) => Math.round(n * 100) / 100;
 
-    const total =
-      Math.round((taxAdjustedSubtotal + shippingCost + codSurcharge) * 100) / 100;
+    // For intra-EU reverse-charge (VIES-exempt) orders the 22% Italian VAT is
+    // scorporata: prices are persisted NET of IVA. For every other order the
+    // divisor is 1 and the gross prices are kept unchanged.
+    const viesDivisor = isViesExempt ? 1.22 : 1;
+
+    // Amounts actually persisted on each order line (net of IVA when exempt).
+    const lineComputations = items.map((item) => {
+      const grossDiscountedUnit =
+        dealerDiscount > 0 ? item.price * (1 - dealerDiscount / 100) : item.price;
+      return {
+        id: item.id,
+        unitPrice: round2(item.price / viesDivisor),
+        lineTotal: round2((grossDiscountedUnit / viesDivisor) * item.quantity),
+      };
+    });
+    const lineById = new Map(lineComputations.map((l) => [l.id, l]));
+
+    // For VIES-exempt orders persist the NET subtotal computed from the net
+    // lines, so the stored order reconciles: total = subtotal + shipping (+COD)
+    // and tax_amount = 0 (non imponibile art. 41 D.L.331/93). For all other
+    // orders keep the gross subtotal exactly as before.
+    const persistedSubtotal = isViesExempt
+      ? round2(lineComputations.reduce((sum, l) => sum + l.lineTotal, 0))
+      : round2(subtotal);
+    const persistedTaxAmount = 0;
+
+    const total = round2(persistedSubtotal + shippingCost + codSurcharge);
 
     // Map country names to ISO 2-letter codes
     const countryMap: Record<string, string> = {
@@ -258,27 +280,24 @@ export async function POST(req: NextRequest) {
         userId: user?.id || null,
         guestEmail: !user ? shippingInfo.email : null,
         dealerDiscount,
-        subtotal: Math.round(taxAdjustedSubtotal * 100) / 100,
+        subtotal: persistedSubtotal,
         shippingCost,
-        taxAmount: isViesExempt
-          ? Math.round((subtotal - taxAdjustedSubtotal) * 100) / 100
-          : 0,
+        taxAmount: persistedTaxAmount,
         total,
         shippingAddress,
         billingAddress,
         notes: shippingInfo.notes || null,
         items: items.map((item) => {
           const product = productMap.get(item.id);
-          const discountedPrice =
-            dealerDiscount > 0 ? item.price * (1 - dealerDiscount / 100) : item.price;
+          const line = lineById.get(item.id);
           return {
             productId: item.id,
             productName: item.name || product?.nameIt || "Prodotto",
             productSku: product?.sku || null,
             quantity: item.quantity,
-            unitPrice: item.price,
+            unitPrice: line?.unitPrice ?? item.price,
             discountPercent: dealerDiscount,
-            lineTotal: Math.round(discountedPrice * item.quantity * 100) / 100,
+            lineTotal: line?.lineTotal ?? Math.round(item.price * item.quantity * 100) / 100,
           };
         }),
         expiresAt: Date.now() + 3 * 60 * 60 * 1000, // 3h (PayPal order TTL)
@@ -307,7 +326,6 @@ export async function POST(req: NextRequest) {
     const dbPaymentMethod =
       paymentMethod === "bank_transfer" ? "bank_transfer" : "cod";
 
-    const subtotalRounded = Math.round(subtotal * 100) / 100;
     let orderId: number;
     try {
       const [o] = await db
@@ -321,11 +339,9 @@ export async function POST(req: NextRequest) {
             paymentMethod === "bank_transfer"
               ? "awaiting_transfer"
               : "cod_pending",
-          subtotal: String(subtotalRounded),
+          subtotal: String(persistedSubtotal),
           shippingCost: String(shippingCost),
-          taxAmount: isViesExempt
-            ? String(Math.round((subtotal - taxAdjustedSubtotal) * 100) / 100)
-            : "0",
+          taxAmount: String(persistedTaxAmount),
           total: String(total),
           shippingAddress,
           billingAddress,
@@ -352,20 +368,17 @@ export async function POST(req: NextRequest) {
 
     const rows = items.map((item) => {
       const product = productMap.get(item.id);
-      const discountedPrice =
-        dealerDiscount > 0
-          ? item.price * (1 - dealerDiscount / 100)
-          : item.price;
+      const line = lineById.get(item.id);
       return {
         orderId: orderId,
         productId: item.id,
         productName: item.name || product?.nameIt || "Prodotto",
         productSku: product?.sku || null,
         quantity: item.quantity,
-        unitPrice: String(item.price),
+        unitPrice: String(line?.unitPrice ?? item.price),
         discountPercent: dealerDiscount,
         lineTotal: String(
-          Math.round(discountedPrice * item.quantity * 100) / 100
+          line?.lineTotal ?? Math.round(item.price * item.quantity * 100) / 100
         ),
       };
     });
@@ -400,7 +413,7 @@ export async function POST(req: NextRequest) {
         discount_percent: r.discountPercent,
         line_total: Number(r.lineTotal),
       })),
-      subtotal: Math.round(subtotal * 100) / 100,
+      subtotal: persistedSubtotal,
       shippingCost: shippingCost,
       total,
       paymentMethod: dbPaymentMethod,
