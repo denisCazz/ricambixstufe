@@ -28,6 +28,7 @@ import {
 import { grossToNetItalianVat } from "@/lib/catalog-display-price";
 import type { EuropeShippingMethod } from "@/lib/shipping";
 import ReceiptUploader from "@/components/ReceiptUploader";
+import { formatOrderNumber } from "@/lib/order-number";
 
 const COUNTRIES = [
   "Italia",
@@ -324,7 +325,7 @@ export default function CheckoutClient() {
           </svg>
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-2">
-          Ordine #{orderResult.orderId} confermato!
+          Ordine #{formatOrderNumber(orderResult.orderId)} confermato!
         </h1>
 
         {orderResult.paymentMethod === "bank_transfer" ? (
@@ -355,7 +356,7 @@ export default function CheckoutClient() {
                   Causale
                 </p>
                 <p className="text-foreground font-semibold">
-                  Ordine #{orderResult.orderId}
+                  Ordine #{formatOrderNumber(orderResult.orderId)}
                 </p>
               </div>
               <div>

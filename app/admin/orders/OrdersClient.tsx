@@ -20,6 +20,7 @@ import {
   resetDaneaExport,
   deleteOrder,
 } from "@/app/admin/actions/orders";
+import { formatOrderNumber } from "@/lib/order-number";
 
 interface OrderItem {
   id: number;
@@ -230,7 +231,7 @@ export default function OrdersClient({
                 >
                   <Package className="w-5 h-5 text-muted flex-shrink-0" />
                   <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4 items-center text-sm">
-                    <span className="font-semibold">#{order.id}</span>
+                    <span className="font-semibold">#{formatOrderNumber(order.id)}</span>
                     <span className="truncate">{customer.name}</span>
                     <span className="hidden sm:block text-muted">
                       {new Date(order.created_at).toLocaleDateString("it-IT")}
@@ -259,7 +260,7 @@ export default function OrdersClient({
                 </button>
                 <button
                   onClick={() => {
-                    if (window.confirm(`Annullare l'ordine #${order.id}? L'operazione ripristinerà le scorte dei prodotti.`)) {
+                    if (window.confirm(`Annullare l'ordine #${formatOrderNumber(order.id)}? L'operazione ripristinerà le scorte dei prodotti.`)) {
                       handleCancelOrder(order.id);
                     }
                   }}
