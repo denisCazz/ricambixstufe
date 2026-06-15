@@ -83,13 +83,23 @@ export async function POST(req: NextRequest) {
     const db = getDb();
 
     let dealerDiscount = 0;
+    // Indirizzo di riferimento del cliente registrato: usato per forzare la zona
+    // di spedizione lato server, a prescindere da cosa invia il client.
+    let profileCountry: string | null = null;
+    let profileProvince: string | null = null;
     if (user?.id) {
       const profile = await db
-        .select({ role: profiles.role })
+        .select({
+          role: profiles.role,
+          country: profiles.country,
+          province: profiles.province,
+        })
         .from(profiles)
         .where(eq(profiles.id, user.id))
         .limit(1)
         .then((r) => r[0]);
+      profileCountry = profile?.country?.trim() || null;
+      profileProvince = profile?.province?.trim() || null;
       if (profile?.role === "dealer") {
         const dealer = await db
           .select({
@@ -162,13 +172,67 @@ export async function POST(req: NextRequest) {
     }
 
     const shippingConfig = await getShippingConfig();
+
+    // Mappa nome paese -> codice ISO. Risolta qui (prima del calcolo spedizione)
+    // così che la zona derivi dallo STESSO paese di destinazione che verrà
+    // salvato sull'ordine: un cliente estero non può mai cadere sulla tariffa
+    // italiana.
+    const countryMap: Record<string, string> = {
+      Italia: "IT",
+      Austria: "AT",
+      Belgio: "BE",
+      Bulgaria: "BG",
+      Croazia: "HR",
+      Danimarca: "DK",
+      Estonia: "EE",
+      Finlandia: "FI",
+      Francia: "FR",
+      Germania: "DE",
+      Grecia: "GR",
+      Irlanda: "IE",
+      Lettonia: "LV",
+      Lituania: "LT",
+      Lussemburgo: "LU",
+      Malta: "MT",
+      "Paesi Bassi": "NL",
+      Polonia: "PL",
+      Portogallo: "PT",
+      "Repubblica Ceca": "CZ",
+      Romania: "RO",
+      Slovacchia: "SK",
+      Slovenia: "SI",
+      Spagna: "ES",
+      Svezia: "SE",
+      Ungheria: "HU",
+      "Regno Unito": "GB",
+      Svizzera: "CH",
+    };
+    const formCountryCode = countryMap[shippingInfo.country];
+    if (!formCountryCode) {
+      return NextResponse.json(
+        { error: "Paese non supportato" },
+        { status: 400 }
+      );
+    }
+
+    // Clienti registrati con indirizzo di riferimento: zona e tariffa forzate dal
+    // profilo, senza possibilità di scelta (incluso il metodo Europa). I guest e
+    // gli utenti senza indirizzo salvato usano i dati inseriti nel form.
+    const useReferenceAddress = !!(user?.id && profileCountry);
+    const shippingCountryCode = useReferenceAddress
+      ? profileCountry!
+      : formCountryCode;
+    const shippingProvince = useReferenceAddress
+      ? profileProvince
+      : shippingInfo.province;
+
     const zone = getShippingZone(
-      shippingInfo.country,
-      shippingInfo.province,
+      shippingCountryCode,
+      shippingProvince,
       shippingConfig
     );
     const shippingCost =
-      zone === "europe" && europeShippingMethod
+      zone === "europe" && europeShippingMethod && !useReferenceAddress
         ? calculateEuropeShippingCost(europeShippingMethod, shippingConfig)
         : calculateShippingCost(totalWeight, zone, shippingConfig);
 
@@ -244,45 +308,6 @@ export async function POST(req: NextRequest) {
 
     const total = round2(persistedSubtotal + totalShippingCost + codSurcharge);
 
-    // Map country names to ISO 2-letter codes
-    const countryMap: Record<string, string> = {
-      Italia: "IT",
-      Austria: "AT",
-      Belgio: "BE",
-      Bulgaria: "BG",
-      Croazia: "HR",
-      Danimarca: "DK",
-      Estonia: "EE",
-      Finlandia: "FI",
-      Francia: "FR",
-      Germania: "DE",
-      Grecia: "GR",
-      Irlanda: "IE",
-      Lettonia: "LV",
-      Lituania: "LT",
-      Lussemburgo: "LU",
-      Malta: "MT",
-      "Paesi Bassi": "NL",
-      Polonia: "PL",
-      Portogallo: "PT",
-      "Repubblica Ceca": "CZ",
-      Romania: "RO",
-      Slovacchia: "SK",
-      Slovenia: "SI",
-      Spagna: "ES",
-      Svezia: "SE",
-      Ungheria: "HU",
-      "Regno Unito": "GB",
-      Svizzera: "CH",
-    };
-    const countryCode = countryMap[shippingInfo.country];
-    if (!countryCode) {
-      return NextResponse.json(
-        { error: "Paese non supportato" },
-        { status: 400 }
-      );
-    }
-
     // Build shipping & billing address objects
     const shippingAddress = {
       name: shippingInfo.name,
@@ -290,8 +315,8 @@ export async function POST(req: NextRequest) {
       address: shippingInfo.address,
       city: shippingInfo.city,
       zip: shippingInfo.zip,
-      province: (shippingInfo.province || "").toUpperCase().slice(0, 2) || "",
-      country: countryCode,
+      province: (shippingProvince || "").toUpperCase().slice(0, 2) || "",
+      country: shippingCountryCode,
     };
 
     const billingAddress = {
