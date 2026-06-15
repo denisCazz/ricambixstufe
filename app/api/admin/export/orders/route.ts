@@ -5,6 +5,7 @@ import { orders, orderItems, profiles } from "@/db/schema";
 import { desc, eq, and, inArray, type SQL } from "drizzle-orm";
 import { getUser } from "@/lib/auth";
 import type { OrderStatus } from "@/lib/types";
+import { formatOrderNumber } from "@/lib/order-number";
 
 export async function GET(request: Request) {
   const user = await getUser();
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
     const items = itemRows.filter((i) => i.orderId === o.id);
     const addr = o.shippingAddress as Record<string, unknown>;
     return {
-      "ID Ordine": o.id,
+      "ID Ordine": formatOrderNumber(o.id),
       "Data": new Date(o.createdAt).toLocaleDateString("it-IT"),
       "Email cliente": profileMap[o.userId ?? ""] ?? o.guestEmail ?? "",
       "Stato": o.status,

@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { formatOrderNumber } from "@/lib/order-number";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -126,7 +127,7 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
 
   let paymentNote = "";
   if (data.paymentMethod === "bank_transfer") {
-    paymentNote = bankTransferNote().replace("[orderId]", data.orderId.toString());
+    paymentNote = bankTransferNote().replace("[orderId]", formatOrderNumber(data.orderId));
   } else if (data.paymentMethod === "cod") {
     paymentNote = `<p style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 16px; font-size: 14px; color: #166534; margin: 16px 0;">Il pagamento avverrà in contanti alla consegna. Supplemento contrassegno incluso nel totale.</p>`;
   }
@@ -143,12 +144,12 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
       to: data.customerEmail,
       ...(EMAIL_CC.length ? { cc: EMAIL_CC } : {}),
       ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
-      subject: `📬 Ordine ricevuto #${data.orderId} — RicambiXStufe`,
+      subject: `📬 Ordine ricevuto #${formatOrderNumber(data.orderId)} — RicambiXStufe`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
           <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px; border-radius: 12px 12px 0 0;">
             <h1 style="margin: 0; color: white; font-size: 20px;">📬 Ordine ricevuto!</h1>
-            <p style="margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">Ordine #${data.orderId}</p>
+            <p style="margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">Ordine #${formatOrderNumber(data.orderId)}</p>
           </div>
 
           <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
@@ -229,12 +230,12 @@ export async function sendOrderStatusUpdateEmail({
       to: customerEmail,
       ...(EMAIL_CC.length ? { cc: EMAIL_CC } : {}),
       ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
-      subject: `${cfg.emoji} Ordine #${orderId}: ${cfg.label} — RicambiXStufe`,
+      subject: `${cfg.emoji} Ordine #${formatOrderNumber(orderId)}: ${cfg.label} — RicambiXStufe`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
           <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px; border-radius: 12px 12px 0 0;">
             <h1 style="margin: 0; color: white; font-size: 22px;">${cfg.emoji} ${cfg.label}</h1>
-            <p style="margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">Ordine #${orderId}</p>
+            <p style="margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">Ordine #${formatOrderNumber(orderId)}</p>
           </div>
 
           <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
@@ -275,10 +276,10 @@ export async function sendNewOrderAdminNotification(data: OrderEmailData) {
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
       ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
-      subject: `Nuovo ordine #${data.orderId} — ${formatEur(data.total)}`,
+      subject: `Nuovo ordine #${formatOrderNumber(data.orderId)} — ${formatEur(data.total)}`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #b45309;">Nuovo ordine #${data.orderId}</h2>
+          <h2 style="color: #b45309;">Nuovo ordine #${formatOrderNumber(data.orderId)}</h2>
           <table style="width: 100%; border-collapse: collapse; margin: 12px 0;">
             <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Cliente</td><td style="padding: 6px 0; font-size: 14px;">${escapeHtml(data.customerName)} (${escapeHtml(data.customerEmail)})</td></tr>
             <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Pagamento</td><td style="padding: 6px 0; font-size: 14px;">${paymentLabel}</td></tr>
