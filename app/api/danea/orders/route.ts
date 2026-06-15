@@ -2,6 +2,12 @@
 import { and, asc, eq, inArray, gte, lte } from "drizzle-orm";
 import { getDb } from "@/db";
 import { orders, orderItems, profiles, daneaOrdersExportLogs } from "@/db/schema";
+import { ORDER_NUMBERING_SUFFIX } from "@/lib/order-number";
+
+// Codice IVA Danea per le cessioni intracomunitarie esenti (reverse charge,
+// non imponibile art. 41 D.L.331/93). Deve coincidere con il codice presente
+// nella tabella "Aliquote/Nature IVA" di Easyfatt.
+const EU_REVERSE_CHARGE_VAT_CODE = "N41";
 
 interface ShippingAddress {
   name?: string;
@@ -327,6 +333,7 @@ function buildEasyfattXml(
     xml += tag("DocumentType", "C"); // C = Ordine cliente
     xml += tag("Date", date);
     xml += tag("Number", order.id);
+    xml += tag("Numbering", ORDER_NUMBERING_SUFFIX); // sezionale, es. "11/A"
     xml += tag(
       "CustomerWebLogin",
       profile?.email || order.guest_email || billing.email
@@ -374,7 +381,7 @@ function buildEasyfattXml(
       xml += tag("CostDescription", "Spese di spedizione");
       xml += tag("CostAmount", order.shipping_cost.toFixed(2));
       if (isViesExempt) {
-        xml += `      <CostVatCode Perc="0" Class="Non Imponibile" Description="Non imponibile art. 41 D.L.331/93">N3.2</CostVatCode>\n`;
+        xml += `      <CostVatCode Perc="0" Class="Non Imponibile" Description="Non imponibile art. 41 D.L.331/93">${EU_REVERSE_CHARGE_VAT_CODE}</CostVatCode>\n`;
       } else {
         xml += `      <CostVatCode Perc="22" Class="Imponibile" Description="IVA 22%">22</CostVatCode>\n`;
       }
@@ -399,7 +406,7 @@ function buildEasyfattXml(
         xml += rowTag("Discounts", `${item.discount_percent}%`);
       }
       if (isViesExempt) {
-        xml += `          <VatCode Perc="0" Class="Non Imponibile" Description="Non imponibile art. 41 D.L.331/93">N3.2</VatCode>\n`;
+        xml += `          <VatCode Perc="0" Class="Non Imponibile" Description="Non imponibile art. 41 D.L.331/93">${EU_REVERSE_CHARGE_VAT_CODE}</VatCode>\n`;
       } else {
         xml += `          <VatCode Perc="22" Class="Imponibile" Description="IVA 22%">22</VatCode>\n`;
       }
