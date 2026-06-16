@@ -122,6 +122,11 @@ export async function updateDealerData(
     firstName: string;
     lastName: string;
     phone: string;
+    addressLine1?: string;
+    city?: string;
+    province?: string;
+    postalCode?: string;
+    country?: string;
     discountPercent: number;
   }
 ) {
@@ -144,6 +149,11 @@ export async function updateDealerData(
         phone: data.phone || null,
         company: data.companyName,
         vatNumber: data.vatNumber,
+        addressLine1: data.addressLine1?.trim() || null,
+        city: data.city?.trim() || null,
+        province: (data.province || "").trim().toUpperCase().slice(0, 2) || null,
+        postalCode: data.postalCode?.trim() || null,
+        country: data.country?.trim() || "IT",
         updatedAt: new Date(),
       })
       .where(eq(profiles.id, dealerId));

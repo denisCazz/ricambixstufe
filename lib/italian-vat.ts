@@ -92,6 +92,18 @@ export function euVatCountryPrefix(vat: string): string | null {
 }
 
 /**
+ * Codice paese ISO (2 lettere) per il profilo rivenditore, derivato dalla P.IVA/VAT.
+ * - Prefisso UE (es. FR, DE) → codice ISO corrispondente (EL Grecia → GR).
+ * - Nessun prefisso (P.IVA italiana a 11 cifre) → IT.
+ */
+export function countryCodeFromEuVat(vat: string): string {
+  const prefix = euVatCountryPrefix(vat);
+  if (!prefix) return "IT";
+  if (prefix === "EL") return "GR";
+  return prefix;
+}
+
+/**
  * IVA italiana inclusa sul prezzo prodotto?
  * - P.IVA italiana valida → sì
  * - P.IVA UE estera → no (cessione intracomunitaria)

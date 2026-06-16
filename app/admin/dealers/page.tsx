@@ -13,6 +13,11 @@ export default async function AdminDealersPage() {
       firstName: profiles.firstName,
       lastName: profiles.lastName,
       phone: profiles.phone,
+      addressLine1: profiles.addressLine1,
+      city: profiles.city,
+      province: profiles.province,
+      postalCode: profiles.postalCode,
+      country: profiles.country,
     })
     .from(dealerProfiles)
     .innerJoin(profiles, eq(dealerProfiles.id, profiles.id))
@@ -32,6 +37,11 @@ export default async function AdminDealersPage() {
       first_name: r.firstName,
       last_name: r.lastName,
       phone: r.phone,
+      address_line1: r.addressLine1,
+      city: r.city,
+      province: r.province,
+      postal_code: r.postalCode,
+      country: r.country,
     },
   }));
 

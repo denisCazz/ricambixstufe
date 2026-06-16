@@ -9,11 +9,48 @@ import {
   deleteDealer,
 } from "../actions/dealers";
 
+// Codici ISO + nome paese, coerenti con la mappa usata nel checkout.
+const COUNTRY_OPTIONS: { code: string; name: string }[] = [
+  { code: "IT", name: "Italia" },
+  { code: "AT", name: "Austria" },
+  { code: "BE", name: "Belgio" },
+  { code: "BG", name: "Bulgaria" },
+  { code: "HR", name: "Croazia" },
+  { code: "DK", name: "Danimarca" },
+  { code: "EE", name: "Estonia" },
+  { code: "FI", name: "Finlandia" },
+  { code: "FR", name: "Francia" },
+  { code: "DE", name: "Germania" },
+  { code: "GR", name: "Grecia" },
+  { code: "IE", name: "Irlanda" },
+  { code: "LV", name: "Lettonia" },
+  { code: "LT", name: "Lituania" },
+  { code: "LU", name: "Lussemburgo" },
+  { code: "MT", name: "Malta" },
+  { code: "NL", name: "Paesi Bassi" },
+  { code: "PL", name: "Polonia" },
+  { code: "PT", name: "Portogallo" },
+  { code: "CZ", name: "Repubblica Ceca" },
+  { code: "RO", name: "Romania" },
+  { code: "SK", name: "Slovacchia" },
+  { code: "SI", name: "Slovenia" },
+  { code: "ES", name: "Spagna" },
+  { code: "SE", name: "Svezia" },
+  { code: "HU", name: "Ungheria" },
+  { code: "GB", name: "Regno Unito" },
+  { code: "CH", name: "Svizzera" },
+];
+
 interface DealerProfile {
   email: string;
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  address_line1?: string | null;
+  city?: string | null;
+  province?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
 }
 
 interface DealerData {
@@ -42,6 +79,11 @@ export default function DealerActions({ dealer }: { dealer: DealerData }) {
     firstName: dealer.profiles?.first_name || "",
     lastName: dealer.profiles?.last_name || "",
     phone: dealer.profiles?.phone || "",
+    addressLine1: dealer.profiles?.address_line1 || "",
+    city: dealer.profiles?.city || "",
+    province: dealer.profiles?.province || "",
+    postalCode: dealer.profiles?.postal_code || "",
+    country: dealer.profiles?.country || "IT",
     discountPercent: dealer.discount_percent,
   });
 
@@ -242,6 +284,60 @@ export default function DealerActions({ dealer }: { dealer: DealerData }) {
             onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
             className="w-full px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:border-accent/50"
           />
+        </div>
+        <div>
+          <label className="block text-xs text-muted mb-1">Paese</label>
+          <select
+            value={editData.country}
+            onChange={(e) => setEditData({ ...editData, country: e.target.value })}
+            className="w-full px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:border-accent/50 bg-background"
+          >
+            {COUNTRY_OPTIONS.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-xs text-muted mb-1">Indirizzo</label>
+          <input
+            type="text"
+            value={editData.addressLine1}
+            onChange={(e) => setEditData({ ...editData, addressLine1: e.target.value })}
+            className="w-full px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:border-accent/50"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-muted mb-1">Città</label>
+          <input
+            type="text"
+            value={editData.city}
+            onChange={(e) => setEditData({ ...editData, city: e.target.value })}
+            className="w-full px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:border-accent/50"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-muted mb-1">CAP</label>
+            <input
+              type="text"
+              value={editData.postalCode}
+              onChange={(e) => setEditData({ ...editData, postalCode: e.target.value })}
+              className="w-full px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:border-accent/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1">Prov.</label>
+            <input
+              type="text"
+              value={editData.province}
+              onChange={(e) => setEditData({ ...editData, province: e.target.value.toUpperCase().slice(0, 2) })}
+              maxLength={2}
+              className="w-full px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:border-accent/50 uppercase"
+              placeholder="TV"
+            />
+          </div>
         </div>
         <div>
           <label className="block text-xs text-muted mb-1">Sconto %</label>

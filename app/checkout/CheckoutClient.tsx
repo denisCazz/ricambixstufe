@@ -175,7 +175,7 @@ export default function CheckoutClient() {
           setProfile(data.profile);
           // Set initial country/province from profile
           const country = data.profile.country
-            ? COUNTRY_TO_NAME[data.profile.country] || "Italia"
+            ? COUNTRY_TO_NAME[data.profile.country] || data.profile.country
             : "Italia";
           setSelectedCountry(country);
           setSelectedProvince(data.profile.province || "");
@@ -539,7 +539,7 @@ export default function CheckoutClient() {
     zip: profile?.postal_code || "",
     province: profile?.province || "",
     country: profile?.country
-      ? COUNTRY_TO_NAME[profile.country] || "Italia"
+      ? COUNTRY_TO_NAME[profile.country] || profile.country
       : "Italia",
     company: profile?.company || "",
     vatNumber: profile?.vat_number || "",

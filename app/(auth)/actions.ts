@@ -8,7 +8,7 @@ import { getDb } from "@/db";
 import { appUsers, profiles, dealerProfiles } from "@/db/schema";
 import { sendDealerRegistrationNotification, sendEmailVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
 import { signPayload, verifyPayload } from "@/lib/signed-payload";
-import { isValidEuVatNumber } from "@/lib/italian-vat";
+import { isValidEuVatNumber, countryCodeFromEuVat } from "@/lib/italian-vat";
 
 const SALT = 10;
 
@@ -149,6 +149,7 @@ export async function registerDealer(formData: FormData): Promise<{ error: strin
       company: companyName,
       vatNumber: vatNumber,
       phone: phone || null,
+      country: countryCodeFromEuVat(vatNumber),
       role: "dealer",
     });
     await tx.insert(dealerProfiles).values({
