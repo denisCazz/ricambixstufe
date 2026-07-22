@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Cookie, X } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
@@ -45,9 +46,12 @@ export default function CookieBanner() {
                 </p>
                 <p className="text-xs text-muted leading-relaxed">
                   {t("cookie.details")}{" "}
-                  <a href="#" className="text-accent hover:underline underline-offset-2">
+                  <Link
+                    href="/cookie-policy"
+                    className="text-accent hover:underline underline-offset-2"
+                  >
                     {t("cookie.more_info")}
-                  </a>
+                  </Link>
                 </p>
               </div>
               <button
@@ -65,12 +69,12 @@ export default function CookieBanner() {
               >
                 {t("cookie.accept")}
               </button>
-              <a
-                href="#"
+              <Link
+                href="/cookie-policy"
                 className="px-5 py-2 rounded-xl border border-border text-sm font-medium text-muted hover:bg-surface-hover hover:text-foreground transition-all duration-200"
               >
                 {t("cookie.settings")}
-              </a>
+              </Link>
             </div>
           </div>
         </motion.div>
