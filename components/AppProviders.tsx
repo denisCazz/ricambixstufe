@@ -6,6 +6,8 @@ import { LocaleProvider } from "@/lib/locale-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { UserProvider } from "@/lib/user-context";
 import CartDrawer from "@/components/CartDrawer";
+import CookieBanner from "@/components/CookieBanner";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import ScrollToTop from "@/components/ScrollToTop";
 
 /** Single client boundary so context providers share one module graph / React tree reliably. */
@@ -18,6 +20,8 @@ export default function AppProviders({ children }: { children: ReactNode }) {
             {children}
             <CartDrawer />
             <ScrollToTop />
+            <CookieBanner />
+            <GoogleAnalytics />
           </CartProvider>
         </UserProvider>
       </LocaleProvider>
