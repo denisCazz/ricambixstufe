@@ -6,7 +6,6 @@ import Sidebar from "@/components/Sidebar";
 import ProductGrid from "@/components/ProductGrid";
 import CategoryPills from "@/components/CategoryPills";
 import Footer from "@/components/Footer";
-import CookieBanner from "@/components/CookieBanner";
 import FireBackground from "@/components/FireBackground";
 import type { Product } from "@/data/products";
 import type { Category } from "@/data/categories";
@@ -64,7 +63,6 @@ export default function HomeClient({
       </main>
 
       <Footer />
-      <CookieBanner />
     </div>
   );
 }
