@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Database, Mail, UserPlus, CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { testDbConnection, testEmail, createUser } from "@/app/admin/actions/settings";
+import { Database, Mail, UserPlus, CheckCircle, XCircle, Loader2, Wallet } from "lucide-react";
+import {
+  testDbConnection,
+  testEmail,
+  testPayPalConnection,
+  createUser,
+} from "@/app/admin/actions/settings";
 
 type Result = { ok: boolean; message: string } | null;
 
@@ -125,6 +130,13 @@ export default function SettingsClient() {
             description={`Invia un'email di prova all'indirizzo admin configurato (ADMIN_EMAIL).`}
             buttonLabel="Invia email di prova"
             onTest={testEmail}
+          />
+          <TestCard
+            icon={Wallet}
+            title="PayPal"
+            description="Verifica Client ID/Secret (OAuth). Dopo un cambio password o secret sul conto PayPal, aggiorna le variabili d'ambiente sul server e riavvia."
+            buttonLabel="Testa PayPal"
+            onTest={testPayPalConnection}
           />
         </div>
       </section>
