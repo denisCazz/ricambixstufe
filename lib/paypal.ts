@@ -70,12 +70,22 @@ export async function verifyPayPalCredentials(): Promise<{
   message: string;
 }> {
   const mode = process.env.PAYPAL_MODE === "live" ? "live" : "sandbox";
+  const clientId = process.env.PAYPAL_CLIENT_ID || "";
+  const authUrl = process.env.AUTH_URL || "(non impostato → fallback localhost)";
+  const idHint = clientId
+    ? `${clientId.slice(0, 6)}…${clientId.slice(-4)}`
+    : "assente";
+
   try {
     await getAccessToken();
+    const liveWarning =
+      mode === "sandbox"
+        ? " ATTENZIONE: PAYPAL_MODE non è 'live' — in produzione i clienti useranno il sandbox."
+        : "";
     return {
       ok: true,
       mode,
-      message: `Autenticazione PayPal OK (modalità ${mode})`,
+      message: `Autenticazione PayPal OK (modalità ${mode}, Client ID ${idHint}, AUTH_URL=${authUrl}).${liveWarning}`,
     };
   } catch (err) {
     if (err instanceof PayPalError) {
@@ -84,9 +94,9 @@ export async function verifyPayPalCredentials(): Promise<{
         mode,
         message:
           err.code === "missing_credentials"
-            ? `Credenziali mancanti (modalità ${mode}): imposta PAYPAL_CLIENT_ID e PAYPAL_CLIENT_SECRET`
-            : `Autenticazione fallita (modalità ${mode}, HTTP ${err.status ?? "?"}). ` +
-              `Dopo un cambio password o secret, aggiorna Client ID/Secret su developer.paypal.com e nel .env del server, poi riavvia.`,
+            ? `Credenziali mancanti (modalità ${mode}): imposta PAYPAL_CLIENT_ID e PAYPAL_CLIENT_SECRET. AUTH_URL=${authUrl}`
+            : `Autenticazione fallita (modalità ${mode}, Client ID ${idHint}, HTTP ${err.status ?? "?"}). ` +
+              `Spesso Client ID Live usato con PAYPAL_MODE=sandbox (o viceversa). AUTH_URL=${authUrl}`,
       };
     }
     return {
