@@ -18,7 +18,17 @@ PAYPAL_CLIENT_ID=...
 PAYPAL_CLIENT_SECRET=...
 ```
 
-`PAYPAL_MODE` deve essere esattamente `live` in produzione. Qualsiasi altro valore usa l’API sandbox.
+`PAYPAL_MODE` deve essere `live` in produzione (credenziali tab **Live**).
+
+Se manca: con `NODE_ENV=production` il sito usa live; in sviluppo usa sandbox.
+
+**Sintomo tipico:** test admin → `modalità sandbox` + HTTP 401 → Client ID Live inviato all’API sandbox. Fix immediato nel `.env` del server:
+
+```env
+PAYPAL_MODE=live
+```
+
+poi `docker compose up -d --force-recreate web`.
 
 ## Se Client ID/Secret non sono cambiati
 
@@ -63,6 +73,7 @@ Errori tipici:
 |---------|-----------------|
 | auth failed / HTTP 401 | Client Secret vecchio o Client ID sbagliato |
 | credenziali mancanti | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` non impostate nel container |
+| `sandbox` + HTTP 401 | Credenziali **Live** con `PAYPAL_MODE` assente/sandbox → metti `PAYPAL_MODE=live` |
 | funziona in sandbox ma non in prod | `PAYPAL_MODE` non è `live`, o stai usando credenziali sandbox in live |
 
 ## Nota sicurezza

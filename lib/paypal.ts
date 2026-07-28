@@ -1,7 +1,19 @@
-const BASE_URL =
-  process.env.PAYPAL_MODE === "live"
+/**
+ * Explicit `PAYPAL_MODE=live|sandbox` wins.
+ * If unset: production → live, otherwise sandbox (avoids Live credentials hitting sandbox → HTTP 401).
+ */
+export function getPayPalMode(): "live" | "sandbox" {
+  const raw = (process.env.PAYPAL_MODE || "").trim().toLowerCase();
+  if (raw === "live") return "live";
+  if (raw === "sandbox") return "sandbox";
+  return process.env.NODE_ENV === "production" ? "live" : "sandbox";
+}
+
+function getPayPalApiBase(): string {
+  return getPayPalMode() === "live"
     ? "https://api-m.paypal.com"
     : "https://api-m.sandbox.paypal.com";
+}
 
 export class PayPalError extends Error {
   constructor(
@@ -40,7 +52,7 @@ export async function getAccessToken(): Promise<string> {
     );
   }
   const creds = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-  const res = await fetch(`${BASE_URL}/v1/oauth2/token`, {
+  const res = await fetch(`${getPayPalApiBase()}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${creds}`,
@@ -69,7 +81,8 @@ export async function verifyPayPalCredentials(): Promise<{
   mode: "live" | "sandbox";
   message: string;
 }> {
-  const mode = process.env.PAYPAL_MODE === "live" ? "live" : "sandbox";
+  const mode = getPayPalMode();
+  const modeEnv = (process.env.PAYPAL_MODE || "").trim() || "(non impostato)";
   const clientId = process.env.PAYPAL_CLIENT_ID || "";
   const authUrl = process.env.AUTH_URL || "(non impostato → fallback localhost)";
   const idHint = clientId
@@ -80,23 +93,28 @@ export async function verifyPayPalCredentials(): Promise<{
     await getAccessToken();
     const liveWarning =
       mode === "sandbox"
-        ? " ATTENZIONE: PAYPAL_MODE non è 'live' — in produzione i clienti useranno il sandbox."
+        ? " ATTENZIONE: stai in sandbox — in produzione imposta PAYPAL_MODE=live e usa le credenziali Live."
         : "";
     return {
       ok: true,
       mode,
-      message: `Autenticazione PayPal OK (modalità ${mode}, Client ID ${idHint}, AUTH_URL=${authUrl}).${liveWarning}`,
+      message: `Autenticazione PayPal OK (modalità effettiva ${mode}, PAYPAL_MODE=${modeEnv}, Client ID ${idHint}, AUTH_URL=${authUrl}).${liveWarning}`,
     };
   } catch (err) {
     if (err instanceof PayPalError) {
+      const mismatchHint =
+        err.code === "auth_failed" && err.status === 401
+          ? mode === "sandbox"
+            ? ` HTTP 401 in sandbox: quasi sempre stai usando Client ID/Secret Live. Imposta PAYPAL_MODE=live nel .env del server e riavvia, oppure usa le credenziali Sandbox.`
+            : ` HTTP 401 in live: usa le credenziali del tab Live su developer.paypal.com (non Sandbox) e verifica Client Secret.`
+          : "";
       return {
         ok: false,
         mode,
         message:
           err.code === "missing_credentials"
             ? `Credenziali mancanti (modalità ${mode}): imposta PAYPAL_CLIENT_ID e PAYPAL_CLIENT_SECRET. AUTH_URL=${authUrl}`
-            : `Autenticazione fallita (modalità ${mode}, Client ID ${idHint}, HTTP ${err.status ?? "?"}). ` +
-              `Spesso Client ID Live usato con PAYPAL_MODE=sandbox (o viceversa). AUTH_URL=${authUrl}`,
+            : `Autenticazione fallita (modalità effettiva ${mode}, PAYPAL_MODE=${modeEnv}, Client ID ${idHint}, HTTP ${err.status ?? "?"}).${mismatchHint} AUTH_URL=${authUrl}`,
       };
     }
     return {
@@ -113,7 +131,7 @@ export async function createPayPalOrder(params: {
   cancelUrl: string;
 }): Promise<{ id: string; approvalUrl: string }> {
   const token = await getAccessToken();
-  const res = await fetch(`${BASE_URL}/v2/checkout/orders`, {
+  const res = await fetch(`${getPayPalApiBase()}/v2/checkout/orders`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -170,7 +188,7 @@ export async function capturePayPalOrder(paypalOrderId: string): Promise<{
 }> {
   const token = await getAccessToken();
   const res = await fetch(
-    `${BASE_URL}/v2/checkout/orders/${paypalOrderId}/capture`,
+    `${getPayPalApiBase()}/v2/checkout/orders/${paypalOrderId}/capture`,
     {
       method: "POST",
       headers: {
