@@ -39,9 +39,16 @@ R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...
 R2_BUCKET_NAME=ricambixstufe-images
 R2_PUBLIC_URL=https://pub-xxxxxxxx.r2.dev
+
+# PayPal REST API (vedi docs/PAYPAL.md)
+PAYPAL_MODE=live
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
 ```
 
 In produzione, `DATABASE_URL` usa il hostname Docker interno `db:5432` (rete interna Compose).
+
+> Se i pagamenti PayPal smettono di funzionare dopo un cambio password del conto, aggiorna Client ID/Secret come descritto in [`docs/PAYPAL.md`](./PAYPAL.md) e usa **Admin → Impostazioni → Testa PayPal**.
 
 ---
 
@@ -143,3 +150,5 @@ docker compose exec db psql -U postgres ricambixstufe -f /migrations/0000_vps_st
 | `scripts/import-supabase-data.sql` | Import dati master |
 | `.env.local.example` | Template variabili dev |
 | `.env.production.example` | Template variabili produzione |
+| `.env.example` | Template variabili (DB, Auth, Resend, R2, PayPal) |
+| `docs/PAYPAL.md` | Ripristino credenziali PayPal dopo cambio password/secret |

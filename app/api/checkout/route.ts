@@ -1,7 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
-import { createPayPalOrder } from "@/lib/paypal";
+import { createPayPalOrder, PayPalError } from "@/lib/paypal";
 import { signPayload } from "@/lib/signed-payload";
 import { products, orders, orderItems, profiles, dealerProfiles } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
@@ -515,6 +515,13 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("Checkout error:", err);
+    if (err instanceof PayPalError) {
+      const message =
+        err.code === "missing_credentials" || err.code === "auth_failed"
+          ? "Pagamento PayPal non disponibile: credenziali API non valide o mancanti. Contatta l'assistenza."
+          : "Errore durante il pagamento PayPal. Riprova o scegli un altro metodo.";
+      return NextResponse.json({ error: message }, { status: 502 });
+    }
     return NextResponse.json(
       { error: "Errore durante la creazione del pagamento" },
       { status: 500 }
