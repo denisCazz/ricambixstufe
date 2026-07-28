@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { appUsers, profiles } from "@/db/schema";
 import { getUser } from "@/lib/auth";
+import { verifyPayPalCredentials } from "@/lib/paypal";
 import { Resend } from "resend";
 import type { UserRole } from "@/lib/types";
 
@@ -47,6 +48,12 @@ export async function testEmail(): Promise<{ ok: boolean; message: string }> {
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Errore sconosciuto" };
   }
+}
+
+export async function testPayPalConnection(): Promise<{ ok: boolean; message: string }> {
+  await requireAdmin();
+  const result = await verifyPayPalCredentials();
+  return { ok: result.ok, message: result.message };
 }
 
 export async function createUser(formData: FormData): Promise<{ ok: boolean; message: string }> {
