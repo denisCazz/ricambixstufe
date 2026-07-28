@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ShoppingBag,
@@ -21,6 +22,18 @@ import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { useUser } from "@/lib/user-context";
 import { formatOrderNumber } from "@/lib/order-number";
+
+const PAYPAL_RETURN_ERRORS: Record<string, string> = {
+  paypal_cancelled: "Pagamento PayPal annullato. Puoi riprovare o scegliere un altro metodo.",
+  paypal_session_expired:
+    "Sessione PayPal scaduta. Riprova il pagamento (controlla anche che AUTH_URL sul server corrisponda al dominio del sito).",
+  paypal_session_invalid:
+    "Sessione PayPal non valida. Riprova il checkout dall'inizio.",
+  paypal_capture_failed:
+    "PayPal non ha confermato il pagamento. Nessun addebito dovrebbe essere andato a buon fine: riprova o contatta l'assistenza.",
+  paypal_order_save_failed:
+    "Pagamento PayPal ricevuto ma ordine non salvato. Contatta subito l'assistenza con lo scontrino PayPal.",
+};
 
 const COUNTRIES = [
   "Italia",
@@ -123,6 +136,7 @@ export default function CheckoutClient() {
   } = useCart();
   const { t, formatPrice } = useLocale();
   const { dealerDiscount, isDealer } = useUser();
+  const searchParams = useSearchParams();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -137,6 +151,13 @@ export default function CheckoutClient() {
   const [viesStatus, setViesStatus] = useState<"idle" | "loading" | "valid" | "invalid">("idle");
   const [viesCompanyName, setViesCompanyName] = useState<string | null>(null);
   const [viesExempt, setViesExempt] = useState(false);
+
+  // Show errors returned from PayPal capture redirect (?error=paypal_…)
+  useEffect(() => {
+    const code = searchParams.get("error");
+    if (!code) return;
+    setError(PAYPAL_RETURN_ERRORS[code] || `Errore pagamento: ${code}`);
+  }, [searchParams]);
 
   // Track country/province for shipping calculation
   const [selectedCountry, setSelectedCountry] = useState("Italia");

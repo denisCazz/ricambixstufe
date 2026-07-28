@@ -20,6 +20,22 @@ PAYPAL_CLIENT_SECRET=...
 
 `PAYPAL_MODE` deve essere esattamente `live` in produzione. Qualsiasi altro valore usa l’API sandbox.
 
+## Se Client ID/Secret non sono cambiati
+
+È normale: la password di login e le API REST sono separate.
+
+In quel caso controlla nell’ordine:
+
+1. **Admin → Testa PayPal**
+   - Deve dire `modalità live` e `OK`.
+   - Se dice `sandbox`, sul server manca `PAYPAL_MODE=live`.
+   - Controlla anche che `AUTH_URL` sia esattamente l’URL pubblico del sito (es. `https://www.ricambixstufe.it`), altrimenti al ritorno da PayPal il cookie di sessione può perdersi.
+2. **Checkout di prova**
+   - Se fallisce *prima* del redirect a PayPal → errore API create-order (log server).
+   - Se fallisce *dopo* aver pagato su PayPal → ora il checkout mostra un messaggio chiaro (`paypal_capture_failed`, `paypal_session_expired`, …).
+3. **Conto business PayPal**
+   - Dopo un cambio password PayPal a volte limita temporaneamente l’incasso finché non completi la verifica di sicurezza sul conto (anche se le API OAuth rispondono OK).
+
 ## Passi di ripristino
 
 1. Accedi a [developer.paypal.com](https://developer.paypal.com/) con il conto business.
