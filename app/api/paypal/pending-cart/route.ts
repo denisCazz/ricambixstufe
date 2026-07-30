@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyPayload } from "@/lib/signed-payload";
 
-interface CartSnapshotItem {
-  id: number;
-  name: string;
-  slug: string;
-  price: number;
-  image: string | null;
+interface PendingOrderItem {
+  productId: number;
+  productName: string;
   quantity: number;
-  lineKey?: string;
-  lineNotes?: string | null;
+  cartSlug?: string;
+  cartPrice?: number;
+  cartLineKey?: string;
 }
 
 interface PendingOrderPayload {
-  cartSnapshot?: CartSnapshotItem[];
+  items?: PendingOrderItem[];
   expiresAt: number;
 }
 
@@ -33,8 +31,34 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ items: null }, { status: 410 });
   }
 
-  const items = payload.cartSnapshot;
-  if (!items?.length) {
+  if (!payload.items?.length) {
+    return NextResponse.json({ items: null }, { status: 404 });
+  }
+
+  const items = payload.items.flatMap((item) => {
+    if (
+      typeof item.productId !== "number" ||
+      typeof item.productName !== "string" ||
+      typeof item.cartPrice !== "number" ||
+      typeof item.quantity !== "number"
+    ) {
+      return [];
+    }
+
+    const [name, ...noteLines] = item.productName.split("\n");
+    return [{
+      id: item.productId,
+      name: name || "Prodotto",
+      slug: item.cartSlug || "",
+      price: item.cartPrice,
+      image: null,
+      quantity: item.quantity,
+      lineKey: item.cartLineKey,
+      lineNotes: noteLines.length ? noteLines.join("\n") : null,
+    }];
+  });
+
+  if (!items.length) {
     return NextResponse.json({ items: null }, { status: 404 });
   }
 

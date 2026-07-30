@@ -30,8 +30,6 @@ interface OrderPayload {
   billingAddress: Record<string, string>;
   notes: string | null;
   items: OrderItem[];
-  /** Present on newer checkouts — used only by pending-cart restore */
-  cartSnapshot?: unknown;
   expiresAt: number;
 }
 

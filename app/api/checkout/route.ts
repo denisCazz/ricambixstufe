@@ -373,20 +373,12 @@ export async function POST(req: NextRequest) {
             unitPrice,
             discountPercent: 0,
             lineTotal: round2(unitPrice * item.quantity),
-          };
-        }),
-        // Snapshot for restoring the browser cart if PayPal cancels / returns empty
-        cartSnapshot: items.map((item) => {
-          const product = productMap.get(item.id);
-          return {
-            id: item.id,
-            name: item.name || product?.nameIt || "Prodotto",
-            slug: product?.slug || "",
-            price: item.price,
-            image: item.image,
-            quantity: item.quantity,
-            lineKey: item.lineKey,
-            lineNotes: item.lineNotes ?? null,
+            // Minimal browser-cart metadata for restoring after PayPal cancel.
+            // Keep this on the existing item instead of duplicating the whole
+            // payload: browser cookies are limited to roughly 4 KB.
+            cartSlug: product?.slug || "",
+            cartPrice: item.price,
+            cartLineKey: item.lineKey,
           };
         }),
         expiresAt: Date.now() + 3 * 60 * 60 * 1000, // 3h (PayPal order TTL)
