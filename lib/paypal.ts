@@ -123,7 +123,8 @@ export async function createPayPalOrder(params: {
       application_context: {
         brand_name: "RicambiXStufe",
         locale: "it-IT",
-        landing_page: "NO_PREFERENCE",
+        // Prefer account login over guest card form (avoids "can't access my PayPal" confusion)
+        landing_page: "LOGIN",
         user_action: "PAY_NOW",
         return_url: params.returnUrl,
         cancel_url: params.cancelUrl,

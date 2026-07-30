@@ -33,10 +33,14 @@ function sameLine(
 
 interface CartContextType {
   items: CartItem[];
+  /** false until localStorage has been read (avoids empty-cart flash) */
+  loaded: boolean;
   addItem: (product: Omit<CartItem, "quantity">, quantity?: number) => void;
   removeItem: (id: number, lineKey?: string) => void;
   updateQuantity: (id: number, quantity: number, lineKey?: string) => void;
   clearCart: () => void;
+  /** Replace cart contents (e.g. restore after PayPal cancel) */
+  replaceCart: (next: CartItem[]) => void;
   totalItems: number;
   totalPrice: number;
   isOpen: boolean;
@@ -111,6 +115,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems([]);
   }, []);
 
+  const replaceCart = useCallback((next: CartItem[]) => {
+    setItems(next);
+  }, []);
+
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -118,10 +126,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     <CartContext.Provider
       value={{
         items,
+        loaded,
         addItem,
         removeItem,
         updateQuantity,
         clearCart,
+        replaceCart,
         totalItems,
         totalPrice,
         isOpen,

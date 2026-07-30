@@ -339,7 +339,12 @@ export async function POST(req: NextRequest) {
 
       // Fetch product details needed for order items at capture time
       const productDetails = await db
-        .select({ id: products.id, sku: products.sku, nameIt: products.nameIt })
+        .select({
+          id: products.id,
+          sku: products.sku,
+          nameIt: products.nameIt,
+          slug: products.slug,
+        })
         .from(products)
         .where(inArray(products.id, productIds));
       const productMap = new Map(productDetails.map((p) => [p.id, p]));
@@ -368,6 +373,20 @@ export async function POST(req: NextRequest) {
             unitPrice,
             discountPercent: 0,
             lineTotal: round2(unitPrice * item.quantity),
+          };
+        }),
+        // Snapshot for restoring the browser cart if PayPal cancels / returns empty
+        cartSnapshot: items.map((item) => {
+          const product = productMap.get(item.id);
+          return {
+            id: item.id,
+            name: item.name || product?.nameIt || "Prodotto",
+            slug: product?.slug || "",
+            price: item.price,
+            image: item.image,
+            quantity: item.quantity,
+            lineKey: item.lineKey,
+            lineNotes: item.lineNotes ?? null,
           };
         }),
         expiresAt: Date.now() + 3 * 60 * 60 * 1000, // 3h (PayPal order TTL)
