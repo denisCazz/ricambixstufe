@@ -339,7 +339,12 @@ export async function POST(req: NextRequest) {
 
       // Fetch product details needed for order items at capture time
       const productDetails = await db
-        .select({ id: products.id, sku: products.sku, nameIt: products.nameIt })
+        .select({
+          id: products.id,
+          sku: products.sku,
+          nameIt: products.nameIt,
+          slug: products.slug,
+        })
         .from(products)
         .where(inArray(products.id, productIds));
       const productMap = new Map(productDetails.map((p) => [p.id, p]));
@@ -368,6 +373,12 @@ export async function POST(req: NextRequest) {
             unitPrice,
             discountPercent: 0,
             lineTotal: round2(unitPrice * item.quantity),
+            // Minimal browser-cart metadata for restoring after PayPal cancel.
+            // Keep this on the existing item instead of duplicating the whole
+            // payload: browser cookies are limited to roughly 4 KB.
+            cartSlug: product?.slug || "",
+            cartPrice: item.price,
+            cartLineKey: item.lineKey,
           };
         }),
         expiresAt: Date.now() + 3 * 60 * 60 * 1000, // 3h (PayPal order TTL)

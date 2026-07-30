@@ -49,6 +49,17 @@ Errori tipici:
 | credenziali mancanti | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` non impostate nel container |
 | funziona in sandbox ma non in prod | `PAYPAL_MODE` non è `live`, o stai usando credenziali sandbox in live |
 
+## Ritorno da PayPal con carrello vuoto
+
+Se il cliente annulla su PayPal (o torna con `?error=paypal_cancelled`), il checkout:
+
+1. mostra un messaggio chiaro (non solo “Il carrello è vuoto”);
+2. ripristina il carrello dallo snapshot salvato nel cookie `paypal_order` (`GET /api/paypal/pending-cart`).
+
+Senza lo snapshot (sessioni vecchie / cookie scaduto) resta il messaggio di errore e il CTA allo shop.
+
+`landing_page` è impostato a `LOGIN` per favorire l’accesso al conto PayPal rispetto al solo form carta ospite.
+
 ## Nota sicurezza
 
 Non committare mai Client Secret. Dopo aver generato un secret nuovo, il precedente smette di funzionare: aggiorna subito il server.

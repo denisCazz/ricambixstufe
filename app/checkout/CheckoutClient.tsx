@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ShoppingBag,
@@ -17,7 +18,7 @@ import {
   Building2,
   Banknote,
 } from "lucide-react";
-import { useCart, cartLineId } from "@/lib/cart-context";
+import { useCart, cartLineId, type CartItem } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { useUser } from "@/lib/user-context";
 import {
@@ -29,6 +30,14 @@ import { grossToNetItalianVat } from "@/lib/catalog-display-price";
 import type { EuropeShippingMethod } from "@/lib/shipping";
 import ReceiptUploader from "@/components/ReceiptUploader";
 import { formatOrderNumber } from "@/lib/order-number";
+
+const PAYPAL_RETURN_ERROR_KEYS: Record<string, string> = {
+  paypal_cancelled: "checkout.paypal_cancelled",
+  paypal_session_expired: "checkout.paypal_session_expired",
+  paypal_session_invalid: "checkout.paypal_session_invalid",
+  paypal_capture_failed: "checkout.paypal_capture_failed",
+  paypal_order_save_failed: "checkout.paypal_order_save_failed",
+};
 
 const COUNTRIES = [
   "Italia",
@@ -124,14 +133,17 @@ const BANK_INTESTATARIO = "Ricambi X Stufe";
 export default function CheckoutClient() {
   const {
     items,
+    loaded: cartLoaded,
     removeItem,
     updateQuantity,
     totalPrice,
     totalItems,
     clearCart,
+    replaceCart,
   } = useCart();
   const { t, formatPrice } = useLocale();
   const { dealerDiscount, isDealer, pricesIncludeVat } = useUser();
+  const searchParams = useSearchParams();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -142,6 +154,7 @@ export default function CheckoutClient() {
   const [shippingCalc, setShippingCalc] = useState<ShippingCalc | null>(null);
   const [shippingLoading, setShippingLoading] = useState(false);
   const [europeShippingMethod, setEuropeShippingMethod] = useState<EuropeShippingMethod>("standard_10");
+  const [paypalRestoreDone, setPaypalRestoreDone] = useState(false);
 
   // VIES lookup (optional): mostra ragione sociale UE; il totale IVA usa paese / P.IVA italiana
   const [viesStatus, setViesStatus] = useState<"idle" | "loading" | "valid" | "invalid">("idle");
@@ -159,6 +172,59 @@ export default function CheckoutClient() {
     total: number;
     receiptToken?: string;
   } | null>(null);
+
+  // Show errors returned from PayPal capture/cancel redirect (?error=paypal_…)
+  useEffect(() => {
+    const code = searchParams.get("error");
+    if (!code) return;
+    const key = PAYPAL_RETURN_ERROR_KEYS[code];
+    setError(key ? t(key) : `Errore pagamento: ${code}`);
+  }, [searchParams, t]);
+
+  // After PayPal cancel/fail, localStorage cart is sometimes empty (mobile / in-app browser).
+  // Restore from the signed paypal_order cookie snapshot.
+  useEffect(() => {
+    if (!cartLoaded) return;
+    const code = searchParams.get("error");
+    if (!code || !code.startsWith("paypal_")) {
+      setPaypalRestoreDone(true);
+      return;
+    }
+    if (items.length > 0) {
+      setPaypalRestoreDone(true);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/paypal/pending-cart");
+        if (!res.ok) return;
+        const data = (await res.json()) as { items?: CartItem[] | null };
+        if (cancelled || !data.items?.length) return;
+        replaceCart(
+          data.items.map((item) => ({
+            id: item.id,
+            name: item.name,
+            slug: item.slug || "",
+            price: item.price,
+            image: item.image ?? null,
+            quantity: item.quantity,
+            lineKey: item.lineKey,
+            lineNotes: item.lineNotes ?? null,
+          }))
+        );
+      } catch {
+        // ignore — user can re-add products
+      } finally {
+        if (!cancelled) setPaypalRestoreDone(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cartLoaded, items.length, replaceCart, searchParams]);
 
   // Clienti registrati con indirizzo di riferimento: la spedizione è determinata
   // automaticamente dall'indirizzo salvato (paese/provincia), senza scelta di
@@ -411,12 +477,36 @@ export default function CheckoutClient() {
     );
   }
 
+  const paypalErrorCode = searchParams.get("error");
+  const awaitingPaypalRestore =
+    !!paypalErrorCode?.startsWith("paypal_") &&
+    !paypalRestoreDone &&
+    items.length === 0;
+
+  if (!cartLoaded || awaitingPaypalRestore) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
+        <Loader2 className="w-8 h-8 text-accent animate-spin mb-3" />
+        <p className="text-sm text-muted">
+          {awaitingPaypalRestore
+            ? t("checkout.paypal_restoring")
+            : t("checkout.loading")}
+        </p>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
         <div className="w-20 h-20 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center mb-4">
           <ShoppingBag className="w-9 h-9 text-muted/40" />
         </div>
+        {error && (
+          <div className="mb-4 max-w-md px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-sm text-red-700 text-left">
+            {error}
+          </div>
+        )}
         <p className="text-foreground font-semibold mb-1">
           {t("checkout.empty")}
         </p>
