@@ -15,6 +15,8 @@ const DashboardCharts = dynamic(() => import("./DashboardCharts"), {
   ),
 });
 
+export type Period = "1m" | "3m" | "12m" | "all";
+
 export interface DailyStat {
   day: string;
   orders: number;
@@ -36,6 +38,20 @@ export interface DashboardStats {
   ordersThisMonth: number;
 }
 
+const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+  { value: "1m", label: "1 mese" },
+  { value: "3m", label: "3 mesi" },
+  { value: "12m", label: "12 mesi" },
+  { value: "all", label: "Tutto" },
+];
+
+export const PERIOD_LABELS: Record<Period, string> = {
+  "1m": "ultimo mese",
+  "3m": "ultimi 3 mesi",
+  "12m": "ultimi 12 mesi",
+  all: "di sempre",
+};
+
 function formatEur(n: number) {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 }
@@ -44,12 +60,15 @@ export default function DashboardClient({
   stats,
   dailyData,
   topProducts,
+  period,
 }: {
   stats: DashboardStats;
   dailyData: DailyStat[];
   topProducts: TopProduct[];
+  period: Period;
 }) {
   const [aiDismissed, setAiDismissed] = useState(true);
+  const periodLabel = PERIOD_LABELS[period];
 
   useEffect(() => {
     setAiDismissed(localStorage.getItem("ai_popup_dismissed") === "1");
@@ -69,7 +88,25 @@ export default function DashboardClient({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <div className="flex rounded-xl bg-background border border-border overflow-hidden text-xs shrink-0">
+          {PERIOD_OPTIONS.map((opt) => (
+            <Link
+              key={opt.value}
+              href={opt.value === "1m" ? "/admin" : `/admin?period=${opt.value}`}
+              scroll={false}
+              className={`px-3 py-1.5 transition-colors ${
+                period === opt.value
+                  ? "bg-accent text-white font-medium"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </Link>
+          ))}
+        </div>
+      </div>
 
       {/* AI popup banner */}
       {!aiDismissed && (
@@ -120,16 +157,16 @@ export default function DashboardClient({
       {/* Revenue summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-surface border border-border rounded-2xl p-5">
-          <p className="text-xs text-muted uppercase tracking-wide mb-1">Fatturato ultimi 30 giorni</p>
+          <p className="text-xs text-muted uppercase tracking-wide mb-1">Fatturato {periodLabel}</p>
           <p className="text-3xl font-bold text-accent tabular-nums">{formatEur(stats.revenueThisMonth)}</p>
         </div>
         <div className="bg-surface border border-border rounded-2xl p-5">
-          <p className="text-xs text-muted uppercase tracking-wide mb-1">Ordini ultimi 30 giorni</p>
+          <p className="text-xs text-muted uppercase tracking-wide mb-1">Ordini {periodLabel}</p>
           <p className="text-3xl font-bold text-foreground tabular-nums">{stats.ordersThisMonth}</p>
         </div>
       </div>
 
-      <DashboardCharts dailyData={dailyData} topProducts={topProducts} />
+      <DashboardCharts dailyData={dailyData} topProducts={topProducts} periodLabel={periodLabel} />
     </div>
   );
 }

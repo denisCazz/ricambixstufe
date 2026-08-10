@@ -1,4 +1,4 @@
-import {
+﻿import {
   pgTable,
   pgEnum,
   serial,
@@ -12,7 +12,15 @@ import {
   decimal,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
-import type { PaymentMethod, OrderStatus, UserRole, DealerStatus } from "@/lib/types";
+import type {
+  PaymentMethod,
+  OrderStatus,
+  UserRole,
+  DealerStatus,
+  AnnouncementSeverity,
+  AnnouncementAudience,
+  AnnouncementScheduleMode,
+} from "@/lib/types";
 
 export const userRoleEnum = pgEnum("user_role", [
   "customer",
@@ -36,6 +44,20 @@ export const paymentMethodEnum = pgEnum("payment_method", [
   "paypal",
   "bank_transfer",
   "cod",
+]);
+export const announcementSeverityEnum = pgEnum("announcement_severity", [
+  "info",
+  "warning",
+  "critical",
+]);
+export const announcementAudienceEnum = pgEnum("announcement_audience", [
+  "users",
+  "admin",
+  "both",
+]);
+export const announcementScheduleModeEnum = pgEnum("announcement_schedule_mode", [
+  "always",
+  "range",
 ]);
 
 export const appUsers = pgTable("app_users", {
@@ -274,6 +296,32 @@ export const appSettings = pgTable("app_settings", {
   value: jsonb("value").notNull().$type<Record<string, unknown>>(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const announcements = pgTable(
+  "announcements",
+  {
+    id: serial("id").primaryKey(),
+    message: text("message").notNull(),
+    severity: announcementSeverityEnum("severity")
+      .notNull()
+      .default("info")
+      .$type<AnnouncementSeverity>(),
+    audience: announcementAudienceEnum("audience")
+      .notNull()
+      .default("users")
+      .$type<AnnouncementAudience>(),
+    scheduleMode: announcementScheduleModeEnum("schedule_mode")
+      .notNull()
+      .default("always")
+      .$type<AnnouncementScheduleMode>(),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("idx_announcements_active").on(t.active)]
+);
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
   products: many(products),

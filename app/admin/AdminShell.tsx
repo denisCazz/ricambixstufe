@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -19,6 +19,7 @@ import {
   LifeBuoy,
   Truck,
   LayoutList,
+  Megaphone,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import type { AuthUser } from "@/lib/auth";
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/admin/stufe", label: "Stufe", icon: Flame },
   { href: "/admin/users", label: "Utenti", icon: Users },
   { href: "/admin/dealers", label: "Dealer", icon: Briefcase },
+  { href: "/admin/avvisi", label: "Avvisi", icon: Megaphone },
   { href: "/admin/settings", label: "Impostazioni", icon: Settings },
   { href: "/admin/spedizioni", label: "Spedizioni", icon: Truck },
   { href: "/admin/danea", label: "Danea", icon: Cable },

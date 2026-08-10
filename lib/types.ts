@@ -1,4 +1,4 @@
-export interface StoveFilter {
+﻿export interface StoveFilter {
   id: number;
   nameIt: string;
   nameEn: string | null;
@@ -17,3 +17,6 @@ export type OrderStatus =
   | "delivered"
   | "cancelled";
 export type PaymentMethod = "paypal" | "bank_transfer" | "cod";
+export type AnnouncementSeverity = "info" | "warning" | "critical";
+export type AnnouncementAudience = "users" | "admin" | "both";
+export type AnnouncementScheduleMode = "always" | "range";

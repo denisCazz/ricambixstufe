@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ReactNode } from "react";
 import { CartProvider } from "@/lib/cart-context";
@@ -9,6 +9,7 @@ import CartDrawer from "@/components/CartDrawer";
 import CookieBanner from "@/components/CookieBanner";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import ScrollToTop from "@/components/ScrollToTop";
+import AnnouncementPopup from "@/components/AnnouncementPopup";
 
 /** Single client boundary so context providers share one module graph / React tree reliably. */
 export default function AppProviders({ children }: { children: ReactNode }) {
@@ -21,6 +22,7 @@ export default function AppProviders({ children }: { children: ReactNode }) {
             <CartDrawer />
             <ScrollToTop />
             <CookieBanner />
+            <AnnouncementPopup />
             <GoogleAnalytics />
           </CartProvider>
         </UserProvider>

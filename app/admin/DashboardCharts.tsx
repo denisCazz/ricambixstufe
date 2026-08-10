@@ -48,9 +48,11 @@ function CustomTooltip({
 export default function DashboardCharts({
   dailyData,
   topProducts,
+  periodLabel,
 }: {
   dailyData: DailyStat[];
   topProducts: TopProduct[];
+  periodLabel: string;
 }) {
   const [chartMode, setChartMode] = useState<"revenue" | "orders">("revenue");
 
@@ -60,7 +62,7 @@ export default function DashboardCharts({
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-accent" />
-            <h2 className="font-semibold text-foreground text-sm">Andamento ultimi 30 giorni</h2>
+            <h2 className="font-semibold text-foreground text-sm">Andamento {periodLabel}</h2>
           </div>
           <div className="flex rounded-xl bg-background border border-border overflow-hidden text-xs">
             <button
@@ -108,7 +110,7 @@ export default function DashboardCharts({
 
       {topProducts.length > 0 && (
         <div className="bg-surface border border-border rounded-2xl p-5">
-          <h2 className="font-semibold text-foreground text-sm mb-5">Top prodotti (ultimi 30 giorni)</h2>
+          <h2 className="font-semibold text-foreground text-sm mb-5">Top prodotti ({periodLabel})</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={topProducts} layout="vertical" margin={{ top: 0, right: 32, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, #e5e7eb)" horizontal={false} />

@@ -1,48 +1,127 @@
-import { count, eq, sql } from "drizzle-orm";
+﻿import { count, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { products, profiles, dealerProfiles, orders, orderItems } from "@/db/schema";
 import DashboardClient from "./DashboardClient";
-import type { DailyStat, TopProduct, DashboardStats } from "./DashboardClient";
+import type { DailyStat, TopProduct, DashboardStats, Period } from "./DashboardClient";
 
-async function getDashboardData() {
+const VALID_PERIODS: Period[] = ["1m", "3m", "12m", "all"];
+
+function parsePeriod(raw: string | undefined): Period {
+  if (raw && VALID_PERIODS.includes(raw as Period)) return raw as Period;
+  return "1m";
+}
+
+function periodStart(period: Period): Date | null {
+  if (period === "all") return null;
+  const d = new Date();
+  const months = period === "1m" ? 1 : period === "3m" ? 3 : 12;
+  d.setMonth(d.getMonth() - months);
+  return d;
+}
+
+function usesMonthlyBuckets(period: Period): boolean {
+  return period === "12m" || period === "all";
+}
+
+async function getDashboardData(period: Period) {
   const db = getDb();
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const from = periodStart(period);
+  const monthly = usesMonthlyBuckets(period);
+
+  const dailyQuery = monthly
+    ? from
+      ? sql`
+          SELECT
+            TO_CHAR(DATE_TRUNC('month', created_at AT TIME ZONE 'Europe/Rome'), 'MM/YYYY') AS day,
+            COUNT(*)::int AS orders,
+            COALESCE(SUM(total::numeric), 0)::float AS revenue
+          FROM orders
+          WHERE created_at >= ${from} AND status != 'cancelled'
+          GROUP BY DATE_TRUNC('month', created_at AT TIME ZONE 'Europe/Rome')
+          ORDER BY DATE_TRUNC('month', created_at AT TIME ZONE 'Europe/Rome') ASC
+        `
+      : sql`
+          SELECT
+            TO_CHAR(DATE_TRUNC('month', created_at AT TIME ZONE 'Europe/Rome'), 'MM/YYYY') AS day,
+            COUNT(*)::int AS orders,
+            COALESCE(SUM(total::numeric), 0)::float AS revenue
+          FROM orders
+          WHERE status != 'cancelled'
+          GROUP BY DATE_TRUNC('month', created_at AT TIME ZONE 'Europe/Rome')
+          ORDER BY DATE_TRUNC('month', created_at AT TIME ZONE 'Europe/Rome') ASC
+        `
+    : from
+      ? sql`
+          SELECT
+            TO_CHAR(DATE(created_at AT TIME ZONE 'Europe/Rome'), 'DD/MM') AS day,
+            COUNT(*)::int AS orders,
+            COALESCE(SUM(total::numeric), 0)::float AS revenue
+          FROM orders
+          WHERE created_at >= ${from} AND status != 'cancelled'
+          GROUP BY DATE(created_at AT TIME ZONE 'Europe/Rome')
+          ORDER BY DATE(created_at AT TIME ZONE 'Europe/Rome') ASC
+        `
+      : sql`
+          SELECT
+            TO_CHAR(DATE(created_at AT TIME ZONE 'Europe/Rome'), 'DD/MM') AS day,
+            COUNT(*)::int AS orders,
+            COALESCE(SUM(total::numeric), 0)::float AS revenue
+          FROM orders
+          WHERE status != 'cancelled'
+          GROUP BY DATE(created_at AT TIME ZONE 'Europe/Rome')
+          ORDER BY DATE(created_at AT TIME ZONE 'Europe/Rome') ASC
+        `;
+
+  const topQuery = from
+    ? sql`
+        SELECT
+          oi.product_name AS name,
+          SUM(oi.quantity)::int AS qty,
+          COALESCE(SUM(oi.quantity * oi.unit_price::numeric), 0)::float AS revenue
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.id
+        WHERE o.created_at >= ${from} AND o.status != 'cancelled'
+        GROUP BY oi.product_name
+        ORDER BY qty DESC
+        LIMIT 5
+      `
+    : sql`
+        SELECT
+          oi.product_name AS name,
+          SUM(oi.quantity)::int AS qty,
+          COALESCE(SUM(oi.quantity * oi.unit_price::numeric), 0)::float AS revenue
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.id
+        WHERE o.status != 'cancelled'
+        GROUP BY oi.product_name
+        ORDER BY qty DESC
+        LIMIT 5
+      `;
+
+  const statsQuery = from
+    ? sql`
+        SELECT
+          COUNT(*)::int AS order_count,
+          COALESCE(SUM(total::numeric), 0)::float AS revenue
+        FROM orders
+        WHERE created_at >= ${from} AND status != 'cancelled'
+      `
+    : sql`
+        SELECT
+          COUNT(*)::int AS order_count,
+          COALESCE(SUM(total::numeric), 0)::float AS revenue
+        FROM orders
+        WHERE status != 'cancelled'
+      `;
 
   const [p, prof, deal, ords, daily, top, monthStats] = await Promise.all([
     db.select({ n: count() }).from(products).then((r) => r[0]),
     db.select({ n: count() }).from(profiles).then((r) => r[0]),
     db.select({ n: count() }).from(dealerProfiles).where(eq(dealerProfiles.status, "pending")).then((r) => r[0]),
     db.select({ n: count() }).from(orders).then((r) => r[0]),
-    db.execute(sql`
-      SELECT
-        TO_CHAR(DATE(created_at AT TIME ZONE 'Europe/Rome'), 'DD/MM') AS day,
-        COUNT(*)::int AS orders,
-        COALESCE(SUM(total::numeric), 0)::float AS revenue
-      FROM orders
-      WHERE created_at >= ${thirtyDaysAgo} AND status != 'cancelled'
-      GROUP BY DATE(created_at AT TIME ZONE 'Europe/Rome')
-      ORDER BY DATE(created_at AT TIME ZONE 'Europe/Rome') ASC
-    `),
-    db.execute(sql`
-      SELECT
-        oi.product_name AS name,
-        SUM(oi.quantity)::int AS qty,
-        COALESCE(SUM(oi.quantity * oi.unit_price::numeric), 0)::float AS revenue
-      FROM order_items oi
-      JOIN orders o ON oi.order_id = o.id
-      WHERE o.created_at >= ${thirtyDaysAgo} AND o.status != 'cancelled'
-      GROUP BY oi.product_name
-      ORDER BY qty DESC
-      LIMIT 5
-    `),
-    db.execute(sql`
-      SELECT
-        COUNT(*)::int AS order_count,
-        COALESCE(SUM(total::numeric), 0)::float AS revenue
-      FROM orders
-      WHERE created_at >= ${thirtyDaysAgo} AND status != 'cancelled'
-    `),
+    db.execute(dailyQuery),
+    db.execute(topQuery),
+    db.execute(statsQuery),
   ]);
 
   const stats: DashboardStats = {
@@ -69,8 +148,21 @@ async function getDashboardData() {
   return { stats, dailyData, topProducts };
 }
 
-export default async function AdminDashboard() {
-  const { stats, dailyData, topProducts } = await getDashboardData();
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
+  const params = await searchParams;
+  const period = parsePeriod(params.period);
+  const { stats, dailyData, topProducts } = await getDashboardData(period);
 
-  return <DashboardClient stats={stats} dailyData={dailyData} topProducts={topProducts} />;
+  return (
+    <DashboardClient
+      stats={stats}
+      dailyData={dailyData}
+      topProducts={topProducts}
+      period={period}
+    />
+  );
 }
