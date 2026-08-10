@@ -301,7 +301,10 @@ export const announcements = pgTable(
   "announcements",
   {
     id: serial("id").primaryKey(),
-    message: text("message").notNull(),
+    messageIt: text("message_it").notNull(),
+    messageEn: text("message_en"),
+    messageFr: text("message_fr"),
+    messageEs: text("message_es"),
     severity: announcementSeverityEnum("severity")
       .notNull()
       .default("info")

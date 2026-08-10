@@ -17,7 +17,10 @@ export async function GET(request: Request) {
     return NextResponse.json({
       announcements: rows.map((r) => ({
         id: r.id,
-        message: r.message,
+        messageIt: r.messageIt,
+        messageEn: r.messageEn,
+        messageFr: r.messageFr,
+        messageEs: r.messageEs,
         severity: r.severity,
         audience: r.audience,
         scheduleMode: r.scheduleMode,

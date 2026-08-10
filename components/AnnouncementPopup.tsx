@@ -6,11 +6,14 @@ import { AlertTriangle, Info, X, ShieldAlert } from "lucide-react";
 import {
   dismissAnnouncement,
   isAnnouncementDismissed,
+  localizedAnnouncementMessage,
   type AnnouncementPayload,
 } from "@/lib/announcement-dismiss";
+import { useLocale } from "@/lib/locale-context";
 
 export default function AnnouncementPopup() {
   const pathname = usePathname();
+  const { locale, t } = useLocale();
   const surface = pathname?.startsWith("/admin") ? "admin" : "store";
   const [queue, setQueue] = useState<AnnouncementPayload[]>([]);
   const [current, setCurrent] = useState<AnnouncementPayload | null>(null);
@@ -53,6 +56,13 @@ export default function AnnouncementPopup() {
 
   if (!current) return null;
 
+  const titleKey =
+    current.severity === "critical"
+      ? "announcement.title_critical"
+      : current.severity === "warning"
+        ? "announcement.title_warning"
+        : "announcement.title_info";
+
   const styles =
     current.severity === "critical"
       ? {
@@ -60,7 +70,6 @@ export default function AnnouncementPopup() {
           iconColor: "text-red-600 dark:text-red-400",
           accent: "bg-red-600 hover:bg-red-700",
           Icon: ShieldAlert,
-          title: "Avviso importante",
         }
       : current.severity === "warning"
         ? {
@@ -68,17 +77,16 @@ export default function AnnouncementPopup() {
             iconColor: "text-amber-700 dark:text-amber-400",
             accent: "bg-amber-600 hover:bg-amber-700",
             Icon: AlertTriangle,
-            title: "Avviso",
           }
         : {
             iconBg: "bg-sky-100 dark:bg-sky-950/50",
             iconColor: "text-sky-700 dark:text-sky-400",
             accent: "bg-sky-600 hover:bg-sky-700",
             Icon: Info,
-            title: "Informazione",
           };
 
   const Icon = styles.Icon;
+  const message = localizedAnnouncementMessage(current, locale);
 
   return (
     <div
@@ -92,7 +100,7 @@ export default function AnnouncementPopup() {
           type="button"
           onClick={handleDismiss}
           className="absolute top-3 right-3 p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-surface-hover transition-colors"
-          aria-label="Chiudi"
+          aria-label={t("announcement.close")}
         >
           <X className="w-4 h-4" />
         </button>
@@ -105,18 +113,18 @@ export default function AnnouncementPopup() {
           </div>
           <div>
             <h2 id="announcement-title" className="text-lg font-semibold text-foreground">
-              {styles.title}
+              {t(titleKey)}
             </h2>
             {queue.length > 1 && (
               <p className="text-xs text-muted mt-0.5">
-                1 di {queue.length} avvisi
+                {t("announcement.queue").replace("{n}", String(queue.length))}
               </p>
             )}
           </div>
         </div>
 
         <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed mb-6">
-          {current.message}
+          {message}
         </p>
 
         <button
@@ -124,7 +132,7 @@ export default function AnnouncementPopup() {
           onClick={handleDismiss}
           className={`w-full px-4 py-2.5 rounded-xl text-white text-sm font-medium transition-colors ${styles.accent}`}
         >
-          Ho capito
+          {t("announcement.dismiss")}
         </button>
       </div>
     </div>

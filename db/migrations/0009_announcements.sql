@@ -18,7 +18,10 @@ END $$;
 
 CREATE TABLE IF NOT EXISTS announcements (
   id            SERIAL PRIMARY KEY,
-  message       TEXT NOT NULL,
+  message_it    TEXT NOT NULL,
+  message_en    TEXT,
+  message_fr    TEXT,
+  message_es    TEXT,
   severity      announcement_severity NOT NULL DEFAULT 'info',
   audience      announcement_audience NOT NULL DEFAULT 'users',
   schedule_mode announcement_schedule_mode NOT NULL DEFAULT 'always',

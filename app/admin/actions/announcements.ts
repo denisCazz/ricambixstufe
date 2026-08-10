@@ -32,7 +32,10 @@ function parseOptionalDate(value: FormDataEntryValue | null): Date | null {
 }
 
 function parseForm(formData: FormData) {
-  const message = (formData.get("message") as string)?.trim() ?? "";
+  const messageIt = (formData.get("message_it") as string)?.trim() ?? "";
+  const messageEn = (formData.get("message_en") as string)?.trim() || null;
+  const messageFr = (formData.get("message_fr") as string)?.trim() || null;
+  const messageEs = (formData.get("message_es") as string)?.trim() || null;
   const severity = parseEnum(formData.get("severity"), SEVERITIES, "info");
   const audience = parseEnum(formData.get("audience"), AUDIENCES, "users");
   const scheduleMode = parseEnum(formData.get("schedule_mode"), SCHEDULE_MODES, "always");
@@ -40,7 +43,7 @@ function parseForm(formData: FormData) {
   const startsAt = scheduleMode === "range" ? parseOptionalDate(formData.get("starts_at")) : null;
   const endsAt = scheduleMode === "range" ? parseOptionalDate(formData.get("ends_at")) : null;
 
-  if (!message) return { error: "Il messaggio è obbligatorio" as const };
+  if (!messageIt) return { error: "Il messaggio IT è obbligatorio" as const };
   if (scheduleMode === "range") {
     if (!startsAt || !endsAt) return { error: "Per il range servono data inizio e fine" as const };
     if (endsAt < startsAt) return { error: "La data di fine deve essere successiva all'inizio" as const };
@@ -48,7 +51,10 @@ function parseForm(formData: FormData) {
 
   return {
     values: {
-      message,
+      messageIt,
+      messageEn,
+      messageFr,
+      messageEs,
       severity,
       audience,
       scheduleMode,

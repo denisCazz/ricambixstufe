@@ -16,7 +16,10 @@ import type {
 
 type Announcement = {
   id: number;
-  message: string;
+  messageIt: string;
+  messageEn: string | null;
+  messageFr: string | null;
+  messageEs: string | null;
   severity: AnnouncementSeverity;
   audience: AnnouncementAudience;
   scheduleMode: AnnouncementScheduleMode;
@@ -105,21 +108,62 @@ function AnnouncementFields({
 }: {
   item?: Pick<
     Announcement,
-    "message" | "severity" | "audience" | "scheduleMode" | "startsAt" | "endsAt" | "active"
+    | "messageIt"
+    | "messageEn"
+    | "messageFr"
+    | "messageEs"
+    | "severity"
+    | "audience"
+    | "scheduleMode"
+    | "startsAt"
+    | "endsAt"
+    | "active"
   >;
 }) {
   return (
     <div className="space-y-3">
-      <div>
-        <label className="block text-xs text-muted mb-1">Messaggio *</label>
-        <textarea
-          name="message"
-          required
-          rows={3}
-          defaultValue={item?.message ?? ""}
-          placeholder="Testo dell'avviso mostrato nel popup"
-          className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50 resize-y"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div>
+          <label className="block text-xs text-muted mb-1">Messaggio IT *</label>
+          <textarea
+            name="message_it"
+            required
+            rows={3}
+            defaultValue={item?.messageIt ?? ""}
+            placeholder="Testo italiano (obbligatorio)"
+            className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50 resize-y"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-muted mb-1">Messaggio EN</label>
+          <textarea
+            name="message_en"
+            rows={3}
+            defaultValue={item?.messageEn ?? ""}
+            placeholder="English (fallback IT)"
+            className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50 resize-y"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-muted mb-1">Messaggio FR</label>
+          <textarea
+            name="message_fr"
+            rows={3}
+            defaultValue={item?.messageFr ?? ""}
+            placeholder="Français (fallback IT)"
+            className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50 resize-y"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-muted mb-1">Messaggio ES</label>
+          <textarea
+            name="message_es"
+            rows={3}
+            defaultValue={item?.messageEs ?? ""}
+            placeholder="Español (fallback IT)"
+            className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-accent/50 resize-y"
+          />
+        </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <div>
@@ -241,7 +285,14 @@ function AnnouncementRow({
   return (
     <tr className="border-b border-border hover:bg-surface-hover/50 transition-colors">
       <td className="px-4 py-3 text-sm text-foreground max-w-md">
-        <p className="line-clamp-2 whitespace-pre-wrap">{item.message}</p>
+        <p className="line-clamp-2 whitespace-pre-wrap">{item.messageIt}</p>
+        {(item.messageEn || item.messageFr || item.messageEs) && (
+          <p className="text-[11px] text-muted mt-1">
+            {[item.messageEn && "EN", item.messageFr && "FR", item.messageEs && "ES"]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        )}
       </td>
       <td className="px-4 py-3">
         <span
@@ -370,7 +421,7 @@ export default function AvvisiClient({ initialItems }: { initialItems: Announcem
           <thead>
             <tr className="border-b border-border bg-stone-50/60 dark:bg-stone-800/30">
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider">
-                Messaggio
+                Messaggio IT
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider">
                 Severity

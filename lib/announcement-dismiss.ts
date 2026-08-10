@@ -3,10 +3,14 @@
   AnnouncementScheduleMode,
   AnnouncementSeverity,
 } from "@/lib/types";
+import type { Locale } from "@/lib/i18n";
 
 export type AnnouncementPayload = {
   id: number;
-  message: string;
+  messageIt: string;
+  messageEn: string | null;
+  messageFr: string | null;
+  messageEs: string | null;
   severity: AnnouncementSeverity;
   audience: AnnouncementAudience;
   scheduleMode: AnnouncementScheduleMode;
@@ -14,10 +18,23 @@ export type AnnouncementPayload = {
   endsAt: string | null;
 };
 
+export function localizedAnnouncementMessage(
+  a: Pick<AnnouncementPayload, "messageIt" | "messageEn" | "messageFr" | "messageEs">,
+  locale: Locale
+): string {
+  if (locale === "en" && a.messageEn) return a.messageEn;
+  if (locale === "fr" && a.messageFr) return a.messageFr;
+  if (locale === "es" && a.messageEs) return a.messageEs;
+  return a.messageIt;
+}
+
 /** Simple non-crypto fingerprint so edits re-show dismissed popups. */
 export function announcementFingerprint(a: AnnouncementPayload): string {
   const raw = [
-    a.message,
+    a.messageIt,
+    a.messageEn ?? "",
+    a.messageFr ?? "",
+    a.messageEs ?? "",
     a.severity,
     a.audience,
     a.scheduleMode,

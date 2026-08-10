@@ -13,7 +13,7 @@ Allow admins to create site-wide popup announcements with audience, schedule, se
 | Surfaces | Public site for `users`/`both`; `/admin` for `admin`/`both` |
 | Dismiss | Once per browser via `localStorage`; re-show if message/content fingerprint changes |
 | Severity | `info` \| `warning` \| `critical` |
-| Message | Plain text only |
+| Message | Plain text, IT required; optional EN / FR / ES (fallback IT) |
 | Multiple active | Queue: show one at a time, then next undismissed |
 | Storage | Postgres table + Drizzle; admin CRUD via server actions |
 
@@ -22,7 +22,8 @@ Allow admins to create site-wide popup announcements with audience, schedule, se
 Table `announcements`:
 
 - `id` serial PK
-- `message` text not null
+- `message_it` text not null
+- `message_en` / `message_fr` / `message_es` text nullable (fallback to IT)
 - `severity` enum: `info`, `warning`, `critical` (default `info`)
 - `audience` enum: `users`, `admin`, `both` (default `users`)
 - `schedule_mode` enum: `always`, `range` (default `always`)
