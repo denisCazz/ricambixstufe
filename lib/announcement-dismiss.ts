@@ -28,6 +28,24 @@ export function localizedAnnouncementMessage(
   return a.messageIt;
 }
 
+export function availableAnnouncementLocales(
+  a: Pick<AnnouncementPayload, "messageIt" | "messageEn" | "messageFr" | "messageEs">
+): Locale[] {
+  const list: Locale[] = ["it"];
+  if (a.messageEn?.trim()) list.push("en");
+  if (a.messageFr?.trim()) list.push("fr");
+  if (a.messageEs?.trim()) list.push("es");
+  return list;
+}
+
+export function resolveAnnouncementViewLocale(
+  a: Pick<AnnouncementPayload, "messageIt" | "messageEn" | "messageFr" | "messageEs">,
+  preferred: Locale
+): Locale {
+  const available = availableAnnouncementLocales(a);
+  return available.includes(preferred) ? preferred : "it";
+}
+
 /** Simple non-crypto fingerprint so edits re-show dismissed popups. */
 export function announcementFingerprint(a: AnnouncementPayload): string {
   const raw = [

@@ -4,19 +4,30 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AlertTriangle, Info, X, ShieldAlert } from "lucide-react";
 import {
+  availableAnnouncementLocales,
   dismissAnnouncement,
   isAnnouncementDismissed,
   localizedAnnouncementMessage,
+  resolveAnnouncementViewLocale,
   type AnnouncementPayload,
 } from "@/lib/announcement-dismiss";
 import { useLocale } from "@/lib/locale-context";
+import { t as translate, type Locale } from "@/lib/i18n";
+
+const LOCALE_LABEL: Record<Locale, string> = {
+  it: "IT",
+  en: "EN",
+  fr: "FR",
+  es: "ES",
+};
 
 export default function AnnouncementPopup() {
   const pathname = usePathname();
-  const { locale, t } = useLocale();
+  const { locale } = useLocale();
   const surface = pathname?.startsWith("/admin") ? "admin" : "store";
   const [queue, setQueue] = useState<AnnouncementPayload[]>([]);
   const [current, setCurrent] = useState<AnnouncementPayload | null>(null);
+  const [viewLocale, setViewLocale] = useState<Locale>(locale);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,7 +42,9 @@ export default function AnnouncementPopup() {
         if (cancelled) return;
         const pending = (data.announcements ?? []).filter((a) => !isAnnouncementDismissed(a));
         setQueue(pending);
-        setCurrent(pending[0] ?? null);
+        const first = pending[0] ?? null;
+        setCurrent(first);
+        if (first) setViewLocale(resolveAnnouncementViewLocale(first, locale));
       } catch {
         /* ignore network errors */
       }
@@ -44,17 +57,22 @@ export default function AnnouncementPopup() {
     return () => {
       cancelled = true;
     };
-  }, [surface]);
+  }, [surface, locale]);
 
   function handleDismiss() {
     if (!current) return;
     dismissAnnouncement(current);
     const rest = queue.slice(1);
     setQueue(rest);
-    setCurrent(rest[0] ?? null);
+    const next = rest[0] ?? null;
+    setCurrent(next);
+    if (next) setViewLocale(resolveAnnouncementViewLocale(next, locale));
   }
 
   if (!current) return null;
+
+  const t = (key: string) => translate(key, viewLocale);
+  const langs = availableAnnouncementLocales(current);
 
   const titleKey =
     current.severity === "critical"
@@ -86,7 +104,7 @@ export default function AnnouncementPopup() {
           };
 
   const Icon = styles.Icon;
-  const message = localizedAnnouncementMessage(current, locale);
+  const message = localizedAnnouncementMessage(current, viewLocale);
 
   return (
     <div
@@ -111,7 +129,7 @@ export default function AnnouncementPopup() {
           >
             <Icon className={`w-5 h-5 ${styles.iconColor}`} />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <h2 id="announcement-title" className="text-lg font-semibold text-foreground">
               {t(titleKey)}
             </h2>
@@ -122,6 +140,33 @@ export default function AnnouncementPopup() {
             )}
           </div>
         </div>
+
+        {langs.length > 1 && (
+          <div
+            className="flex flex-wrap gap-1.5 mb-4"
+            role="group"
+            aria-label="Language"
+          >
+            {langs.map((code) => {
+              const active = viewLocale === code;
+              return (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => setViewLocale(code)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold tracking-wide transition-colors ${
+                    active
+                      ? "bg-foreground text-background"
+                      : "bg-background border border-border text-muted hover:text-foreground hover:border-foreground/30"
+                  }`}
+                  aria-pressed={active}
+                >
+                  {LOCALE_LABEL[code]}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed mb-6">
           {message}
