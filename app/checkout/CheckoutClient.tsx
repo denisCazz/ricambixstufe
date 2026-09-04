@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -148,6 +148,7 @@ export default function CheckoutClient() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [paying, setPaying] = useState(false);
+  const payingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("paypal");
   const [isCompany, setIsCompany] = useState(false);
@@ -542,6 +543,8 @@ export default function CheckoutClient() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (payingRef.current) return;
+    payingRef.current = true;
     setPaying(true);
     setError(null);
 
@@ -575,6 +578,7 @@ export default function CheckoutClient() {
       const isForeignEuVat = !!(foreignPrefix && foreignPrefix !== "IT");
       if (!isForeignEuVat && !isValidItalianPartitaIva(vat)) {
         setError(t("checkout.vat_italy_company_required"));
+        payingRef.current = false;
         setPaying(false);
         return;
       }
@@ -605,6 +609,7 @@ export default function CheckoutClient() {
 
       if (!res.ok) {
         setError(data.error || "Errore durante il pagamento");
+        payingRef.current = false;
         setPaying(false);
         return;
       }
@@ -629,9 +634,11 @@ export default function CheckoutClient() {
       }
 
       setError("Errore inatteso");
+      payingRef.current = false;
       setPaying(false);
     } catch {
       setError("Errore di connessione. Riprova.");
+      payingRef.current = false;
       setPaying(false);
     }
   }

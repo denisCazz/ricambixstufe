@@ -312,8 +312,8 @@ export async function getSatispayPayment(
 
 export async function waitForSatispayPayment(
   paymentId: string,
-  attempts = 5,
-  delayMs = 800
+  attempts = 8,
+  delayMs = 700
 ): Promise<SatispayPayment> {
   let payment = await getSatispayPayment(paymentId);
   for (let i = 0; i < attempts - 1 && payment.status === "PENDING"; i++) {
@@ -392,6 +392,44 @@ function pendingStatus(paymentId: string): string {
 
 function paidStatus(paymentId: string): string {
   return `satispay:${paymentId}`;
+}
+
+export async function cancelStalePendingSatispayOrders(opts: {
+  userId?: string | null;
+  guestEmail?: string | null;
+}): Promise<void> {
+  const db = getDb();
+  const owner = opts.userId
+    ? eq(orders.userId, opts.userId)
+    : opts.guestEmail?.trim()
+      ? eq(orders.guestEmail, opts.guestEmail.trim())
+      : null;
+  if (!owner) return;
+
+  await db
+    .update(orders)
+    .set({ status: "cancelled", updatedAt: new Date() })
+    .where(
+      and(
+        owner,
+        eq(orders.status, "pending"),
+        eq(orders.paymentMethod, "satispay")
+      )
+    );
+}
+
+export async function abandonPendingSatispayOrder(orderId: number): Promise<void> {
+  const db = getDb();
+  await db
+    .update(orders)
+    .set({ status: "cancelled", updatedAt: new Date() })
+    .where(
+      and(
+        eq(orders.id, orderId),
+        eq(orders.status, "pending"),
+        eq(orders.paymentMethod, "satispay")
+      )
+    );
 }
 
 export function parseSatispayPaymentId(
@@ -491,7 +529,16 @@ export async function fulfillSatispayPayment(
       paymentStatus: paid,
       updatedAt: new Date(),
     })
-    .where(and(eq(orders.id, order.id), eq(orders.status, "pending")))
+    .where(
+      and(
+        eq(orders.id, order.id),
+        or(eq(orders.status, "pending"), eq(orders.status, "cancelled")),
+        or(
+          eq(orders.paymentStatus, pending),
+          eq(orders.paymentStatus, "satispay_pending")
+        )
+      )
+    )
     .returning({ id: orders.id });
 
   if (!updated[0]) {

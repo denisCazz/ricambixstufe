@@ -3,6 +3,7 @@ import {
   fulfillSatispayPayment,
   parseSatispayPaymentId,
   waitForSatispayPayment,
+  abandonPendingSatispayOrder,
 } from "@/lib/satispay";
 import { getDb } from "@/db";
 import { orders } from "@/db/schema";
@@ -49,7 +50,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${siteUrl}/checkout?error=satispay_cancelled`);
     }
     if (outcome === "pending") {
-      return NextResponse.redirect(`${siteUrl}/checkout?error=satispay_pending`);
+      // L'utente è tornato dal hosted page senza ACCEPTED: non lasciare l'ordine "in attesa".
+      // Se il pagamento arriva dopo, il callback può comunque confermare l'ordine cancellato.
+      await abandonPendingSatispayOrder(orderId);
+      return NextResponse.redirect(`${siteUrl}/checkout?error=satispay_cancelled`);
     }
     return NextResponse.redirect(`${siteUrl}/checkout?error=satispay_failed`);
   } catch (err) {

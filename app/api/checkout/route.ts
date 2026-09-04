@@ -2,7 +2,7 @@
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { createPayPalOrder, PayPalError } from "@/lib/paypal";
-import { createSatispayPayment, SatispayError } from "@/lib/satispay";
+import { createSatispayPayment, SatispayError, cancelStalePendingSatispayOrders } from "@/lib/satispay";
 import { formatOrderNumber } from "@/lib/order-number";
 import { signPayload } from "@/lib/signed-payload";
 import { products, orders, orderItems, profiles, dealerProfiles } from "@/db/schema";
@@ -407,6 +407,11 @@ export async function POST(req: NextRequest) {
 
     // --- Handle Satispay (create pending order, then redirect) ---
     if (paymentMethod === "satispay") {
+      await cancelStalePendingSatispayOrders({
+        userId: user?.id || null,
+        guestEmail: !user ? shippingInfo.email : null,
+      });
+
       let orderId: number;
       try {
         const [o] = await db
@@ -488,11 +493,30 @@ export async function POST(req: NextRequest) {
           .update(orders)
           .set({ status: "cancelled", updatedAt: new Date() })
           .where(eq(orders.id, orderId));
-        throw payErr;
+        if (payErr instanceof SatispayError) {
+          const message =
+            payErr.code === "missing_credentials" ||
+            payErr.code === "auth_failed" ||
+            payErr.code === "invalid_key"
+              ? "Pagamento Satispay non disponibile: credenziali API non valide o mancanti. Contatta l'assistenza."
+              : "Errore durante il pagamento Satispay. Riprova o scegli un altro metodo.";
+          return NextResponse.json({ error: message }, { status: 502 });
+        }
+        return NextResponse.json(
+          { error: "Errore durante il pagamento Satispay. Riprova o scegli un altro metodo." },
+          { status: 502 }
+        );
       }
     }
 
     // --- Handle Bank Transfer / COD (create order directly) ---
+    if (paymentMethod !== "bank_transfer" && paymentMethod !== "cod") {
+      return NextResponse.json(
+        { error: "Metodo di pagamento non valido" },
+        { status: 400 }
+      );
+    }
+
     const dbPaymentMethod =
       paymentMethod === "bank_transfer" ? "bank_transfer" : "cod";
 
