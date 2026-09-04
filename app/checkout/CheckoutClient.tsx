@@ -255,8 +255,6 @@ export default function CheckoutClient() {
       .finally(() => setProfileLoaded(true));
   }, []);
 
-  }, []);
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const err = params.get("error");
