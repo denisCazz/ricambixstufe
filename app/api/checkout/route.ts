@@ -418,7 +418,7 @@ export async function POST(req: NextRequest) {
             paymentMethod: "satispay",
             paymentStatus: "satispay_pending",
             subtotal: String(persistedSubtotal),
-            shippingCost: String(shippingCost),
+            shippingCost: String(totalShippingCost),
             taxAmount: String(persistedTaxAmount),
             total: String(total),
             shippingAddress,
@@ -446,19 +446,16 @@ export async function POST(req: NextRequest) {
         await db.insert(orderItems).values(
           items.map((item) => {
             const product = productMap.get(item.id);
-            const line = lineById.get(item.id);
+            const unitPrice = netUnitPrice(item.price);
             return {
               orderId,
               productId: item.id,
-              productName: item.name || product?.nameIt || "Prodotto",
+              productName: lineItemDisplayName(item, product?.nameIt || "Prodotto"),
               productSku: product?.sku || null,
               quantity: item.quantity,
-              unitPrice: String(line?.unitPrice ?? item.price),
-              discountPercent: dealerDiscount,
-              lineTotal: String(
-                line?.lineTotal ??
-                  Math.round(item.price * item.quantity * 100) / 100
-              ),
+              unitPrice: String(unitPrice),
+              discountPercent: 0,
+              lineTotal: String(round2(unitPrice * item.quantity)),
             };
           })
         );
