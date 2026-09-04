@@ -303,7 +303,13 @@ export default function OrdersClient({
                       <p>
                         {order.payment_status.startsWith("stripe:")
                           ? "Stripe"
-                          : order.payment_status}
+                          : order.payment_status.startsWith("satispay:")
+                            ? "Satispay"
+                            : order.payment_status.startsWith("satispay_pending")
+                              ? "Satispay (in attesa)"
+                              : order.payment_status.startsWith("paypal:")
+                                ? "PayPal"
+                                : order.payment_status}
                       </p>
                       <p className="text-muted">
                         Ordine del{" "}

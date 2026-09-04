@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
 import { createPayPalOrder, PayPalError } from "@/lib/paypal";
+import { createSatispayPayment, SatispayError } from "@/lib/satispay";
+import { formatOrderNumber } from "@/lib/order-number";
 import { signPayload } from "@/lib/signed-payload";
 import { products, orders, orderItems, profiles, dealerProfiles } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
@@ -47,7 +49,7 @@ export async function POST(req: NextRequest) {
         notes?: string;
       };
       billingInfo?: BillingInfo;
-      paymentMethod: "bank_transfer" | "cod" | "paypal";
+      paymentMethod: "bank_transfer" | "cod" | "paypal" | "satispay";
       viesExempt?: boolean;
     };
 
@@ -55,9 +57,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Carrello vuoto" }, { status: 400 });
     }
 
-    if (!paymentMethod) {
+    if (!paymentMethod || !["bank_transfer", "cod", "paypal", "satispay"].includes(paymentMethod)) {
       return NextResponse.json(
-        { error: "Metodo di pagamento non selezionato" },
+        { error: paymentMethod ? "Metodo di pagamento non valido" : "Metodo di pagamento non selezionato" },
         { status: 400 }
       );
     }
@@ -322,6 +324,96 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
+    // --- Handle Satispay (create pending order, then redirect) ---
+    if (paymentMethod === "satispay") {
+      let orderId: number;
+      try {
+        const [o] = await db
+          .insert(orders)
+          .values({
+            userId: user?.id || null,
+            guestEmail: !user ? shippingInfo.email : null,
+            status: "pending",
+            paymentMethod: "satispay",
+            paymentStatus: "satispay_pending",
+            subtotal: String(persistedSubtotal),
+            shippingCost: String(shippingCost),
+            taxAmount: String(persistedTaxAmount),
+            total: String(total),
+            shippingAddress,
+            billingAddress,
+            notes: shippingInfo.notes || null,
+          })
+          .returning({ id: orders.id });
+        if (!o) throw new Error("no id");
+        orderId = o.id;
+      } catch (orderError) {
+        console.error("Failed to create Satispay order:", orderError);
+        return NextResponse.json(
+          { error: "Errore nella creazione dell'ordine" },
+          { status: 500 }
+        );
+      }
+
+      const productDetails = await db
+        .select({ id: products.id, sku: products.sku, nameIt: products.nameIt })
+        .from(products)
+        .where(inArray(products.id, productIds));
+      const productMap = new Map(productDetails.map((p) => [p.id, p]));
+
+      try {
+        await db.insert(orderItems).values(
+          items.map((item) => {
+            const product = productMap.get(item.id);
+            const line = lineById.get(item.id);
+            return {
+              orderId,
+              productId: item.id,
+              productName: item.name || product?.nameIt || "Prodotto",
+              productSku: product?.sku || null,
+              quantity: item.quantity,
+              unitPrice: String(line?.unitPrice ?? item.price),
+              discountPercent: dealerDiscount,
+              lineTotal: String(
+                line?.lineTotal ??
+                  Math.round(item.price * item.quantity * 100) / 100
+              ),
+            };
+          })
+        );
+      } catch (itemsErr) {
+        console.error("Failed to save Satispay order items:", itemsErr);
+      }
+
+      const siteUrl = process.env.AUTH_URL || "http://localhost:3000";
+      try {
+        const { paymentId, redirectUrl } = await createSatispayPayment({
+          amountEur: total,
+          orderId,
+          callbackUrl: `${siteUrl}/api/satispay/callback?payment_id={uuid}`,
+          redirectUrl: `${siteUrl}/api/satispay/return?order_id=${orderId}`,
+          externalCode: formatOrderNumber(orderId),
+        });
+
+        await db
+          .update(orders)
+          .set({
+            paymentStatus: `satispay_pending:${paymentId}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(orders.id, orderId));
+
+        return NextResponse.json({ url: redirectUrl });
+      } catch (payErr) {
+        console.error("Satispay payment create failed, cancelling order", orderId, payErr);
+        await db
+          .update(orders)
+          .set({ status: "cancelled", updatedAt: new Date() })
+          .where(eq(orders.id, orderId));
+        throw payErr;
+      }
+    }
+
     // --- Handle Bank Transfer / COD (create order directly) ---
     const dbPaymentMethod =
       paymentMethod === "bank_transfer" ? "bank_transfer" : "cod";
@@ -437,6 +529,13 @@ export async function POST(req: NextRequest) {
         err.code === "missing_credentials" || err.code === "auth_failed"
           ? "Pagamento PayPal non disponibile: credenziali API non valide o mancanti. Contatta l'assistenza."
           : "Errore durante il pagamento PayPal. Riprova o scegli un altro metodo.";
+      return NextResponse.json({ error: message }, { status: 502 });
+    }
+    if (err instanceof SatispayError) {
+      const message =
+        err.code === "missing_credentials" || err.code === "auth_failed"
+          ? "Pagamento Satispay non disponibile: credenziali API non valide o mancanti. Contatta l'assistenza."
+          : "Errore durante il pagamento Satispay. Riprova o scegli un altro metodo.";
       return NextResponse.json({ error: message }, { status: 502 });
     }
     return NextResponse.json(

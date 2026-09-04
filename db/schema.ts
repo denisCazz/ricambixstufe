@@ -36,6 +36,7 @@ export const paymentMethodEnum = pgEnum("payment_method", [
   "paypal",
   "bank_transfer",
   "cod",
+  "satispay",
 ]);
 
 export const appUsers = pgTable("app_users", {

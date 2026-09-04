@@ -389,10 +389,8 @@ function buildEasyfattXml(
     }
     xml += `      </Rows>\n`;
 
-    // Payment (mark as paid for stripe/paypal, unpaid for bank_transfer/cod)
-    const isPaid = !order.payment_method || order.payment_method === 'cod' 
-      ? (order.payment_status?.startsWith('stripe:') ? true : false)
-      : order.payment_status?.startsWith('stripe:');
+    // Payment (mark as paid for stripe/paypal/satispay, unpaid for bank_transfer/cod)
+    const isPaid = isOrderPaid(order.payment_status);
     xml += `      <Payments>\n`;
     xml += `        <Payment>\n`;
     xml += `          <Advance>false</Advance>\n`;
@@ -411,12 +409,25 @@ function buildEasyfattXml(
   return xml;
 }
 
+function isOrderPaid(paymentStatus: string | null): boolean {
+  if (!paymentStatus) return false;
+  if (paymentStatus.startsWith("stripe:")) return true;
+  if (paymentStatus.startsWith("paypal:")) return true;
+  if (paymentStatus.startsWith("satispay:") && !paymentStatus.startsWith("satispay_pending")) {
+    return true;
+  }
+  return false;
+}
+
 function getPaymentName(paymentMethod: string | null, paymentStatus: string | null): string {
   if (paymentMethod === 'bank_transfer') return 'Bonifico bancario';
   if (paymentMethod === 'cod') return 'Contrassegno';
   if (paymentMethod === 'paypal') return 'PayPal';
+  if (paymentMethod === 'satispay') return 'Satispay';
   // Stripe or legacy orders without payment_method
   if (paymentStatus?.startsWith('stripe:')) return 'Carta di credito';
+  if (paymentStatus?.startsWith('paypal:')) return 'PayPal';
+  if (paymentStatus?.startsWith('satispay')) return 'Satispay';
   return 'Carta di credito';
 }
 

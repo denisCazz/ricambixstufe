@@ -84,7 +84,7 @@ const COUNTRY_TO_NAME: Record<string, string> = {
   CH: "Svizzera",
 };
 
-type PaymentMethod = "bank_transfer" | "cod" | "paypal";
+type PaymentMethod = "bank_transfer" | "cod" | "paypal" | "satispay";
 
 interface Profile {
   first_name: string | null;
@@ -170,6 +170,25 @@ export default function CheckoutClient() {
       })
       .catch(() => {})
       .finally(() => setProfileLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    if (!err) return;
+    const messages: Record<string, string> = {
+      paypal_cancelled: "Pagamento PayPal annullato.",
+      paypal_session_expired: "Sessione PayPal scaduta. Riprova.",
+      paypal_session_invalid: "Sessione PayPal non valida. Riprova.",
+      paypal_capture_failed: "Pagamento PayPal non riuscito. Riprova o scegli un altro metodo.",
+      paypal_order_save_failed:
+        "Pagamento ricevuto ma ordine non salvato. Contattaci indicando l'email usata al checkout.",
+      satispay_cancelled: "Pagamento Satispay annullato.",
+      satispay_pending:
+        "Stiamo ancora attendendo la conferma Satispay. Se hai già pagato riceverai un'email a breve.",
+      satispay_failed: "Pagamento Satispay non riuscito. Riprova o scegli un altro metodo.",
+    };
+    setError(messages[err] || "Errore durante il pagamento. Riprova.");
   }, []);
 
   // Calculate shipping when items/country/province change
@@ -447,7 +466,7 @@ export default function CheckoutClient() {
         return;
       }
 
-      // For PayPal: redirect to approval URL — do NOT clear cart here,
+      // For PayPal / Satispay: redirect to approval URL — do NOT clear cart here,
       // it will be cleared on the success page after capture is confirmed
       if (data.url) {
         window.location.href = data.url;
@@ -828,6 +847,34 @@ export default function CheckoutClient() {
                 </div>
               </label>
 
+              {/* Satispay */}
+              <label
+                className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                  paymentMethod === "satispay"
+                    ? "border-accent bg-orange-50/50 dark:bg-orange-950/20"
+                    : "border-border hover:border-accent/30"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethodRadio"
+                  value="satispay"
+                  checked={paymentMethod === "satispay"}
+                  onChange={() => setPaymentMethod("satispay")}
+                  className="mt-0.5 text-accent focus:ring-accent/30"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-sm tracking-tight text-[#ED1846]">
+                      satispay
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted mt-1">
+                    {t("checkout.payment.satispay_description")}
+                  </p>
+                </div>
+              </label>
+
               {/* Bonifico bancario */}
               <label
                 className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
@@ -901,19 +948,23 @@ export default function CheckoutClient() {
             disabled={paying || !profileLoaded}
             className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold text-base hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >
-            {paying ? (
+                {paying ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 {paymentMethod === "paypal"
                   ? t("checkout.submitting_paypal")
-                  : t("checkout.submitting")}
+                  : paymentMethod === "satispay"
+                    ? t("checkout.submitting_satispay")
+                    : t("checkout.submitting")}
               </>
             ) : (
               <>
                 <Lock className="w-4 h-4" />
                 {paymentMethod === "paypal"
                   ? t("checkout.pay_with_paypal").replace("{total}", formatPrice(grandTotal))
-                  : t("checkout.confirm_order_total").replace("{total}", formatPrice(grandTotal))}
+                  : paymentMethod === "satispay"
+                    ? t("checkout.pay_with_satispay").replace("{total}", formatPrice(grandTotal))
+                    : t("checkout.confirm_order_total").replace("{total}", formatPrice(grandTotal))}
               </>
             )}
           </button>

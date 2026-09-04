@@ -44,11 +44,19 @@ R2_PUBLIC_URL=https://pub-xxxxxxxx.r2.dev
 PAYPAL_MODE=live
 PAYPAL_CLIENT_ID=...
 PAYPAL_CLIENT_SECRET=...
+
+# Satispay Business API (vedi docs/SATISPAY.md)
+SATISPAY_MODE=live
+SATISPAY_KEY_ID=...
+SATISPAY_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----"
+
 ```
 
 In produzione, `DATABASE_URL` usa il hostname Docker interno `db:5432` (rete interna Compose).
 
 > Se i pagamenti PayPal smettono di funzionare dopo un cambio password del conto, aggiorna Client ID/Secret come descritto in [`docs/PAYPAL.md`](./PAYPAL.md) e usa **Admin → Impostazioni → Testa PayPal**.
+>
+> Per Satispay Business vedi [`docs/SATISPAY.md`](./SATISPAY.md) (KeyId + chiave RSA, migration `0004_add_satispay.sql`).
 
 ---
 
@@ -150,5 +158,6 @@ docker compose exec db psql -U postgres ricambixstufe -f /migrations/0000_vps_st
 | `scripts/import-supabase-data.sql` | Import dati master |
 | `.env.local.example` | Template variabili dev |
 | `.env.production.example` | Template variabili produzione |
-| `.env.example` | Template variabili (DB, Auth, Resend, R2, PayPal) |
+| `.env.example` | Template variabili (DB, Auth, Resend, R2, PayPal, Satispay) |
 | `docs/PAYPAL.md` | Ripristino credenziali PayPal dopo cambio password/secret |
+| `docs/SATISPAY.md` | Attivazione Satispay Business (KeyId + RSA) |

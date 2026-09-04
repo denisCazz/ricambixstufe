@@ -36,8 +36,8 @@ export default function ComeAcquistarePage() {
             <div className="text-sm text-[var(--color-foreground)]/70 leading-relaxed space-y-2">
               <p>{t("how_to_buy.payment_intro")}</p>
               <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>{t("how_to_buy.payment_paypal")}</li>
                 <li>{t("how_to_buy.payment_card")}</li>
+                <li>{t("how_to_buy.payment_satispay")}</li>
                 <li>{t("how_to_buy.payment_transfer")}</li>
                 <li>{t("how_to_buy.payment_cod")}</li>
               </ul>

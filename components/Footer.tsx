@@ -95,7 +95,7 @@ export default function Footer() {
               {t("footer.payments")}
             </h4>
             <div className="flex flex-col gap-1 mb-4">
-              {["PayPal", "Contrassegno", "Bonifico bancario"].map((m) => (
+              {["PayPal", "Satispay", "Contrassegno", "Bonifico bancario"].map((m) => (
                 <span
                   key={m}
                   className="inline-flex items-center gap-1.5 text-xs text-muted"
