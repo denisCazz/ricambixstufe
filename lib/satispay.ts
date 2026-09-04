@@ -1,5 +1,10 @@
 import https from "node:https";
-import { createHash, createSign } from "node:crypto";
+import {
+  createHash,
+  createPrivateKey,
+  createSign,
+  type KeyObject,
+} from "node:crypto";
 import { and, eq, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { orders, orderItems } from "@/db/schema";
@@ -16,6 +21,7 @@ export class SatispayError extends Error {
     message: string,
     public readonly code:
       | "missing_credentials"
+      | "invalid_key"
       | "auth_failed"
       | "create_failed"
       | "get_failed"
@@ -72,7 +78,39 @@ function getKeyId(): string {
   return keyId;
 }
 
-function getPrivateKeyPem(): string {
+/**
+ * Coolify / Docker often mangle multiline PEM (quotes, literal `\n`,
+ * collapsed newlines, unwrapped base64). OpenSSL 3 on Alpine then fails with
+ * `error:1E08010C:DECODER routines::unsupported`.
+ */
+function normalizePrivateKeyPem(raw: string): string {
+  let key = raw.trim().replace(/^\uFEFF/, "");
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    key = key.slice(1, -1).trim();
+  }
+  key = key.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\\n/g, "\n");
+
+  const match = key.match(
+    /-----BEGIN ([A-Z0-9 ]+KEY)-----([\s\S]*?)-----END \1-----/
+  );
+  if (!match) {
+    throw new Error("PEM BEGIN/END markers missing or truncated");
+  }
+
+  const type = match[1];
+  const body = match[2].replace(/[^A-Za-z0-9+/=]/g, "");
+  if (body.length < 256) {
+    throw new Error(`PEM body too short (${body.length} chars)`);
+  }
+
+  const wrapped = body.match(/.{1,64}/g)?.join("\n") ?? body;
+  return `-----BEGIN ${type}-----\n${wrapped}\n-----END ${type}-----\n`;
+}
+
+function getPrivateKey(): KeyObject {
   const raw = process.env.SATISPAY_PRIVATE_KEY;
   if (!raw?.trim()) {
     throw new SatispayError(
@@ -80,7 +118,18 @@ function getPrivateKeyPem(): string {
       "missing_credentials"
     );
   }
-  return raw.includes("\\n") ? raw.replace(/\\n/g, "\n") : raw;
+  try {
+    return createPrivateKey(normalizePrivateKeyPem(raw));
+  } catch (err) {
+    const details = err instanceof Error ? err.message : String(err);
+    console.error("Satispay private key parse failed:", details);
+    throw new SatispayError(
+      "SATISPAY_PRIVATE_KEY non è una PEM RSA valida. In Coolify incollala su una sola riga, con \\n al posto dei ritorni a capo, senza virgolette extra.",
+      "invalid_key",
+      undefined,
+      details
+    );
+  }
 }
 
 function createDigest(body: string): string {
@@ -88,11 +137,11 @@ function createDigest(body: string): string {
   return `SHA-256=${hash}`;
 }
 
-function signMessage(message: string, privateKeyPem: string): string {
+function signMessage(message: string, key: KeyObject): string {
   const sign = createSign("RSA-SHA256");
   sign.update(message, "utf8");
   sign.end();
-  return sign.sign(privateKeyPem, "base64");
+  return sign.sign(key, "base64");
 }
 
 function httpsJson(opts: {
@@ -102,7 +151,7 @@ function httpsJson(opts: {
 }): Promise<{ status: number; body: string }> {
   const host = getHost();
   const keyId = getKeyId();
-  const privateKey = getPrivateKeyPem();
+  const privateKey = getPrivateKey();
   const body = opts.body ?? "";
   const digest = createDigest(body);
   const date = new Date().toUTCString();
@@ -190,6 +239,7 @@ export async function createSatispayPayment(params: {
       body,
     });
   } catch (err) {
+    if (err instanceof SatispayError) throw err;
     console.error("Satispay create payment network error:", err);
     throw new SatispayError("Satispay create payment failed", "create_failed");
   }
@@ -233,6 +283,7 @@ export async function getSatispayPayment(
   try {
     res = await httpsJson({ method: "GET", path });
   } catch (err) {
+    if (err instanceof SatispayError) throw err;
     console.error("Satispay get payment network error:", err);
     throw new SatispayError("Satispay get payment failed", "get_failed");
   }
@@ -281,13 +332,20 @@ export async function verifySatispayCredentials(): Promise<{
   const mode = isLive() ? "live" : "sandbox";
   try {
     getKeyId();
-    getPrivateKeyPem();
+    getPrivateKey();
   } catch (err) {
     if (err instanceof SatispayError && err.code === "missing_credentials") {
       return {
         ok: false,
         mode,
         message: `Credenziali mancanti (modalità ${mode}): imposta SATISPAY_KEY_ID e SATISPAY_PRIVATE_KEY`,
+      };
+    }
+    if (err instanceof SatispayError && err.code === "invalid_key") {
+      return {
+        ok: false,
+        mode,
+        message: err.message,
       };
     }
     throw err;

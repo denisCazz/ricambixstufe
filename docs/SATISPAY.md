@@ -62,7 +62,7 @@ Errori tipici:
 |---------|-----------------|
 | auth failed / HTTP 401–403 | KeyId o chiave privata errati, oppure `SATISPAY_MODE` non allineato all’ambiente del KeyId |
 | credenziali mancanti | `SATISPAY_KEY_ID` / `SATISPAY_PRIVATE_KEY` non impostate nel container |
-| Invalid RSA key | PEM malformata (mancano `-----BEGIN/END-----` o i `\n`) |
+| Invalid RSA key / `error:1E08010C:DECODER routines::unsupported` | PEM malformata o spezzata da Coolify. Incolla su **una sola riga** con `\\n` tra `BEGIN`/`END`, senza virgolette extra, poi riavvia |
 | token already paired | il codice di attivazione è già stato usato: generarne uno nuovo |
 | funziona in sandbox ma non in prod | KeyId sandbox usato con `SATISPAY_MODE=live`, o viceversa |
 
