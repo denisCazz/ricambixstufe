@@ -37,6 +37,7 @@ export default function ComeAcquistarePage() {
               <p>{t("how_to_buy.payment_intro")}</p>
               <ul className="list-disc list-inside space-y-1 ml-2">
                 <li>{t("how_to_buy.payment_card")}</li>
+                <li>{t("how_to_buy.payment_satispay")}</li>
                 <li>{t("how_to_buy.payment_transfer")}</li>
                 <li>{t("how_to_buy.payment_cod")}</li>
               </ul>

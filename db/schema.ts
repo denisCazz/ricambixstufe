@@ -44,6 +44,7 @@ export const paymentMethodEnum = pgEnum("payment_method", [
   "paypal",
   "bank_transfer",
   "cod",
+  "satispay",
 ]);
 export const announcementSeverityEnum = pgEnum("announcement_severity", [
   "info",

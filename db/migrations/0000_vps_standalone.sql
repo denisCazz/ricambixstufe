@@ -5,7 +5,7 @@
 CREATE TYPE user_role AS ENUM ('customer', 'dealer', 'admin');
 CREATE TYPE dealer_status AS ENUM ('pending', 'approved', 'rejected');
 CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled');
-CREATE TYPE payment_method AS ENUM ('paypal', 'bank_transfer', 'cod', 'stripe');
+CREATE TYPE payment_method AS ENUM ('paypal', 'bank_transfer', 'cod', 'stripe', 'satispay');
 
 -- ============================================================
 -- APP USERS (credenziali; sostituisce auth.users)

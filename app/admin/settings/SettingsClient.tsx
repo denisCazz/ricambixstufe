@@ -6,6 +6,7 @@ import {
   testDbConnection,
   testEmail,
   testPayPalConnection,
+  testSatispayConnection,
   createUser,
 } from "@/app/admin/actions/settings";
 
@@ -137,6 +138,13 @@ export default function SettingsClient() {
             description="Verifica Client ID/Secret (OAuth). Dopo un cambio password o secret sul conto PayPal, aggiorna le variabili d'ambiente sul server e riavvia."
             buttonLabel="Testa PayPal"
             onTest={testPayPalConnection}
+          />
+          <TestCard
+            icon={Wallet}
+            title="Satispay"
+            description="Verifica KeyId e chiave privata RSA. Dopo l'attivazione con codice dal dashboard Satispay Business, imposta SATISPAY_KEY_ID e SATISPAY_PRIVATE_KEY e riavvia."
+            buttonLabel="Testa Satispay"
+            onTest={testSatispayConnection}
           />
         </div>
       </section>

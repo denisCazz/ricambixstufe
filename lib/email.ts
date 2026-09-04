@@ -72,6 +72,7 @@ interface OrderEmailData {
 function getPaymentLabel(method: string): string {
   const labels: Record<string, string> = {
     paypal: "PayPal",
+    satispay: "Satispay",
     bank_transfer: "Bonifico bancario",
     cod: "Contrassegno",
   };

@@ -77,6 +77,7 @@ const statusConfig: Record<
 const paymentLabels: Record<string, string> = {
   stripe: "Carta di credito",
   paypal: "PayPal",
+  satispay: "Satispay",
   bank_transfer: "Bonifico bancario",
   cod: "Contrassegno",
 };

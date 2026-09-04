@@ -16,7 +16,7 @@ export type OrderStatus =
   | "shipped"
   | "delivered"
   | "cancelled";
-export type PaymentMethod = "paypal" | "bank_transfer" | "cod";
+export type PaymentMethod = "paypal" | "bank_transfer" | "cod" | "satispay";
 export type AnnouncementSeverity = "info" | "warning" | "critical";
 export type AnnouncementAudience = "users" | "admin" | "both";
 export type AnnouncementScheduleMode = "always" | "range";

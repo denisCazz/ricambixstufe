@@ -82,6 +82,7 @@ const paymentMethodLabels: Record<string, string> = {
   bank_transfer: "Bonifico bancario",
   cod: "Contrassegno",
   stripe: "Carta di credito",
+  satispay: "Satispay",
 };
 
 export default function OrdersClient({
@@ -313,7 +314,13 @@ export default function OrdersClient({
                             order.payment_method
                           : order.payment_status.startsWith("stripe:")
                             ? "Stripe"
-                            : order.payment_status}
+                            : order.payment_status.startsWith("satispay:")
+                              ? "Satispay"
+                              : order.payment_status.startsWith("satispay_pending")
+                                ? "Satispay (in attesa)"
+                                : order.payment_status.startsWith("paypal:")
+                                  ? "PayPal"
+                                  : order.payment_status}
                       </p>
                       {order.payment_method === "bank_transfer" &&
                         !order.bank_transfer_receipt_url && (

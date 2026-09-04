@@ -8,6 +8,7 @@ import { appUsers, profiles, dealerProfiles } from "@/db/schema";
 import { getUser } from "@/lib/auth";
 import { isValidItalianPartitaIva } from "@/lib/italian-vat";
 import { verifyPayPalCredentials } from "@/lib/paypal";
+import { verifySatispayCredentials } from "@/lib/satispay";
 import { validateVAT } from "@/lib/vies";
 import { Resend } from "resend";
 import type { UserRole } from "@/lib/types";
@@ -115,6 +116,12 @@ export async function testEmail(): Promise<{ ok: boolean; message: string }> {
 export async function testPayPalConnection(): Promise<{ ok: boolean; message: string }> {
   await requireAdmin();
   const result = await verifyPayPalCredentials();
+  return { ok: result.ok, message: result.message };
+}
+
+export async function testSatispayConnection(): Promise<{ ok: boolean; message: string }> {
+  await requireAdmin();
+  const result = await verifySatispayCredentials();
   return { ok: result.ok, message: result.message };
 }
 
