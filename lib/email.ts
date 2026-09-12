@@ -1,5 +1,8 @@
 import { Resend } from "resend";
 import { formatOrderNumber } from "@/lib/order-number";
+import { te } from "@/lib/email-i18n";
+import { resolveEmailLocale } from "@/lib/user-locale";
+import type { Locale } from "@/lib/i18n";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -29,6 +32,26 @@ function parseEmailList(env: string | undefined): string[] {
 
 const EMAIL_CC = parseEmailList(process.env.EMAIL_CC);
 const EMAIL_BCC = parseEmailList(process.env.EMAIL_BCC);
+
+function numberLocale(locale: Locale): string {
+  if (locale === "en") return "en-GB";
+  if (locale === "fr") return "fr-FR";
+  if (locale === "es") return "es-ES";
+  return "it-IT";
+}
+
+function formatEur(amount: number, locale: Locale): string {
+  return new Intl.NumberFormat(numberLocale(locale), {
+    style: "currency",
+    currency: "EUR",
+  }).format(amount);
+}
+
+function greeting(locale: Locale, name?: string | null): string {
+  const hello = te(locale, "email.hello");
+  if (!name) return `${hello},`;
+  return `${hello} <strong>${escapeHtml(name)}</strong>,`;
+}
 
 // ============================================================
 // ORDER EMAILS
@@ -60,6 +83,7 @@ interface OrderEmailData {
     zip?: string;
     province?: string;
     country?: string;
+    locale?: string;
   };
   billingInfo?: {
     company?: string;
@@ -67,23 +91,31 @@ interface OrderEmailData {
     sdi_code?: string;
     pec?: string;
   };
+  locale?: string | null;
 }
 
-function getPaymentLabel(method: string): string {
-  const labels: Record<string, string> = {
-    paypal: "PayPal",
-    satispay: "Satispay",
-    bank_transfer: "Bonifico bancario",
-    cod: "Contrassegno",
-  };
-  return labels[method] || method;
+function localeForOrderEmail(data: OrderEmailData): Locale {
+  return resolveEmailLocale({
+    locales: [data.locale, data.shippingAddress?.locale],
+    countries: [data.shippingAddress?.country],
+  });
 }
 
-function formatEur(amount: number): string {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(amount);
+function getPaymentLabel(method: string, locale: Locale): string {
+  const key =
+    method === "paypal"
+      ? "email.payment.paypal"
+      : method === "satispay"
+        ? "email.payment.satispay"
+        : method === "bank_transfer"
+          ? "email.payment.bank_transfer"
+          : method === "cod"
+            ? "email.payment.cod"
+            : null;
+  return key ? te(locale, key) : method;
 }
 
-function buildItemsTable(items: OrderItem[]): string {
+function buildItemsTable(items: OrderItem[], locale: Locale): string {
   const rows = items
     .map(
       (item) => `
@@ -92,8 +124,8 @@ function buildItemsTable(items: OrderItem[]): string {
           ${escapeHtml(item.product_name)}${item.product_sku ? ` <span style="color:#9ca3af">(${escapeHtml(item.product_sku)})</span>` : ""}
         </td>
         <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-size: 14px;">${item.quantity}</td>
-        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 14px;">${formatEur(item.unit_price)}</td>
-        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 14px; font-weight: 600;">${formatEur(item.line_total)}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 14px;">${formatEur(item.unit_price, locale)}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 14px; font-weight: 600;">${formatEur(item.line_total, locale)}</td>
       </tr>`
     )
     .join("");
@@ -102,50 +134,52 @@ function buildItemsTable(items: OrderItem[]): string {
     <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
       <thead>
         <tr style="background: #f9fafb;">
-          <th style="padding: 8px 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Prodotto</th>
-          <th style="padding: 8px 12px; text-align: center; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Qtà</th>
-          <th style="padding: 8px 12px; text-align: right; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Prezzo</th>
-          <th style="padding: 8px 12px; text-align: right; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Totale</th>
+          <th style="padding: 8px 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb;">${te(locale, "email.order.col_product")}</th>
+          <th style="padding: 8px 12px; text-align: center; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb;">${te(locale, "email.order.col_qty")}</th>
+          <th style="padding: 8px 12px; text-align: right; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb;">${te(locale, "email.order.col_price")}</th>
+          <th style="padding: 8px 12px; text-align: right; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb;">${te(locale, "email.order.col_total")}</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
 
-function bankTransferNote(): string {
+function bankTransferNote(locale: Locale, orderNumber: string): string {
   return `
     <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 16px; margin: 16px 0;">
-      <p style="margin: 0 0 8px; font-weight: 600; color: #92400e;">Coordinate per il bonifico:</p>
+      <p style="margin: 0 0 8px; font-weight: 600; color: #92400e;">${te(locale, "email.order.bank_title")}</p>
       <p style="margin: 0; font-size: 14px; color: #78350f;">
-        IBAN: <strong>IT76S0708461620000000920491</strong><br/>
-        Intestatario: RicambiXStufe<br/>
-        Causale: Ordine #[orderId]
+        ${te(locale, "email.order.iban")}: <strong>IT76S0708461620000000920491</strong><br/>
+        ${te(locale, "email.order.account_holder")}: RicambiXStufe<br/>
+        ${te(locale, "email.order.reference")}: ${te(locale, "email.order.reference_value", { orderNumber })}
       </p>
     </div>`;
 }
 
 /** Send order confirmation email to customer */
 export async function sendOrderConfirmationEmail(data: OrderEmailData) {
-  const paymentLabel = getPaymentLabel(data.paymentMethod);
+  const locale = localeForOrderEmail(data);
+  const paymentLabel = getPaymentLabel(data.paymentMethod, locale);
   const addr = data.shippingAddress;
+  const orderNumber = formatOrderNumber(data.orderId);
 
   let paymentNote = "";
   if (data.paymentMethod === "bank_transfer") {
-    paymentNote = bankTransferNote().replace("[orderId]", formatOrderNumber(data.orderId));
+    paymentNote = bankTransferNote(locale, orderNumber);
     if (data.receiptUploadUrl) {
       paymentNote += `
     <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; margin: 16px 0;">
-      <p style="margin: 0 0 10px; font-size: 14px; color: #1e3a8a;">Carica la contabile del bonifico per consentire una verifica anticipata del pagamento e ridurre i tempi di attesa.</p>
-      <a href="${escapeHtml(data.receiptUploadUrl)}" style="display: inline-block; padding: 10px 20px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">Carica contabile</a>
+      <p style="margin: 0 0 10px; font-size: 14px; color: #1e3a8a;">${te(locale, "email.order.receipt_text")}</p>
+      <a href="${escapeHtml(data.receiptUploadUrl)}" style="display: inline-block; padding: 10px 20px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">${te(locale, "email.order.receipt_button")}</a>
     </div>`;
     }
   } else if (data.paymentMethod === "cod") {
-    paymentNote = `<p style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 16px; font-size: 14px; color: #166534; margin: 16px 0;">Il pagamento avverrà in contanti alla consegna. Supplemento contrassegno incluso nel totale.</p>`;
+    paymentNote = `<p style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 16px; font-size: 14px; color: #166534; margin: 16px 0;">${te(locale, "email.order.cod_note")}</p>`;
   }
 
   const billingHtml = data.billingInfo?.company
     ? `<p style="margin: 8px 0 0; font-size: 13px; color: #6b7280;">
-        Fatturazione: ${escapeHtml(data.billingInfo.company)}${data.billingInfo.vat_number ? ` — P.IVA ${escapeHtml(data.billingInfo.vat_number)}` : ""}${data.billingInfo.sdi_code ? ` — SDI ${escapeHtml(data.billingInfo.sdi_code)}` : ""}
+        ${te(locale, "email.order.billing")}: ${escapeHtml(data.billingInfo.company)}${data.billingInfo.vat_number ? ` — ${te(locale, "email.order.vat")} ${escapeHtml(data.billingInfo.vat_number)}` : ""}${data.billingInfo.sdi_code ? ` — ${te(locale, "email.order.sdi")} ${escapeHtml(data.billingInfo.sdi_code)}` : ""}
       </p>`
     : "";
 
@@ -155,39 +189,39 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
       to: data.customerEmail,
       ...(EMAIL_CC.length ? { cc: EMAIL_CC } : {}),
       ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
-      subject: `📬 Ordine ricevuto #${formatOrderNumber(data.orderId)} — RicambiXStufe`,
+      subject: te(locale, "email.order.subject", { orderNumber }),
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
           <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="margin: 0; color: white; font-size: 20px;">📬 Ordine ricevuto!</h1>
-            <p style="margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">Ordine #${formatOrderNumber(data.orderId)}</p>
+            <h1 style="margin: 0; color: white; font-size: 20px;">${te(locale, "email.order.title")}</h1>
+            <p style="margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">${te(locale, "email.order.number", { orderNumber })}</p>
           </div>
 
           <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-            <p>Ciao <strong>${escapeHtml(data.customerName)}</strong>,</p>
-            <p>Grazie per il tuo ordine! Ecco il riepilogo:</p>
+            <p>${greeting(locale, data.customerName)}</p>
+            <p>${te(locale, "email.order.thanks")}</p>
 
-            ${buildItemsTable(data.items)}
+            ${buildItemsTable(data.items, locale)}
 
             <table style="width: 100%; margin-top: 8px;">
-              <tr><td style="padding: 4px 12px; font-size: 14px; color: #6b7280;">Subtotale</td><td style="padding: 4px 12px; text-align: right; font-size: 14px;">${formatEur(data.subtotal)}</td></tr>
-              <tr><td style="padding: 4px 12px; font-size: 14px; color: #6b7280;">Spedizione</td><td style="padding: 4px 12px; text-align: right; font-size: 14px;">${formatEur(data.shippingCost)}</td></tr>
-              <tr><td style="padding: 8px 12px; font-size: 16px; font-weight: 700; border-top: 2px solid #e5e7eb;">Totale</td><td style="padding: 8px 12px; text-align: right; font-size: 16px; font-weight: 700; border-top: 2px solid #e5e7eb; color: #b45309;">${formatEur(data.total)}</td></tr>
+              <tr><td style="padding: 4px 12px; font-size: 14px; color: #6b7280;">${te(locale, "email.order.subtotal")}</td><td style="padding: 4px 12px; text-align: right; font-size: 14px;">${formatEur(data.subtotal, locale)}</td></tr>
+              <tr><td style="padding: 4px 12px; font-size: 14px; color: #6b7280;">${te(locale, "email.order.shipping")}</td><td style="padding: 4px 12px; text-align: right; font-size: 14px;">${formatEur(data.shippingCost, locale)}</td></tr>
+              <tr><td style="padding: 8px 12px; font-size: 16px; font-weight: 700; border-top: 2px solid #e5e7eb;">${te(locale, "email.order.total")}</td><td style="padding: 8px 12px; text-align: right; font-size: 16px; font-weight: 700; border-top: 2px solid #e5e7eb; color: #b45309;">${formatEur(data.total, locale)}</td></tr>
             </table>
 
             <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
-              <p style="margin: 0; font-size: 13px; color: #6b7280;"><strong>Pagamento:</strong> ${paymentLabel}</p>
-              <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;"><strong>Spedizione:</strong> ${escapeHtml(addr?.name || "")}, ${escapeHtml(addr?.address || "")}, ${escapeHtml(addr?.zip || "")} ${escapeHtml(addr?.city || "")} ${escapeHtml(addr?.province || "")} ${escapeHtml(addr?.country || "")}</p>
+              <p style="margin: 0; font-size: 13px; color: #6b7280;"><strong>${te(locale, "email.order.payment")}:</strong> ${paymentLabel}</p>
+              <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;"><strong>${te(locale, "email.order.shipping")}:</strong> ${escapeHtml(addr?.name || "")}, ${escapeHtml(addr?.address || "")}, ${escapeHtml(addr?.zip || "")} ${escapeHtml(addr?.city || "")} ${escapeHtml(addr?.province || "")} ${escapeHtml(addr?.country || "")}</p>
               ${billingHtml}
             </div>
 
             ${paymentNote}
 
             <p style="margin-top: 24px; font-size: 13px; color: #6b7280;">
-              Riceverai un'email con il numero di tracking non appena il pacco sarà spedito.
+              ${te(locale, "email.order.tracking_soon")}
             </p>
 
-            <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">— Il team RicambiXStufe</p>
+            <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">${te(locale, "email.team")}</p>
           </div>
         </div>
       `,
@@ -201,13 +235,13 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
 // ORDER STATUS UPDATE EMAIL
 // ============================================================
 
-const STATUS_CONFIG: Record<string, { emoji: string; label: string; color: string; message: string }> = {
-  pending:    { emoji: "⏳", label: "In attesa",       color: "#d97706", message: "Il tuo ordine è in attesa di conferma. Ti aggiorneremo a breve." },
-  confirmed:  { emoji: "✅", label: "Confermato",      color: "#2563eb", message: "Il tuo ordine è stato confermato e sarà messo in lavorazione." },
-  processing: { emoji: "🔧", label: "In lavorazione",  color: "#4f46e5", message: "Il tuo ordine è in fase di preparazione nel nostro magazzino." },
-  shipped:    { emoji: "🚚", label: "Spedito",         color: "#7c3aed", message: "Il tuo pacco è stato affidato al corriere e sta per arrivare!" },
-  delivered:  { emoji: "📦", label: "Consegnato",      color: "#16a34a", message: "Il tuo pacco risulta consegnato. Grazie per aver scelto RicambiXStufe!" },
-  cancelled:  { emoji: "❌", label: "Annullato",       color: "#dc2626", message: "Il tuo ordine è stato annullato. Contattaci per qualsiasi chiarimento." },
+const STATUS_META: Record<string, { emoji: string; color: string }> = {
+  pending: { emoji: "⏳", color: "#d97706" },
+  confirmed: { emoji: "✅", color: "#2563eb" },
+  processing: { emoji: "🔧", color: "#4f46e5" },
+  shipped: { emoji: "🚚", color: "#7c3aed" },
+  delivered: { emoji: "📦", color: "#16a34a" },
+  cancelled: { emoji: "❌", color: "#dc2626" },
 };
 
 export async function sendOrderStatusUpdateEmail({
@@ -216,22 +250,34 @@ export async function sendOrderStatusUpdateEmail({
   customerName,
   status,
   trackingNumber,
+  locale: localeInput,
+  country,
 }: {
   orderId: number;
   customerEmail: string;
   customerName: string;
   status: string;
   trackingNumber?: string | null;
+  locale?: string | null;
+  country?: string | null;
 }) {
-  const cfg = STATUS_CONFIG[status];
-  if (!cfg) return; // unknown status, skip
+  const meta = STATUS_META[status];
+  if (!meta) return; // unknown status, skip
+
+  const locale = resolveEmailLocale({
+    locales: [localeInput],
+    countries: [country],
+  });
+  const label = te(locale, `email.status.${status}.label`);
+  const message = te(locale, `email.status.${status}.message`);
+  const orderNumber = formatOrderNumber(orderId);
 
   const trackingHtml =
     status === "shipped" && trackingNumber
       ? `<div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 10px; padding: 16px; margin: 16px 0;">
-          <p style="margin: 0; font-size: 14px; color: #5b21b6; font-weight: 600;">📬 Numero di tracking</p>
+          <p style="margin: 0; font-size: 14px; color: #5b21b6; font-weight: 600;">${te(locale, "email.status.tracking_title")}</p>
           <p style="margin: 8px 0 0; font-size: 20px; font-weight: 700; color: #4c1d95; letter-spacing: 1px;">${escapeHtml(trackingNumber)}</p>
-          <p style="margin: 6px 0 0; font-size: 12px; color: #7c3aed;">Usa questo codice sul sito del corriere per seguire la spedizione.</p>
+          <p style="margin: 6px 0 0; font-size: 12px; color: #7c3aed;">${te(locale, "email.status.tracking_hint")}</p>
         </div>`
       : "";
 
@@ -241,19 +287,23 @@ export async function sendOrderStatusUpdateEmail({
       to: customerEmail,
       ...(EMAIL_CC.length ? { cc: EMAIL_CC } : {}),
       ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
-      subject: `${cfg.emoji} Ordine #${formatOrderNumber(orderId)}: ${cfg.label} — RicambiXStufe`,
+      subject: te(locale, "email.status.subject", {
+        emoji: meta.emoji,
+        orderNumber,
+        label,
+      }),
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
           <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="margin: 0; color: white; font-size: 22px;">${cfg.emoji} ${cfg.label}</h1>
-            <p style="margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">Ordine #${formatOrderNumber(orderId)}</p>
+            <h1 style="margin: 0; color: white; font-size: 22px;">${meta.emoji} ${label}</h1>
+            <p style="margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">${te(locale, "email.order.number", { orderNumber })}</p>
           </div>
 
           <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-            <p style="margin: 0 0 12px;">Ciao <strong>${escapeHtml(customerName)}</strong>,</p>
+            <p style="margin: 0 0 12px;">${greeting(locale, customerName)}</p>
 
-            <div style="background: #f9fafb; border-left: 4px solid ${cfg.color}; border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 16px 0;">
-              <p style="margin: 0; font-size: 15px; color: #374151;">${cfg.message}</p>
+            <div style="background: #f9fafb; border-left: 4px solid ${meta.color}; border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 16px 0;">
+              <p style="margin: 0; font-size: 15px; color: #374151;">${message}</p>
             </div>
 
             ${trackingHtml}
@@ -261,13 +311,13 @@ export async function sendOrderStatusUpdateEmail({
             <p style="margin-top: 24px;">
               <a href="https://ricambixstufe.it/account/orders"
                  style="display: inline-block; padding: 11px 22px; background: linear-gradient(135deg, #f97316, #dc2626); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
-                Visualizza i tuoi ordini
+                ${te(locale, "email.status.view_orders")}
               </a>
             </p>
 
             <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">
-              Per assistenza rispondi a questa email o scrivici a <a href="mailto:${ADMIN_EMAIL}" style="color: #b45309;">${ADMIN_EMAIL}</a>.<br/>
-              — Il team RicambiXStufe
+              ${te(locale, "email.status.support")} <a href="mailto:${ADMIN_EMAIL}" style="color: #b45309;">${ADMIN_EMAIL}</a>.<br/>
+              ${te(locale, "email.team")}
             </p>
           </div>
         </div>
@@ -280,24 +330,24 @@ export async function sendOrderStatusUpdateEmail({
 
 /** Notify admin about a new order */
 export async function sendNewOrderAdminNotification(data: OrderEmailData) {
-  const paymentLabel = getPaymentLabel(data.paymentMethod);
+  const paymentLabel = getPaymentLabel(data.paymentMethod, "it");
 
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: ORDERS_EMAIL,
       ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
-      subject: `Nuovo ordine #${formatOrderNumber(data.orderId)} — ${formatEur(data.total)}`,
+      subject: `Nuovo ordine #${formatOrderNumber(data.orderId)} — ${formatEur(data.total, "it")}`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #b45309;">Nuovo ordine #${formatOrderNumber(data.orderId)}</h2>
           <table style="width: 100%; border-collapse: collapse; margin: 12px 0;">
             <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Cliente</td><td style="padding: 6px 0; font-size: 14px;">${escapeHtml(data.customerName)} (${escapeHtml(data.customerEmail)})</td></tr>
             <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Pagamento</td><td style="padding: 6px 0; font-size: 14px;">${paymentLabel}</td></tr>
-            <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Totale</td><td style="padding: 6px 0; font-size: 14px; font-weight: 700; color: #b45309;">${formatEur(data.total)}</td></tr>
+            <tr><td style="padding: 6px 0; font-weight: 600; font-size: 14px;">Totale</td><td style="padding: 6px 0; font-size: 14px; font-weight: 700; color: #b45309;">${formatEur(data.total, "it")}</td></tr>
           </table>
 
-          ${buildItemsTable(data.items)}
+          ${buildItemsTable(data.items, "it")}
 
           <p style="margin-top: 16px;"><a href="https://ricambixstufe.it/admin/orders" style="display: inline-block; padding: 10px 20px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">Gestisci ordini</a></p>
         </div>
@@ -385,32 +435,41 @@ export async function sendDealerApprovedEmail({
   dealerEmail,
   companyName,
   discountPercent,
+  locale: localeInput,
+  country,
 }: {
   dealerEmail: string;
   companyName: string;
   discountPercent: number;
+  locale?: string | null;
+  country?: string | null;
 }) {
+  const locale = resolveEmailLocale({
+    locales: [localeInput],
+    countries: [country],
+  });
+
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: dealerEmail,
       ...(EMAIL_CC.length ? { cc: EMAIL_CC } : {}),
       ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
-      subject: `Richiesta approvata — ${companyName}`,
+      subject: te(locale, "email.dealer.approved.subject", { companyName }),
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #16a34a;">Richiesta approvata! ✓</h2>
-          <p>Ciao,</p>
-          <p>La tua richiesta come rivenditore per <strong>${escapeHtml(companyName)}</strong> è stata <strong>approvata</strong>.</p>
+          <h2 style="color: #16a34a;">${te(locale, "email.dealer.approved.title")}</h2>
+          <p>${te(locale, "email.hello")},</p>
+          <p>${te(locale, "email.dealer.approved.body_before")} <strong>${escapeHtml(companyName)}</strong> ${te(locale, "email.dealer.approved.body_after")}</p>
           <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
-            <p style="margin: 0; font-size: 14px; color: #166534;">Il tuo sconto riservato</p>
+            <p style="margin: 0; font-size: 14px; color: #166534;">${te(locale, "email.dealer.approved.discount_label")}</p>
             <p style="margin: 8px 0 0; font-size: 36px; font-weight: 700; color: #16a34a;">${discountPercent}%</p>
           </div>
-          <p>Lo sconto verrà applicato automaticamente al tuo account. Accedi al sito per iniziare ad acquistare con i prezzi riservati.</p>
+          <p>${te(locale, "email.dealer.approved.discount_text")}</p>
           <p style="margin-top: 30px;">
-            <a href="https://ricambixstufe.it/login" style="display: inline-block; padding: 12px 24px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">Accedi al tuo account</a>
+            <a href="https://ricambixstufe.it/login" style="display: inline-block; padding: 12px 24px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">${te(locale, "email.dealer.approved.cta")}</a>
           </p>
-          <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">— Il team RicambiXStufe</p>
+          <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">${te(locale, "email.team")}</p>
         </div>
       `,
     });
@@ -427,30 +486,39 @@ export async function sendEmailVerificationEmail({
   to,
   verificationUrl,
   name,
+  locale: localeInput,
+  country,
 }: {
   to: string;
   verificationUrl: string;
   name?: string | null;
+  locale?: string | null;
+  country?: string | null;
 }) {
+  const locale = resolveEmailLocale({
+    locales: [localeInput],
+    countries: [country],
+  });
+
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: "Conferma il tuo indirizzo email — RicambiXStufe",
+      subject: te(locale, "email.verify.subject"),
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
           <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="margin: 0; color: white; font-size: 20px;">✉️ Conferma la tua email</h1>
+            <h1 style="margin: 0; color: white; font-size: 20px;">${te(locale, "email.verify.title")}</h1>
           </div>
           <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-            <p>Ciao${name ? ` <strong>${escapeHtml(name)}</strong>` : ""},</p>
-            <p>Grazie per esserti registrato su RicambiXStufe! Clicca il pulsante qui sotto per confermare il tuo indirizzo email e attivare il tuo account.</p>
+            <p>${greeting(locale, name)}</p>
+            <p>${te(locale, "email.verify.body")}</p>
             <p style="text-align: center; margin: 32px 0;">
-              <a href="${verificationUrl}" style="display: inline-block; padding: 14px 28px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">Conferma email</a>
+              <a href="${verificationUrl}" style="display: inline-block; padding: 14px 28px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">${te(locale, "email.verify.cta")}</a>
             </p>
-            <p style="font-size: 13px; color: #6b7280;">Il link è valido per 24 ore. Se non hai creato un account, ignora questa email.</p>
-            <p style="font-size: 12px; color: #9ca3af; word-break: break-all;">Oppure copia questo link nel browser: ${verificationUrl}</p>
-            <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">— Il team RicambiXStufe</p>
+            <p style="font-size: 13px; color: #6b7280;">${te(locale, "email.verify.expiry")}</p>
+            <p style="font-size: 12px; color: #9ca3af; word-break: break-all;">${te(locale, "email.verify.or_copy")} ${verificationUrl}</p>
+            <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">${te(locale, "email.team")}</p>
           </div>
         </div>
       `,
@@ -465,26 +533,35 @@ export async function sendDealerRejectedEmail({
   dealerEmail,
   companyName,
   reason,
+  locale: localeInput,
+  country,
 }: {
   dealerEmail: string;
   companyName: string;
   reason: string | null;
+  locale?: string | null;
+  country?: string | null;
 }) {
+  const locale = resolveEmailLocale({
+    locales: [localeInput],
+    countries: [country],
+  });
+
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: dealerEmail,
       ...(EMAIL_CC.length ? { cc: EMAIL_CC } : {}),
       ...(EMAIL_BCC.length ? { bcc: EMAIL_BCC } : {}),
-      subject: `Richiesta rivenditore — ${companyName}`,
+      subject: te(locale, "email.dealer.rejected.subject", { companyName }),
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #dc2626;">Richiesta non approvata</h2>
-          <p>Ciao,</p>
-          <p>La tua richiesta come rivenditore per <strong>${escapeHtml(companyName)}</strong> non è stata approvata.</p>
-          ${reason ? `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin: 20px 0;"><p style="margin: 0; color: #991b1b;"><strong>Motivo:</strong> ${escapeHtml(reason)}</p></div>` : ""}
-          <p>Per qualsiasi domanda, contattaci a <a href="mailto:info@ricambixstufe.it" style="color: #b45309;">info@ricambixstufe.it</a> o al numero <strong>0423 720 404</strong>.</p>
-          <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">— Il team RicambiXStufe</p>
+          <h2 style="color: #dc2626;">${te(locale, "email.dealer.rejected.title")}</h2>
+          <p>${te(locale, "email.hello")},</p>
+          <p>${te(locale, "email.dealer.rejected.body_before")} <strong>${escapeHtml(companyName)}</strong> ${te(locale, "email.dealer.rejected.body_after")}</p>
+          ${reason ? `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin: 20px 0;"><p style="margin: 0; color: #991b1b;"><strong>${te(locale, "email.dealer.rejected.reason")}:</strong> ${escapeHtml(reason)}</p></div>` : ""}
+          <p>${te(locale, "email.dealer.rejected.contact")} <a href="mailto:info@ricambixstufe.it" style="color: #b45309;">info@ricambixstufe.it</a> ${te(locale, "email.dealer.rejected.or_phone")} <strong>0423 720 404</strong>.</p>
+          <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">${te(locale, "email.team")}</p>
         </div>
       `,
     });
@@ -501,30 +578,39 @@ export async function sendPasswordResetEmail({
   to,
   resetUrl,
   name,
+  locale: localeInput,
+  country,
 }: {
   to: string;
   resetUrl: string;
   name?: string | null;
+  locale?: string | null;
+  country?: string | null;
 }) {
+  const locale = resolveEmailLocale({
+    locales: [localeInput],
+    countries: [country],
+  });
+
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: "Reimposta la tua password — RicambiXStufe",
+      subject: te(locale, "email.reset.subject"),
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
           <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="margin: 0; color: white; font-size: 20px;">🔑 Reimposta password</h1>
+            <h1 style="margin: 0; color: white; font-size: 20px;">${te(locale, "email.reset.title")}</h1>
           </div>
           <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-            <p>Ciao${name ? ` <strong>${escapeHtml(name)}</strong>` : ""},</p>
-            <p>Hai richiesto di reimpostare la password del tuo account RicambiXStufe. Clicca il pulsante qui sotto per procedere.</p>
+            <p>${greeting(locale, name)}</p>
+            <p>${te(locale, "email.reset.body")}</p>
             <p style="text-align: center; margin: 32px 0;">
-              <a href="${resetUrl}" style="display: inline-block; padding: 14px 28px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">Reimposta password</a>
+              <a href="${resetUrl}" style="display: inline-block; padding: 14px 28px; background: #b45309; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">${te(locale, "email.reset.cta")}</a>
             </p>
-            <p style="font-size: 13px; color: #6b7280;">Il link è valido per 1 ora. Se non hai richiesto il reset, ignora questa email — la tua password rimane invariata.</p>
-            <p style="font-size: 12px; color: #9ca3af; word-break: break-all;">Oppure copia questo link nel browser: ${resetUrl}</p>
-            <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">— Il team RicambiXStufe</p>
+            <p style="font-size: 13px; color: #6b7280;">${te(locale, "email.reset.expiry")}</p>
+            <p style="font-size: 12px; color: #9ca3af; word-break: break-all;">${te(locale, "email.reset.or_copy")} ${resetUrl}</p>
+            <p style="margin-top: 30px; color: #6b7280; font-size: 13px;">${te(locale, "email.team")}</p>
           </div>
         </div>
       `,

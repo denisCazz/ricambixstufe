@@ -141,7 +141,7 @@ export default function CheckoutClient() {
     clearCart,
     replaceCart,
   } = useCart();
-  const { t, formatPrice } = useLocale();
+  const { t, locale, formatPrice } = useLocale();
   const { dealerDiscount, isDealer, pricesIncludeVat } = useUser();
   const searchParams = useSearchParams();
 
@@ -601,6 +601,7 @@ export default function CheckoutClient() {
           shippingInfo,
           billingInfo,
           paymentMethod,
+          locale,
           ...(shippingInfo.country !== "Italia" && !lockShipping && { europeShippingMethod }),
         }),
       });

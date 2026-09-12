@@ -9,7 +9,7 @@ import { useLocale } from "@/lib/locale-context";
 import { isValidEuVatNumber } from "@/lib/italian-vat";
 
 export default function DealerRegisterPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -92,6 +92,7 @@ export default function DealerRegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <input type="hidden" name="locale" value={locale} />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-[var(--color-foreground)]/70 mb-1.5">

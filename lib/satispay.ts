@@ -571,6 +571,7 @@ export async function fulfillSatispayPayment(
     paymentMethod: "satispay" as const,
     shippingAddress: shipping,
     billingInfo: billing,
+    locale: shipping.locale,
   };
 
   await Promise.allSettled([

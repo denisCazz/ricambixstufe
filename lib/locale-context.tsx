@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { type Locale, defaultLocale, t as translate } from "@/lib/i18n";
+import { saveUserLocale } from "@/app/actions/locale";
 
 export interface Currency {
   code: string;
@@ -154,6 +155,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
     document.documentElement.lang = l;
+    void saveUserLocale(l);
   }, []);
 
   const setCurrencyCode = useCallback((code: string) => {

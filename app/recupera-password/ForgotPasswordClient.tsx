@@ -7,7 +7,7 @@ import { requestPasswordReset } from "@/app/(auth)/actions";
 import { useLocale } from "@/lib/locale-context";
 
 export default function ForgotPasswordClient() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +52,7 @@ export default function ForgotPasswordClient() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              <input type="hidden" name="locale" value={locale} />
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">
                   Email

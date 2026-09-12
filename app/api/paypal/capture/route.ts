@@ -142,6 +142,7 @@ export async function GET(req: NextRequest) {
     paymentMethod: "paypal" as const,
     shippingAddress: shipping,
     billingInfo: billing,
+    locale: shipping.locale,
   };
 
   await Promise.allSettled([

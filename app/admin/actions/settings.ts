@@ -12,6 +12,7 @@ import { verifySatispayCredentials } from "@/lib/satispay";
 import { validateVAT } from "@/lib/vies";
 import { Resend } from "resend";
 import type { UserRole } from "@/lib/types";
+import { localeFromCountry } from "@/lib/user-locale";
 
 export type VatCheckResult = {
   status: "valid" | "invalid" | "unverifiable" | "error";
@@ -186,6 +187,8 @@ export async function createUser(formData: FormData): Promise<{ ok: boolean; mes
       role,
       company: role === "dealer" ? companyName : null,
       vatNumber: role === "dealer" ? vatNumber : null,
+      country: role === "dealer" ? vatCountry : "IT",
+      locale: localeFromCountry(role === "dealer" ? vatCountry : "IT") ?? "it",
     });
     if (role === "dealer") {
       await tx.insert(dealerProfiles).values({

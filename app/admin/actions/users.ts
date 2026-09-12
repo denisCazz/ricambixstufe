@@ -8,6 +8,7 @@ import { getUser } from "@/lib/auth";
 import { isValidItalianPartitaIva } from "@/lib/italian-vat";
 import { sendDealerApprovedEmail } from "@/lib/email";
 import type { UserRole } from "@/lib/types";
+import { localeFromCountry } from "@/lib/user-locale";
 
 async function requireAdmin() {
   const user = await getUser();
@@ -117,6 +118,8 @@ export async function promoteToDealer(
     .select({
       role: profiles.role,
       email: profiles.email,
+      locale: profiles.locale,
+      country: profiles.country,
     })
     .from(profiles)
     .where(eq(profiles.id, userId))
@@ -145,6 +148,8 @@ export async function promoteToDealer(
           role: "dealer",
           company: companyName,
           vatNumber,
+          country: vatCountry,
+          locale: localeFromCountry(vatCountry) ?? "it",
           updatedAt: new Date(),
         })
         .where(eq(profiles.id, userId));
@@ -183,6 +188,8 @@ export async function promoteToDealer(
       dealerEmail: target.email,
       companyName,
       discountPercent,
+      locale: localeFromCountry(vatCountry) ?? target.locale,
+      country: vatCountry,
     });
   }
 

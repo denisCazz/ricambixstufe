@@ -9,6 +9,7 @@ import { appUsers, profiles, dealerProfiles } from "@/db/schema";
 import { sendDealerRegistrationNotification, sendEmailVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
 import { signPayload, verifyPayload } from "@/lib/signed-payload";
 import { isValidEuVatNumber, countryCodeFromEuVat } from "@/lib/italian-vat";
+import { parseLocale, resolveEmailLocale } from "@/lib/user-locale";
 
 const SALT = 10;
 
@@ -53,6 +54,27 @@ export async function login(formData: FormData) {
     return { error: "invalid_credentials" };
   }
 
+  const parsedLocale = parseLocale(formData.get("locale"));
+  if (parsedLocale) {
+    try {
+      const db = getDb();
+      const u = await db
+        .select({ id: appUsers.id })
+        .from(appUsers)
+        .where(eq(appUsers.email, normalizeEmail(email)))
+        .limit(1)
+        .then((r) => r[0]);
+      if (u) {
+        await db
+          .update(profiles)
+          .set({ locale: parsedLocale, updatedAt: new Date() })
+          .where(eq(profiles.id, u.id));
+      }
+    } catch (error) {
+      console.error("Failed to persist locale on login:", error);
+    }
+  }
+
   redirect(redirectTo);
 }
 
@@ -61,6 +83,7 @@ export async function register(formData: FormData) {
   const password = formData.get("password") as string;
   const firstName = (formData.get("firstName") as string) || "";
   const lastName = (formData.get("lastName") as string) || "";
+  const locale = resolveEmailLocale({ locales: [formData.get("locale") as string | null] });
 
   const db = getDb();
   const existing = await db
@@ -88,12 +111,14 @@ export async function register(formData: FormData) {
       firstName: firstName || null,
       lastName: lastName || null,
       role: "customer",
+      locale,
     });
     const verificationUrl = buildVerificationUrl(u.id);
     sendEmailVerificationEmail({
       to: email,
       verificationUrl,
       name: `${firstName} ${lastName}`.trim() || null,
+      locale,
     });
   });
 
@@ -113,6 +138,7 @@ export async function registerDealer(formData: FormData): Promise<{ error: strin
   const companyName = (formData.get("companyName") as string) || "";
   const vatNumber = ((formData.get("vatNumber") as string) || "").trim();
   const phone = (formData.get("phone") as string) || "";
+  const formLocale = formData.get("locale") as string | null;
 
   if (!vatNumber) {
     return { error: "La Partita IVA è obbligatoria per la registrazione rivenditore." };
@@ -134,6 +160,11 @@ export async function registerDealer(formData: FormData): Promise<{ error: strin
   }
 
   const passwordHash = await bcrypt.hash(password, SALT);
+  const country = countryCodeFromEuVat(vatNumber);
+  const locale = resolveEmailLocale({
+    locales: [formLocale],
+    countries: [country],
+  });
 
   await db.transaction(async (tx) => {
     const [u] = await tx
@@ -149,7 +180,8 @@ export async function registerDealer(formData: FormData): Promise<{ error: strin
       company: companyName,
       vatNumber: vatNumber,
       phone: phone || null,
-      country: countryCodeFromEuVat(vatNumber),
+      country,
+      locale,
       role: "dealer",
     });
     await tx.insert(dealerProfiles).values({
@@ -162,6 +194,8 @@ export async function registerDealer(formData: FormData): Promise<{ error: strin
       to: email,
       verificationUrl,
       name: `${firstName} ${lastName}`.trim() || null,
+      locale,
+      country,
     });
   });
 
@@ -176,13 +210,23 @@ export async function registerDealer(formData: FormData): Promise<{ error: strin
   redirect("/login?dealer_registered=true");
 }
 
-export async function resendVerificationEmail(email: string): Promise<{ success?: boolean; error?: string }> {
+export async function resendVerificationEmail(
+  email: string,
+  locale?: string | null
+): Promise<{ success?: boolean; error?: string }> {
   const normalizedEmail = normalizeEmail(email);
   const db = getDb();
 
   const user = await db
-    .select({ id: appUsers.id, name: appUsers.name, emailVerifiedAt: appUsers.emailVerifiedAt })
+    .select({
+      id: appUsers.id,
+      name: appUsers.name,
+      emailVerifiedAt: appUsers.emailVerifiedAt,
+      locale: profiles.locale,
+      country: profiles.country,
+    })
     .from(appUsers)
+    .leftJoin(profiles, eq(profiles.id, appUsers.id))
     .where(eq(appUsers.email, normalizedEmail))
     .limit(1)
     .then((r) => r[0]);
@@ -201,6 +245,11 @@ export async function resendVerificationEmail(email: string): Promise<{ success?
     to: normalizedEmail,
     verificationUrl,
     name: user.name,
+    locale: resolveEmailLocale({
+      locales: [locale, user.locale],
+      countries: [user.country],
+    }),
+    country: user.country,
   });
 
   return { success: true };
@@ -211,8 +260,15 @@ export async function requestPasswordReset(formData: FormData): Promise<{ succes
   const db = getDb();
 
   const user = await db
-    .select({ id: appUsers.id, name: appUsers.name, passwordHash: appUsers.passwordHash })
+    .select({
+      id: appUsers.id,
+      name: appUsers.name,
+      passwordHash: appUsers.passwordHash,
+      locale: profiles.locale,
+      country: profiles.country,
+    })
     .from(appUsers)
+    .leftJoin(profiles, eq(profiles.id, appUsers.id))
     .where(eq(appUsers.email, email))
     .limit(1)
     .then((r) => r[0]);
@@ -223,8 +279,12 @@ export async function requestPasswordReset(formData: FormData): Promise<{ succes
   const hint = (user.passwordHash ?? "").slice(-8);
   const token = signPayload({ email, exp: Date.now() + 60 * 60 * 1000, hint, purpose: "password-reset" });
   const resetUrl = `${APP_URL}/reimposta-password?token=${token}`;
+  const locale = resolveEmailLocale({
+    locales: [formData.get("locale") as string | null, user.locale],
+    countries: [user.country],
+  });
 
-  sendPasswordResetEmail({ to: email, resetUrl, name: user.name });
+  sendPasswordResetEmail({ to: email, resetUrl, name: user.name, locale, country: user.country });
 
   return { success: true };
 }

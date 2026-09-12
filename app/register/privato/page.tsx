@@ -9,7 +9,7 @@ import FlameEffect from "@/components/FlameEffect";
 import FireBackground from "@/components/FireBackground";
 
 export default function RegisterPrivatoPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -64,6 +64,7 @@ export default function RegisterPrivatoPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <input type="hidden" name="locale" value={locale} />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-foreground/70 mb-1.5">

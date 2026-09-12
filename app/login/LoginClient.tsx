@@ -11,7 +11,7 @@ import FireBackground from "@/components/FireBackground";
 import AuthTopBar from "@/components/AuthTopBar";
 
 function LoginForm() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
   const registered = searchParams.get("registered");
@@ -52,7 +52,7 @@ function LoginForm() {
   async function handleResend() {
     if (!pendingEmail) return;
     setResendLoading(true);
-    await resendVerificationEmail(pendingEmail);
+    await resendVerificationEmail(pendingEmail, locale);
     setResendLoading(false);
     setResendSent(true);
   }
@@ -147,6 +147,7 @@ function LoginForm() {
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-5">
+                <input type="hidden" name="locale" value={locale} />
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-foreground/70 mb-1.5">
                     Email

@@ -88,6 +88,7 @@ export const profiles = pgTable("profiles", {
   province: text("province"),
   postalCode: text("postal_code"),
   country: text("country").notNull().default("IT"),
+  locale: text("locale").notNull().default("it"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

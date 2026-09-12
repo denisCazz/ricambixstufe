@@ -143,6 +143,8 @@ export async function updateOrderStatus(orderId: number, status: string) {
   if (order) {
     let customerEmail = order.guestEmail ?? "";
     let customerName = "";
+    let customerLocale: string | null = null;
+    let customerCountry: string | null = null;
 
     const billing = order.billingAddress as Record<string, string> | null;
     const shipping = order.shippingAddress as Record<string, string> | null;
@@ -152,6 +154,8 @@ export async function updateOrderStatus(orderId: number, status: string) {
       if (prof) {
         customerEmail = prof.email ?? customerEmail;
         customerName = [prof.firstName, prof.lastName].filter(Boolean).join(" ");
+        customerLocale = prof.locale;
+        customerCountry = prof.country;
       }
     }
 
@@ -162,9 +166,11 @@ export async function updateOrderStatus(orderId: number, status: string) {
       await sendOrderStatusUpdateEmail({
         orderId,
         customerEmail,
-        customerName: customerName || "Cliente",
+        customerName,
         status,
         trackingNumber: order.trackingNumber,
+        locale: customerLocale || shipping?.locale,
+        country: customerCountry || shipping?.country,
       });
     }
   }

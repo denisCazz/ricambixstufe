@@ -33,7 +33,7 @@ export async function approveDealer(dealerId: string, discountPercent: number) {
   }
 
   const p = await db
-    .select({ email: profiles.email })
+    .select({ email: profiles.email, locale: profiles.locale, country: profiles.country })
     .from(profiles)
     .where(eq(profiles.id, dealerId))
     .limit(1)
@@ -50,6 +50,8 @@ export async function approveDealer(dealerId: string, discountPercent: number) {
       dealerEmail: p.email,
       companyName: d.companyName,
       discountPercent,
+      locale: p.locale,
+      country: p.country,
     });
   }
 
@@ -73,7 +75,7 @@ export async function rejectDealer(dealerId: string, reason: string) {
   }
 
   const p = await db
-    .select({ email: profiles.email })
+    .select({ email: profiles.email, locale: profiles.locale, country: profiles.country })
     .from(profiles)
     .where(eq(profiles.id, dealerId))
     .limit(1)
@@ -90,6 +92,8 @@ export async function rejectDealer(dealerId: string, reason: string) {
       dealerEmail: p.email,
       companyName: d.companyName,
       reason: reason || null,
+      locale: p.locale,
+      country: p.country,
     });
   }
 

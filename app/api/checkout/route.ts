@@ -15,6 +15,7 @@ import {
   type EuropeShippingMethod,
 } from "@/lib/shipping";
 import { sendOrderConfirmationEmail, sendNewOrderAdminNotification } from "@/lib/email";
+import { parseLocale, resolveEmailLocale } from "@/lib/user-locale";
 import {
   euVatCountryPrefix,
   isValidItalianPartitaIva,
@@ -50,7 +51,7 @@ function lineItemDisplayName(item: LineItem, nameIt: string): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { items, shippingInfo, billingInfo, paymentMethod, europeShippingMethod } = body as {
+    const { items, shippingInfo, billingInfo, paymentMethod, europeShippingMethod, locale: bodyLocale } = body as {
       items: LineItem[];
       shippingInfo: {
         name: string;
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
       billingInfo?: BillingInfo;
       paymentMethod: "bank_transfer" | "cod" | "paypal" | "satispay";
       europeShippingMethod?: EuropeShippingMethod;
+      locale?: string;
     };
 
     if (!items?.length) {
@@ -89,12 +91,14 @@ export async function POST(req: NextRequest) {
     // di spedizione lato server, a prescindere da cosa invia il client.
     let profileCountry: string | null = null;
     let profileProvince: string | null = null;
+    let profileLocale: string | null = null;
     if (user?.id) {
       const profile = await db
         .select({
           role: profiles.role,
           country: profiles.country,
           province: profiles.province,
+          locale: profiles.locale,
         })
         .from(profiles)
         .where(eq(profiles.id, user.id))
@@ -102,6 +106,7 @@ export async function POST(req: NextRequest) {
         .then((r) => r[0]);
       profileCountry = profile?.country?.trim() || null;
       profileProvince = profile?.province?.trim() || null;
+      profileLocale = profile?.locale ?? null;
       if (profile?.role === "dealer") {
         const dealer = await db
           .select({
@@ -310,6 +315,22 @@ export async function POST(req: NextRequest) {
 
     const total = round2(persistedSubtotal + totalShippingCost + codSurcharge);
 
+    const orderLocale = resolveEmailLocale({
+      locales: [bodyLocale, profileLocale],
+      countries: [shippingCountryCode, profileCountry],
+    });
+
+    if (user?.id && parseLocale(bodyLocale) && bodyLocale !== profileLocale) {
+      try {
+        await db
+          .update(profiles)
+          .set({ locale: orderLocale, updatedAt: new Date() })
+          .where(eq(profiles.id, user.id));
+      } catch (error) {
+        console.error("Failed to persist locale on checkout:", error);
+      }
+    }
+
     // Build shipping & billing address objects
     const shippingAddress = {
       name: shippingInfo.name,
@@ -319,6 +340,7 @@ export async function POST(req: NextRequest) {
       zip: shippingInfo.zip,
       province: (shippingProvince || "").toUpperCase().slice(0, 2) || "",
       country: shippingCountryCode,
+      locale: orderLocale,
     };
 
     const billingAddress = {
@@ -625,6 +647,7 @@ export async function POST(req: NextRequest) {
       paymentMethod: dbPaymentMethod,
       shippingAddress,
       billingInfo: billingAddress,
+      locale: orderLocale,
     };
     await Promise.all([
       sendOrderConfirmationEmail(emailData),
