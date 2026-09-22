@@ -1,8 +1,9 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { and, asc, eq, inArray, gte, lte } from "drizzle-orm";
 import { getDb } from "@/db";
-import { orders, orderItems, profiles, daneaOrdersExportLogs } from "@/db/schema";
+import { orders, orderItems, profiles, products, stoves, daneaOrdersExportLogs } from "@/db/schema";
 import { ORDER_NUMBERING_SUFFIX } from "@/lib/order-number";
+import { buildStoveAliasMap, italianDaneaDescription } from "@/lib/danea-order-language";
 
 // Codice IVA Danea per le cessioni intracomunitarie esenti (reverse charge,
 // non imponibile art. 41 D.L.331/93). Deve coincidere con il codice presente
@@ -161,6 +162,29 @@ export async function GET(req: NextRequest) {
     byOrder.set(it.orderId, list);
   }
 
+  const productIds = [...new Set(itemRows.map((it) => it.productId))];
+  const nameItByProductId = new Map<number, string>();
+  if (productIds.length > 0) {
+    const nameRows = await db
+      .select({ id: products.id, nameIt: products.nameIt })
+      .from(products)
+      .where(inArray(products.id, productIds));
+    for (const row of nameRows) nameItByProductId.set(row.id, row.nameIt);
+  }
+
+  const stoveAliases = itemRows.some((it) => it.productName.includes("\n"))
+    ? buildStoveAliasMap(
+        await db
+          .select({
+            nameIt: stoves.nameIt,
+            nameEn: stoves.nameEn,
+            nameFr: stoves.nameFr,
+            nameEs: stoves.nameEs,
+          })
+          .from(stoves)
+      )
+    : new Map<string, string>();
+
   const mapped: OrderRow[] = orderRows.map((o) => ({
     id: o.id,
     created_at: o.createdAt.toISOString(),
@@ -180,7 +204,11 @@ export async function GET(req: NextRequest) {
     order_items: (byOrder.get(o.id) || []).map((it) => ({
       id: it.id,
       product_id: it.productId,
-      product_name: it.productName,
+      product_name: italianDaneaDescription(
+        it.productName,
+        nameItByProductId.get(it.productId),
+        stoveAliases
+      ),
       product_sku: it.productSku,
       quantity: it.quantity,
       unit_price: Number(it.unitPrice),
