@@ -81,6 +81,29 @@ export function calculateShippingCost(
   return Math.round(netRate * (1 + IVA_RATE) * 100) / 100;
 }
 
+const TIER_MAX_KG = [10, 30] as const;
+
+export type ShippingPriceTier = {
+  fromKg: number;
+  maxKg: number;
+  price: number;
+};
+
+/** Gross prices for the public rate table, from the same rates used at checkout. */
+export function getZoneShippingPrices(zone: ShippingZone): {
+  includesIva: boolean;
+  tiers: ShippingPriceTier[];
+} {
+  return {
+    includesIva: zone !== "europe",
+    tiers: TIER_MAX_KG.map((maxKg, index) => ({
+      fromKg: index === 0 ? 0 : TIER_MAX_KG[index - 1],
+      maxKg,
+      price: calculateShippingCost(maxKg, zone),
+    })),
+  };
+}
+
 /** Get a human-readable label for the shipping zone */
 export function getShippingZoneLabel(zone: ShippingZone): string {
   switch (zone) {

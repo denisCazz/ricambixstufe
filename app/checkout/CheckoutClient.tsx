@@ -21,6 +21,7 @@ import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { useUser } from "@/lib/user-context";
 import { formatOrderNumber } from "@/lib/order-number";
+import { COD_SURCHARGE } from "@/lib/shipping";
 
 const COUNTRIES = [
   "Italia",
@@ -108,7 +109,6 @@ interface ShippingCalc {
   codSurcharge: number;
 }
 
-const COD_SURCHARGE = 7.0;
 const BANK_IBAN = "IT76S0708461620000000920491";
 const BANK_INTESTATARIO = "Ricambi X Stufe";
 
@@ -229,7 +229,8 @@ export default function CheckoutClient() {
   const dealerSaving = originalTotal - totalPrice;
 
   const shippingCost = shippingCalc?.shippingCost ?? 0;
-  const codExtra = paymentMethod === "cod" ? COD_SURCHARGE : 0;
+  const codSurcharge = shippingCalc?.codSurcharge ?? COD_SURCHARGE;
+  const codExtra = paymentMethod === "cod" ? codSurcharge : 0;
   const baseTotal = totalPrice + shippingCost + codExtra;
   // If VIES exempt (EU company, not Italy), subtract 22% IVA from product prices
   const grandTotal = viesExempt
@@ -930,12 +931,12 @@ export default function CheckoutClient() {
                       {t("checkout.payment.cod")}
                     </span>
                     <span className="text-xs font-medium text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-full">
-                      +{formatPrice(COD_SURCHARGE)}
+                      +{formatPrice(codSurcharge)}
                     </span>
                   </div>
                   <p className="text-xs text-muted mt-1">
                     {t("checkout.payment.cod_description")
-                      .replace("{amount}", formatPrice(COD_SURCHARGE))}
+                      .replace("{amount}", formatPrice(codSurcharge))}
                   </p>
                 </div>
               </label>
@@ -1092,7 +1093,7 @@ export default function CheckoutClient() {
                     {t("checkout.cod_surcharge")}
                   </span>
                   <span className="font-medium text-amber-600">
-                    +{formatPrice(COD_SURCHARGE)}
+                    +{formatPrice(codSurcharge)}
                   </span>
                 </div>
               )}
