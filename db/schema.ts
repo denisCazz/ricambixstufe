@@ -218,12 +218,6 @@ export const productStoves = pgTable("product_stoves", {
     .references(() => stoves.id, { onDelete: "cascade" }),
 });
 
-export const appSettings = pgTable("app_settings", {
-  key: text("key").primaryKey(),
-  value: jsonb("value").notNull().$type<Record<string, unknown>>(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
 export const productImages = pgTable("product_images", {
   id: serial("id").primaryKey(),
   productId: integer("product_id")

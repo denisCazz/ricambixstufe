@@ -21,6 +21,7 @@ import { useCart } from "@/lib/cart-context";
 import { useLocale } from "@/lib/locale-context";
 import { useUser } from "@/lib/user-context";
 import { formatOrderNumber } from "@/lib/order-number";
+import { COD_SURCHARGE } from "@/lib/shipping";
 
 const COUNTRIES = [
   "Italia",
@@ -108,7 +109,6 @@ interface ShippingCalc {
   codSurcharge: number;
 }
 
-const COD_SURCHARGE = 7.0;
 const BANK_IBAN = "IT76S0708461620000000920491";
 const BANK_INTESTATARIO = "Ricambi X Stufe";
 

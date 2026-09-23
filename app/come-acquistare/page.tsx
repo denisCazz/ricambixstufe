@@ -1,13 +1,21 @@
 import ComeAcquistareClient from "./ComeAcquistareClient";
-import { getShippingConfig } from "@/lib/shipping";
+import {
+  COD_SURCHARGE,
+  getZoneShippingPrices,
+  type ShippingZone,
+} from "@/lib/shipping";
 
-export const dynamic = "force-dynamic";
+const ZONES: ShippingZone[] = ["italy", "islands_calabria", "europe"];
 
 export const metadata = {
   title: "Come acquistare",
 };
 
-export default async function ComeAcquistarePage() {
-  const config = await getShippingConfig();
-  return <ComeAcquistareClient config={config} />;
+export default function ComeAcquistarePage() {
+  const zones = ZONES.map((zone) => ({
+    zone,
+    ...getZoneShippingPrices(zone),
+  }));
+
+  return <ComeAcquistareClient zones={zones} codSurcharge={COD_SURCHARGE} />;
 }

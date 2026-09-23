@@ -3,13 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft, CreditCard, Truck, Clock, Shield, Headphones, Package } from "lucide-react";
 import { useLocale } from "@/lib/locale-context";
-import {
-  tierGrossPrice,
-  type ShippingConfig,
-  type ShippingZone,
-} from "@/lib/shipping-rates";
-
-const ZONES: ShippingZone[] = ["italy", "islands_calabria", "europe"];
+import type { ShippingPriceTier, ShippingZone } from "@/lib/shipping";
 
 function fill(template: string, values: Record<string, string>) {
   return Object.entries(values).reduce(
@@ -18,33 +12,37 @@ function fill(template: string, values: Record<string, string>) {
   );
 }
 
-export default function ComeAcquistareClient({ config }: { config: ShippingConfig }) {
+export default function ComeAcquistareClient({
+  zones,
+  codSurcharge,
+}: {
+  zones: {
+    zone: ShippingZone;
+    includesIva: boolean;
+    tiers: ShippingPriceTier[];
+  }[];
+  codSurcharge: number;
+}) {
   const { t, formatPrice } = useLocale();
 
-  const shippingLines = ZONES.map((zone) => {
-    const zoneConfig = config.zones[zone];
-    const sorted = [...zoneConfig.tiers].sort((a, b) => a.maxKg - b.maxKg);
-    const parts = sorted.map((tier, index) => {
-      const price = formatPrice(
-        tierGrossPrice(tier.rate, zoneConfig.includesIva, config.ivaRate)
-      );
+  const shippingLines = zones.map((zone) => {
+    const parts = zone.tiers.map((tier, index) => {
+      const price = formatPrice(tier.price);
       const range =
         index === 0
           ? fill(t("how_to_buy.shipping_up_to"), { kg: String(tier.maxKg) })
           : fill(t("how_to_buy.shipping_between"), {
-              from: String(sorted[index - 1].maxKg),
+              from: String(tier.fromKg),
               kg: String(tier.maxKg),
             });
       return `${price} ${range}`;
     });
-    const iva = zoneConfig.includesIva
-      ? ` (${t("how_to_buy.shipping_iva_included")})`
-      : "";
-    return `${t(`how_to_buy.zone_${zone}`)}: ${parts.join(" — ")}${iva}`;
+    const iva = zone.includesIva ? ` (${t("how_to_buy.shipping_iva_included")})` : "";
+    return `${t(`how_to_buy.zone_${zone.zone}`)}: ${parts.join(" — ")}${iva}`;
   });
 
   const codLine = fill(t("how_to_buy.payment_cod"), {
-    amount: formatPrice(config.codSurcharge),
+    amount: formatPrice(codSurcharge),
   });
 
   return (
