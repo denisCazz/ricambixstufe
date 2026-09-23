@@ -15,6 +15,7 @@ import {
   LogOut,
   ExternalLink,
   Settings,
+  Truck,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import type { AuthUser } from "@/lib/auth";
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin/users", label: "Utenti", icon: Users },
   { href: "/admin/dealers", label: "Dealer", icon: Briefcase },
   { href: "/admin/settings", label: "Impostazioni", icon: Settings },
+  { href: "/admin/spedizioni", label: "Spedizioni", icon: Truck },
 ];
 
 export default function AdminShell({
