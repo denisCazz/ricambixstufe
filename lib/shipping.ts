@@ -144,6 +144,32 @@ export function calculateShippingCost(
   return tier.rate;
 }
 
+export type ShippingPriceTier = {
+  fromKg: number;
+  maxKg: number;
+  price: number;
+};
+
+/** Gross prices for the public rate table, from the same rates used at checkout. */
+export function getZoneShippingPrices(
+  zone: ShippingZone,
+  config: ShippingConfig = DEFAULT_SHIPPING_CONFIG
+): {
+  includesIva: boolean;
+  tiers: ShippingPriceTier[];
+} {
+  const zoneConfig = config.zones[zone];
+  const sorted = [...zoneConfig.tiers].sort((a, b) => a.maxKg - b.maxKg);
+  return {
+    includesIva: zoneConfig.includesIva,
+    tiers: sorted.map((tier, index) => ({
+      fromKg: index === 0 ? 0 : sorted[index - 1].maxKg,
+      maxKg: tier.maxKg,
+      price: calculateShippingCost(tier.maxKg, zone, config),
+    })),
+  };
+}
+
 export function getShippingZoneLabel(
   zone: ShippingZone,
   config: ShippingConfig = DEFAULT_SHIPPING_CONFIG

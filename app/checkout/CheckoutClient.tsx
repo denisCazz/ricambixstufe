@@ -27,7 +27,7 @@ import {
   isValidItalianPartitaIva,
 } from "@/lib/italian-vat";
 import { grossToNetItalianVat } from "@/lib/catalog-display-price";
-import type { EuropeShippingMethod } from "@/lib/shipping";
+import { COD_SURCHARGE, type EuropeShippingMethod } from "@/lib/shipping";
 import ReceiptUploader from "@/components/ReceiptUploader";
 import { formatOrderNumber } from "@/lib/order-number";
 
@@ -126,7 +126,6 @@ interface ShippingCalc {
   fragileShippingCost: number;
 }
 
-const COD_SURCHARGE = 7.0;
 const BANK_IBAN = "IT76S0708461620000000920491";
 const BANK_INTESTATARIO = "Ricambi X Stufe";
 
@@ -334,7 +333,8 @@ export default function CheckoutClient() {
   const shippingCost = shippingCalc?.shippingCost ?? 0;
   const fragileShippingCost = shippingCalc?.fragileShippingCost ?? 0;
   const effectiveShippingCost = fragileShippingCost > 0 ? fragileShippingCost : shippingCost;
-  const codExtra = paymentMethod === "cod" ? COD_SURCHARGE : 0;
+  const codSurcharge = shippingCalc?.codSurcharge ?? COD_SURCHARGE;
+  const codExtra = paymentMethod === "cod" ? codSurcharge : 0;
   const baseTotal = totalPrice + effectiveShippingCost + codExtra;
   const productsNetIt = grossToNetItalianVat(totalPrice);
   const grandTotal = italianVatIncluded
@@ -1163,12 +1163,12 @@ export default function CheckoutClient() {
                       {t("checkout.payment.cod")}
                     </span>
                     <span className="text-xs font-medium text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-full">
-                      +{formatPrice(COD_SURCHARGE)}
+                      +{formatPrice(codSurcharge)}
                     </span>
                   </div>
                   <p className="text-xs text-muted mt-1">
                     {t("checkout.payment.cod_description")
-                      .replace("{amount}", formatPrice(COD_SURCHARGE))}
+                      .replace("{amount}", formatPrice(codSurcharge))}
                   </p>
                 </div>
               </label>
@@ -1352,7 +1352,7 @@ export default function CheckoutClient() {
                     {t("checkout.cod_surcharge")}
                   </span>
                   <span className="font-medium text-amber-600">
-                    +{formatPrice(COD_SURCHARGE)}
+                    +{formatPrice(codSurcharge)}
                   </span>
                 </div>
               )}
