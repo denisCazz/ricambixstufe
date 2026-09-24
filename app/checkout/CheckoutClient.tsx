@@ -27,7 +27,7 @@ import {
   isValidItalianPartitaIva,
 } from "@/lib/italian-vat";
 import { grossToNetItalianVat } from "@/lib/catalog-display-price";
-import { COD_SURCHARGE, type EuropeShippingMethod } from "@/lib/shipping";
+import type { EuropeShippingMethod } from "@/lib/shipping";
 import ReceiptUploader from "@/components/ReceiptUploader";
 import { formatOrderNumber } from "@/lib/order-number";
 
@@ -126,6 +126,7 @@ interface ShippingCalc {
   fragileShippingCost: number;
 }
 
+const COD_SURCHARGE_FALLBACK = 7.0;
 const BANK_IBAN = "IT76S0708461620000000920491";
 const BANK_INTESTATARIO = "Ricambi X Stufe";
 
@@ -333,7 +334,7 @@ export default function CheckoutClient() {
   const shippingCost = shippingCalc?.shippingCost ?? 0;
   const fragileShippingCost = shippingCalc?.fragileShippingCost ?? 0;
   const effectiveShippingCost = fragileShippingCost > 0 ? fragileShippingCost : shippingCost;
-  const codSurcharge = shippingCalc?.codSurcharge ?? COD_SURCHARGE;
+  const codSurcharge = shippingCalc?.codSurcharge ?? COD_SURCHARGE_FALLBACK;
   const codExtra = paymentMethod === "cod" ? codSurcharge : 0;
   const baseTotal = totalPrice + effectiveShippingCost + codExtra;
   const productsNetIt = grossToNetItalianVat(totalPrice);
